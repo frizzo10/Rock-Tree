@@ -411,7 +411,7 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
   <!-- SETUP -->
   <section id="setup">
     <h2 class="sec-title">Choose your draft</h2>
-    <p class="lede">You and the computer alternate picks from the same pool, snake style, until both 18-man rosters are full. Every player you take is one it can't have.</p>
+    <p class="lede">You and the computer take turns, one pick each, from the same pool until both 18-man rosters are full. Every player you take is one it can't have.</p>
     <div class="modes" id="modes"></div>
     <div class="setup-row">
       <div class="field" id="decadeField" hidden><label for="decadeSel">Decade</label><select id="decadeSel"></select></div>
@@ -1049,7 +1049,8 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
   }
 
   const TOTAL = SLOTS.length * 2;
-  const whoPicks = n => { const round = Math.floor(n / 2), first = round % 2 === 0 ? (D.youFirst ? 'you' : 'cpu') : (D.youFirst ? 'cpu' : 'you'); return n % 2 === 0 ? first : (first === 'you' ? 'cpu' : 'you'); };
+  // strict alternation: the coin-flip winner takes every odd-numbered pick
+  const whoPicks = n => (n % 2 === 0) === D.youFirst ? 'you' : 'cpu';
   let memo = null; // per-pick cache so checking hundreds of players stays fast
   const ctx = () => {
     const sig = D.pick + ':' + Object.keys(D.teams.you).length + ':' + Object.keys(D.teams.cpu).length;
@@ -1173,10 +1174,14 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
   }
   let autoPicked = false;
 
-  let cpuPhase = null; // 'thinking' while the computer is on the clock, 'picked' while its pick is on show
+  let cpuPhase = null, cpuThinkEnd = 0; // 'thinking' while the computer is on the clock, 'picked' while its pick is on show
   async function cpuPick() {
     busyCpu = true; cpuPhase = 'thinking'; view = 'cpu'; drawRoom();
-    await wait(900);
+    const THINK = 7;
+    cpuThinkEnd = Date.now() + THINK * 1000;
+    const tk = setInterval(() => { const el = $('cpuClock'); if (el) el.textContent = fmtClock(Math.max(0, Math.ceil((cpuThinkEnd - Date.now()) / 1000))); }, 250);
+    await new Promise(r => setTimeout(r, THINK * 1000));
+    clearInterval(tk); cpuThinkEnd = 0;
     const need = openSlots('cpu');
     const hitNeed = need.filter(s => s.kind === 'H').length, pitNeed = need.length - hitNeed;
     const cands = D.pool.map(k => BY.get(k)).filter(p => !canDraft(p, 'cpu'));
@@ -1340,7 +1345,7 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
     const last = D.log[D.log.length - 1], lp = last && BY.get(last.key);
     const yourClock = side === 'you' && clockOn() && !D.done && whoPicks(D.pick) === 'you' && !busyCpu;
     const banner = yourClock ? `<p class="wb-banner clock" id="clockBanner">On the clock: ${fmtClock(clockLeft() ?? CLOCK_SECS)}</p>`
-      : side === 'cpu' && cpuPhase === 'thinking' ? `<p class="wb-banner">Computer is on the clock…</p>`
+      : side === 'cpu' && cpuPhase === 'thinking' ? `<p class="wb-banner">Computer is on the clock: <span id="cpuClock">${fmtClock(cpuThinkEnd ? Math.max(0, Math.ceil((cpuThinkEnd - Date.now()) / 1000)) : 7)}</span></p>`
       : side === 'cpu' && cpuPhase === 'picked' && lp ? `<p class="wb-banner picked">Computer takes ${esc(lp.name)} (${lp.yr}) at ${SLOTS.find(s => s.id === last.slot).label}</p>` : '';
     $('fieldHost').innerHTML = banner + `<div class="park" role="group" aria-label="${side === 'you' ? 'Your' : "Computer's"} lineup">
       <svg class="grass" viewBox="0 0 100 92" preserveAspectRatio="none" aria-hidden="true">
