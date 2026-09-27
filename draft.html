@@ -6,7 +6,7 @@
 <title>Greatest Teams Sim: Draft Room</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;1,400&family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
 
 :root {
@@ -257,6 +257,112 @@ footer p { margin: 0 0 6px; }
 .advice .acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .advice .btn-alt { color: var(--numeral); border-color: var(--dim); }
 .advice .btn-alt:hover { background: var(--board-deep); }
+
+/* ---------- war room (front-office look for setup and the draft) ---------- */
+:root { --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --wall: #CED2CF; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; } }
+:root[data-theme="dark"] { --wall: #1C201E; }
+body.war { background: var(--wall); }
+body.war .board { background: var(--wb); color: #20262D; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); border-radius: 4px; }
+body.war .board h1 { font: 400 clamp(28px, 5vw, 42px)/1.05 var(--marker); color: var(--wb-ink); letter-spacing: 0; }
+body.war .board-top p { color: #4A5560; }
+body.war .proj .m { color: #4A5560; }
+body.war .proj .m b { font: 400 40px/1 var(--marker); color: var(--wb-ink); }
+body.war .proj .m b.up { color: var(--wb-green); }
+body.war .proj .bar { background: #E2E5E3; }
+body.war .proj .bar i { background: var(--wb-green); }
+body.war .ticker { color: #2A2F36; }
+body.war .ticker b { color: var(--wb-red); }
+body.war .sec-title { font: 400 30px/1.1 var(--marker); color: var(--wb-ink); }
+body.war .lede, body.war .unlock { color: var(--ink); }
+body.war .mode { background: #E8D5A4; color: #3A2E12; border: 0; border-radius: 3px 10px 4px 4px; box-shadow: 0 2px 0 #C9B27A; position: relative; margin-top: 10px; }
+body.war .mode::before { content: ''; position: absolute; top: -10px; left: 12px; width: 42%; height: 12px; background: #E8D5A4; border-radius: 6px 6px 0 0; }
+body.war .mode p { color: #5B4B25; }
+body.war .mode[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--wb-ink); }
+body.war .mode .done { color: var(--wb-red); }
+body.war .btn-main { background: var(--wb-ink); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body.war .sec-title, :root:not([data-theme="light"]) .desk .pool-head h2 { color: #9DB7F5; } }
+:root[data-theme="dark"] body.war .sec-title, :root[data-theme="dark"] .desk .pool-head h2 { color: #9DB7F5; }
+body.war .btn-main:hover { background: #17306E; }
+body.war .done-panel { background: var(--wb); color: #20262D; box-shadow: inset 0 0 0 8px var(--wb-frame); border: 0; }
+body.war .done-panel h2 { font: 400 28px var(--marker); color: var(--wb-ink); }
+body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
+
+/* whiteboard with the lineup drawn in marker */
+.wb { background: var(--wb); color: #20262D; border: 0; box-shadow: inset 0 0 0 8px var(--wb-frame); border-radius: 4px; padding: 20px 22px; }
+.wb .toggle button { border-color: var(--wb-frame); color: #20262D; }
+.wb .toggle button[aria-pressed="true"] { background: var(--wb-ink); color: #fff; border-color: var(--wb-ink); }
+.wb .park { background: transparent; }
+.wb .park svg.grass path, .wb .park svg.grass circle { fill: none; stroke: var(--wb-ink); stroke-width: .6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.wb .park svg.grass { overflow: visible; }
+.wb .staff h3 { font: 400 20px var(--marker); color: var(--wb-ink); }
+.wb .spot.open { background: transparent; border: 2px dashed var(--wb-ink); color: var(--wb-ink); }
+.wb .spot.open.sel { background: rgba(31, 63, 143, .08); border-style: solid; }
+.wb .spot.open b { font: 400 15px/1.1 var(--marker); color: var(--wb-ink); }
+.wb .spot.open .pl { color: var(--wb-red); }
+.wb .spot.filled { background: #fff; color: #1B1A16; border-top: 0; border-left: 7px solid var(--mag); box-shadow: 0 2px 4px rgba(0,0,0,.22); border-radius: 3px; }
+.wb .spot.filled .pl { color: var(--mag); }
+.wb .log { border-top: 2px solid #E2E5E3; padding-top: 6px; }
+.wb .log p { border-bottom-color: #E8EBE9; color: #2A2F36; }
+.wb .log p.you b { color: var(--wb-green); }
+.wb .log p.cpu b { color: var(--wb-red); }
+.wb-key { display: flex; gap: 16px; font-size: 13px; color: #4A5560; margin: 8px 0 0; }
+.wb-key i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+/* the analyst's laptop: a spreadsheet of the pool */
+.desk { background: transparent; border: 0; padding: 0; }
+.desk .pool-head h2 { font: 400 26px var(--marker); color: var(--wb-ink); }
+.laptop { background: #2B2E33; border-radius: 10px; padding: 0 10px 10px; box-shadow: 0 4px 0 #1A1C1F; }
+.lbar { display: flex; align-items: center; gap: 6px; padding: 8px 4px; color: #B9C0C8; font-size: 13px; }
+.lbar i { width: 10px; height: 10px; border-radius: 50%; background: #5A6068; }
+.lbar span { margin-left: 8px; }
+.laptop .ptools { background: #F1F3F5; margin: 0; padding: 8px; gap: 8px; border-bottom: 1px solid #C9CED4; }
+.laptop .ptools input, .laptop .ptools select { background: #fff; color: #1B1F24; border-color: #C9CED4; }
+.sheet { background: #fff; color: #1B1F24; max-height: 520px; overflow: auto; }
+.sheet table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+.sheet th, .sheet td { border: 1px solid #D9DDE2; padding: 4px 5px; text-align: right; white-space: nowrap; }
+.sheet thead th { position: sticky; top: 0; background: #EEF0F3; color: #3B4450; font-weight: 600; z-index: 1; }
+.sheet thead th button { all: unset; cursor: pointer; }
+.sheet thead th button:focus-visible { outline: 2px solid var(--wb-ink); }
+.sheet thead th.key { background: #FFF1A6; }
+.sheet thead th.sorted { color: var(--wb-ink); }
+.sheet td.rn { background: #EEF0F3; color: #7A838E; text-align: center; font-size: 12px; }
+.sheet td.nm { text-align: left; }
+.sheet td.nm button { all: unset; cursor: pointer; font-weight: 600; }
+.sheet td.nm button:hover { text-decoration: underline; }
+.sheet td.nm small { display: block; color: #6A737E; font-size: 12px; white-space: normal; }
+.sheet td.nm { white-space: normal; min-width: 128px; }
+.room { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+.sheet td.nm button:focus-visible { outline: 2px solid var(--wb-ink); }
+.sheet td.tx { text-align: left; color: #5A6470; }
+.sheet td.key { background: #FFFBDF; font-weight: 600; }
+.sheet tr.pv td { background: #DCE8FA; }
+.sheet tr.pv td.rn { background: #C7D8F3; }
+.sheet tr.locked td { color: #A3AAB3; }
+.sheet .btn-draft { padding: 3px 10px; font-size: 13px; background: var(--wb-green); color: #fff; }
+.sheet .btn-draft:hover { background: #17633A; }
+.sheet .btn-draft[disabled] { background: #C9CED4; color: #fff; opacity: 1; }
+.sheet .lock { font-size: 11px; }
+.sheet .more { padding: 8px 10px; color: #5A6470; font-size: 13px; margin: 0; }
+.sheettabs { display: flex; gap: 2px; background: #E3E6EA; padding: 0 6px; border-top: 1px solid #C9CED4; }
+.sheettabs button { all: unset; cursor: pointer; padding: 6px 14px; font-size: 13px; color: #3B4450; background: #D5D9DE; border-radius: 0 0 4px 4px; }
+.sheettabs button[aria-selected="true"] { background: #fff; color: var(--wb-green); font-weight: 600; }
+.sheettabs button:focus-visible { outline: 2px solid var(--wb-ink); }
+
+/* the scout's notes on a legal pad */
+.advice { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border-radius: 2px; padding: 12px 16px 14px 40px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); }
+.advice::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
+.advice h3 { font: 400 20px/1.25 var(--marker); color: var(--wb-red); }
+.advice p { font-size: 15px; line-height: 26px; margin: 0 0 4px; }
+.advice ul { color: #3A3A3A; line-height: 26px; }
+.advice li b { color: #1B1B1B; }
+.advice .btn-alt { color: #2A2A2A; border-color: #8A845A; background: transparent; }
+.advice .btn-alt:hover { background: #F5E88A; }
+.desk .btn-scout { background: var(--wb-ink); color: #fff; }
+.desk .btn-scout:hover { background: #17306E; }
+.desk .tip { color: var(--ink); }
+.advice .btn-scout { background: var(--wb-green); color: #fff; }
+
 @media (max-width: 900px) { .room { grid-template-columns: 1fr; } .vcard .body { grid-template-columns: 1fr; } }
 @media (max-width: 560px) {
   .spot { width: 29%; padding: 4px 5px; min-height: 40px; }
@@ -267,7 +373,7 @@ footer p { margin: 0 0 6px; }
 }
 </style>
 </head>
-<body>
+<body class="war">
 <div class="wrap">
   <section class="board" aria-label="Draft board">
     <div class="board-top">
@@ -304,7 +410,7 @@ footer p { margin: 0 0 6px; }
   <!-- DRAFT ROOM -->
   <section id="room" hidden>
     <div class="room">
-      <section class="paper" aria-label="Rosters">
+      <section class="paper wb" aria-label="Rosters">
         <div class="toggle" role="group" aria-label="Show roster">
           <button id="showYou" aria-pressed="true">Your team</button>
           <button id="showCpu" aria-pressed="false">Computer's team</button>
@@ -312,17 +418,20 @@ footer p { margin: 0 0 6px; }
         <div id="fieldHost"></div>
         <div class="log" id="log" aria-label="Draft log"></div>
       </section>
-      <section class="paper pool" aria-label="Player pool">
+      <section class="paper pool desk" aria-label="Player pool">
         <div class="pool-head"><h2 id="poolTitle">Player pool</h2><button class="btn btn-scout" id="scoutBtn">Ask the scout</button></div>
         <p class="tip" id="poolTip"></p>
         <div id="advice" aria-live="polite"></div>
         <div id="preview"></div>
-        <div class="ptools">
-          <input id="search" type="search" placeholder="Search name, team or year" aria-label="Search players">
-          <select id="posFilter" aria-label="Position"></select>
-          <select id="sort" aria-label="Sort"><option value="sal">Best available</option><option value="yr-a">Oldest first</option><option value="yr-d">Newest first</option><option value="nm">Name</option></select>
+        <div class="laptop" id="laptop">
+          <div class="lbar" aria-hidden="true"><i></i><i></i><i></i><span>player_pool.xls</span></div>
+          <div class="ptools">
+            <input id="search" type="search" placeholder="Search name, team or year" aria-label="Search players">
+            <select id="posFilter" aria-label="Position"></select>
+          </div>
+          <div class="sheet" id="plist"></div>
+          <div class="sheettabs" role="tablist" id="sheetTabs"></div>
         </div>
-        <div class="plist" id="plist"></div>
       </section>
     </div>
     <div class="done-panel" id="donePanel" hidden>
@@ -886,7 +995,7 @@ footer p { margin: 0 0 6px; }
     { id: 'classic', name: 'Classic draft', desc: 'The whole all-time pool. No salary cap, just better picks.' },
     { id: 'decade', name: 'Decade draft', desc: 'Only seasons from one decade. You pick which.' },
     { id: 'franchise', name: 'Hometown draft', desc: "One franchise's all-time best seasons, split between you and the computer." },
-    { id: 'payroll', name: 'Payroll crunch', desc: 'Both teams must fit under a $90M payroll. Stars cost you depth.', cap: 90 },
+    { id: 'payroll', name: 'Payroll crunch', desc: 'Both teams must fit under a $100M payroll. Stars cost you depth.', cap: 100 },
     { id: 'onefr', name: 'One per franchise', desc: 'No two players from the same franchise on either team.' },
   ];
   const WINS_TO_UNLOCK = 3;
@@ -1078,7 +1187,7 @@ footer p { margin: 0 0 6px; }
       return Math.max(1, n('you') + n('cpu'));
     };
     const replacement = (s, except) => {
-      const pool = left.filter(p => p.key !== except && open(p) && strictFit(p, s)).sort((a, b) => runs(b) - runs(a));
+      const pool = draftable.filter(p => p.key !== except && strictFit(p, s)).sort((a, b) => runs(b) - runs(a));
       return pool[Math.min(pool.length - 1, demand(s) - 1)];
     };
     const short = new Map();
@@ -1086,7 +1195,7 @@ footer p { margin: 0 0 6px; }
     for (const s of myOpen) draftable.filter(p => strictFit(p, s)).sort((a, b) => runs(b) - runs(a)).slice(0, 4).forEach(p => short.set(p.key, p));
     const cands = [...short.values()].map(p => {
       const s = slotFor(p, 'you', null), nb = replacement(s, p.key);
-      return { p, s, gain: runs(p) - (nb ? runs(nb) : 0), nb };
+      return { p, s, gain: Math.max(0, runs(p) - (nb ? runs(nb) : 0)), nb };
     }).sort((a, b) => b.gain - a.gain || runs(b.p) - runs(a.p));
     if (!cands.length) { scouting = false; $('scoutBtn').disabled = false; $('advice').innerHTML = '<div class="advice"><h3>No moves left</h3><p>Nobody left fits your open spots.</p></div>'; return; }
     const top = cands[0];
@@ -1098,7 +1207,7 @@ footer p { margin: 0 0 6px; }
     const why = [];
     const wins = top.gain / 10;
     why.push(top.nb ? `He's about ${Math.round(top.gain)} runs a season better than the ${slotName(top.s)} you'd be left with if you fill that spot last (someone like ${top.nb.name}, ${top.nb.yr}). ${wins >= 1.5 ? `That's roughly ${Math.round(wins)} extra wins over a full season.` : wins >= 0.75 ? "That's about one extra win over a full season." : 'Every spot on your roster is deep right now, so it is also fine to take whoever you like best.'}`
-      : `If you wait, there may be no ${slotName(top.s)} left worth having.`);
+      : D.cap ? `He's one of the only ${plural(top.s)} left that fit your budget.` : `If you wait, there may be no ${slotName(top.s)} left worth having.`);
     if (strongLeft <= 4) why.push(`Only ${strongLeft} strong ${plural(top.s)} are left on the board${cpuNeedsIt ? ', and the computer still needs one' : ''}.`);
     else if (cpuNeedsIt && gap >= 1) why.push(`The computer still needs a ${slotName(top.s)} and picks ${gap === 1 ? 'next' : `the next ${gap} times`}.`);
     if (D.cap) { const per = (D.cap - payroll('you') - top.p.sal) / Math.max(1, myOpen.length - 1); why.push(`After him you'd have ${money(D.cap - payroll('you') - top.p.sal)} for ${myOpen.length - 1} spots, about ${money(Math.round(per * 2) / 2)} each.`); }
@@ -1107,7 +1216,7 @@ footer p { margin: 0 0 6px; }
     let balance = '';
     if (pitOpen >= 7 && roundsLeft <= 12) balance = `Heads up: you still have ${pitOpen} pitching spots open. The good arms go fast.`;
     else if (hitOpen >= 7 && roundsLeft <= 12) balance = `Heads up: you still have ${hitOpen} lineup spots open.`;
-    advice = { top, alts: cands.slice(1, 3), why, balance };
+    advice = { top, alts: cands.slice(1, 3).filter(a => a.gain >= 1), why, balance };
     scouting = false; $('scoutBtn').disabled = false;
     drawAdvice();
   }
@@ -1139,7 +1248,7 @@ footer p { margin: 0 0 6px; }
   function spotHtml(s, key, side, absolute) {
     const p = key && BY.get(key), st = absolute ? `style="left:${COORD[s.id][0]}%;top:${COORD[s.id][1]}%"` : '';
     const isFresh = fresh && fresh.side === side && fresh.slot === s.id;
-    if (p) return `<button class="spot filled ${isFresh ? 'fresh' : ''}" data-key="${p.key}" style="${absolute ? `left:${COORD[s.id][0]}%;top:${COORD[s.id][1]}%;` : ''}--band:${band(p.fr)}"><span class="pl">${s.label}</span><b>${esc(p.name)}</b><span>${p.yr} ${esc(p.fr)}</span></button>`;
+    if (p) return `<button class="spot filled ${isFresh ? 'fresh' : ''}" data-key="${p.key}" style="${absolute ? `left:${COORD[s.id][0]}%;top:${COORD[s.id][1]}%;` : ''}--mag:${side === 'you' ? 'var(--wb-green)' : 'var(--wb-red)'}"><span class="pl">${s.label}</span><b>${esc(p.name)}</b><span>${p.yr} ${esc(p.fr)}</span></button>`;
     const mine = side === 'you';
     return `<button class="spot open ${selSlot === s.id && mine ? 'sel' : ''}" ${st} ${mine ? `data-slot="${s.id}"` : 'disabled'}><span class="pl">${s.label}</span><b>${!mine ? 'Open' : s.kind === 'H' ? 'Pick a ' + POSN[s.pos] : s.role === 'SP' ? 'Starter' : 'Reliever'}</b></button>`;
   }
@@ -1151,49 +1260,72 @@ footer p { margin: 0 0 6px; }
     const rp = SLOTS.filter(s => s.role === 'RP').map(s => spotHtml(s, r[s.id], side, false)).join('');
     $('fieldHost').innerHTML = `<div class="park" role="group" aria-label="${side === 'you' ? 'Your' : "Computer's"} lineup">
       <svg class="grass" viewBox="0 0 100 92" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M50 88 L2 42 Q50 -14 98 42 Z" fill="#2E6A4E"/><path d="M50 84 L78 58 L50 32 L22 58 Z" fill="#9B7650"/>
-        <path d="M50 78 L70 58 L50 40 L30 58 Z" fill="#2E6A4E"/><circle cx="50" cy="59" r="3.2" fill="#9B7650"/></svg>${hit}</div>
+        <path d="M50 86 L4 42 Q50 -12 96 42 Z"/><path d="M50 82 L76 58 L50 34 L24 58 Z"/><circle cx="50" cy="59" r="2.6"/></svg>${hit}</div>
+      <p class="wb-key"><span><i style="background:var(--wb-green)"></i>Your picks</span><span><i style="background:var(--wb-red)"></i>Computer's picks</span></p>
       <div class="staff"><h3>Rotation</h3><div class="row">${sp}</div><h3>Bullpen</h3><div class="row pen">${rp}</div></div>`;
     $('fieldHost').querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { selSlot = selSlot === b.dataset.slot ? null : b.dataset.slot; syncPosFilter(); drawRoom(); });
     $('fieldHost').querySelectorAll('[data-key]').forEach(b => b.onclick = () => { previewKey = b.dataset.key; drawPool(); });
     fresh = null;
   }
 
-  const posOpts = [['', 'All positions'], ...['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf'].map(p => [p, p.toUpperCase()]), ['H', 'Any hitter'], ['SP', 'Starters'], ['RP', 'Relievers']];
+  const posOpts = [['', 'All positions'], ...['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf'].map(p => [p, p.toUpperCase()])];
   $('posFilter').innerHTML = posOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  let sheet = 'H', sortKey = 'Runs+', sortDir = -1;
   function syncPosFilter() {
     const s = selSlot && SLOTS.find(x => x.id === selSlot);
-    $('posFilter').value = !s ? '' : s.kind === 'H' ? (s.pos === 'dh' ? 'H' : s.pos) : s.role;
+    if (!s) return;
+    sheet = s.kind === 'H' ? 'H' : s.role;
+    $('posFilter').value = s.kind === 'H' && s.pos !== 'dh' ? s.pos : '';
   }
+  const obp = p => (p.H + p.BB + p.HBP) / p.PA, slg = p => (p.S + 2 * p.D + 3 * p.T + 4 * p.HR) / p.AB;
+  const era = p => p.ER * 27 / p.IPOuts, whip = p => (p.H + p.BB) * 3 / p.IPOuts;
+  const COLS = {
+    H: [['AVG', p => p.H / p.AB, f3], ['OBP', obp, f3, true], ['SLG', slg, f3], ['HR', p => p.HR, x => x]],
+    SP: [['W', p => p.W, x => x], ['ERA', era, x => x.toFixed(2), true, 1], ['WHIP', whip, x => x.toFixed(2), false, 1], ['SO', p => p.SO, x => x]],
+    RP: [['SV', p => p.SV, x => x], ['ERA', era, x => x.toFixed(2), true, 1], ['WHIP', whip, x => x.toFixed(2), false, 1], ['SO', p => p.SO, x => x]],
+  };
 
   function drawPool() {
     const yourTurn = !D.done && whoPicks(D.pick) === 'you' && !busyCpu;
-    const q = $('search').value.trim().toLowerCase(), pf = $('posFilter').value, sort = $('sort').value;
+    const q = $('search').value.trim().toLowerCase(), pf = $('posFilter').value;
+    $('posFilter').hidden = sheet !== 'H';
     let list = D.pool.map(k => BY.get(k)).filter(p => !taken().has(p.key));
-    if (pf === 'H') list = list.filter(p => p.kind === 'H');
-    else if (pf === 'SP' || pf === 'RP') list = list.filter(p => p.kind === 'P' && (pf === 'RP' || p.role === 'SP'));
-    else if (pf) list = list.filter(p => p.kind === 'H' && p.elig.includes(pf));
+    list = sheet === 'H' ? list.filter(p => p.kind === 'H' && (!pf || p.elig.includes(pf))) : list.filter(p => p.kind === 'P' && p.role === sheet);
     if (q) list = list.filter(p => `${p.name} ${p.tm} ${p.yr}`.toLowerCase().includes(q));
-    const cmp = { sal: (a, b) => b.sal - a.sal, 'yr-a': (a, b) => a.yr - b.yr, 'yr-d': (a, b) => b.yr - a.yr, nm: (a, b) => a.name.localeCompare(b.name) }[sort];
+    const cols = COLS[sheet];
+    const extra = [['Runs+', p => runs(p), x => Math.round(x)]];
+    if (D.cap) extra.push(['$M', p => p.sal, x => x]);
+    const allCols = [...cols, ...extra];
+    const col = allCols.find(c => c[0] === sortKey);
+    const val = col ? col[1] : (p => runs(p));
+    const dir = col && col[4] ? -sortDir : sortDir; // for ERA and WHIP, "best" means lowest
+    const special = { Player: (a, b) => a.name.localeCompare(b.name), Year: (a, b) => a.yr - b.yr };
     const lk = p => (p.legend && !legendsOpen()) ? 1 : 0; // locked legends sink to the bottom
-    list.sort((a, b) => lk(a) - lk(b) || cmp(a, b));
+    list.sort((a, b) => lk(a) - lk(b) || (special[sortKey] ? special[sortKey](a, b) * -sortDir : (val(a) - val(b)) * dir));
     const shown = list.slice(0, 150);
-    $('plist').innerHTML = shown.map(p => {
+    const th = (name, key) => `<th class="${key ? 'key' : ''} ${sortKey === name ? 'sorted' : ''}"><button data-sort="${name}" aria-label="Sort by ${name}">${name}${sortKey === name ? (sortDir < 0 ? ' ▼' : ' ▲') : ''}</button></th>`;
+    const head = `<tr><th></th>${th('Player')}<th>${sheet === 'H' ? 'Pos' : 'W-L'}</th>${allCols.map(c => th(c[0], c[3])).join('')}<th></th></tr>`;
+    const rows = shown.map((p, i) => {
       const why = canDraft(p, 'you'), locked = p.legend && !legendsOpen();
-      const tag = p.kind === 'H' ? p.elig.map(x => x.toUpperCase()).join('/') : p.role;
-      return `<div class="prow ${locked ? 'locked' : ''}"><button class="who" data-prev="${p.key}"><b>${esc(p.name)}</b>${locked ? ' <span class="lock">Locked legend</span>' : ''}<small>${p.yr} ${esc(p.tm)}, ${tag}</small></button>
-        <span class="cost">${D.cap ? money(p.sal) : ''}</span>
-        <button class="btn btn-draft" data-draft="${p.key}" ${!yourTurn || why ? `disabled title="${esc(why || 'Wait for your pick')}"` : ''}>Draft</button></div>`;
-    }).join('') + (list.length > shown.length ? `<p class="tip" style="padding:10px 0">Showing the top 150 of ${list.length}. Search or filter to find more.</p>` : '') +
-      (list.length ? '' : '<p class="empty" style="padding:12px 0">No available players match. Clear the search or change the position.</p>');
+      return `<tr class="${locked ? 'locked' : ''} ${previewKey === p.key ? 'pv' : ''}"><td class="rn">${i + 1}</td>
+        <td class="nm"><button data-prev="${p.key}">${esc(p.name)}</button>${locked ? ' <span class="lock">Locked</span>' : ''}<small>${p.yr} ${esc(p.tm)}</small></td><td class="tx">${p.kind === 'H' ? p.elig.map(x => x.toUpperCase()).join('/') : `${p.W}-${p.L}`}</td>
+        ${allCols.map(c => `<td class="${c[3] ? 'key' : ''}">${c[2](c[1](p))}</td>`).join('')}
+        <td><button class="btn btn-draft" data-draft="${p.key}" ${!yourTurn || why ? `disabled title="${esc(why || 'Wait for your pick')}"` : ''}>Draft</button></td></tr>`;
+    }).join('');
+    $('plist').innerHTML = list.length ? `<table><thead>${head}</thead><tbody>${rows}</tbody></table>` + (list.length > shown.length ? `<p class="more">Showing the top 150 of ${list.length}. Search or sort to find more.</p>` : '')
+      : '<p class="more">No available players match. Clear the search or change the position.</p>';
+    $('plist').querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { const k = b.dataset.sort; sortDir = sortKey === k ? -sortDir : (k === 'Player' ? 1 : -1); sortKey = k; drawPool(); });
     $('plist').querySelectorAll('[data-draft]').forEach(b => b.onclick = () => draft(BY.get(b.dataset.draft), 'you'));
-    $('plist').querySelectorAll('[data-prev]').forEach(b => b.onclick = () => { previewKey = b.dataset.prev; drawPreview(); });
+    $('plist').querySelectorAll('[data-prev]').forEach(b => b.onclick = () => { previewKey = b.dataset.prev; drawPool(); });
+    const tabs = [['H', 'Hitters'], ['SP', 'Starters'], ['RP', 'Relievers']];
+    $('sheetTabs').innerHTML = tabs.map(([k, l]) => `<button role="tab" aria-selected="${sheet === k}" data-sheet="${k}">${l}</button>`).join('');
+    $('sheetTabs').querySelectorAll('[data-sheet]').forEach(b => b.onclick = () => { sheet = b.dataset.sheet; if (!COLS[sheet].some(c => c[0] === sortKey) && !['Runs+', '$M', 'Player'].includes(sortKey)) sortKey = 'Runs+'; drawPool(); });
     const s = selSlot && SLOTS.find(x => x.id === selSlot);
     $('poolTitle').textContent = s ? `Pick a ${s.kind === 'H' ? POSN[s.pos] : POSN[s.role]}` : 'Player pool';
     drawAdvice();
     $('poolTip').textContent = D.done ? 'Every spot is filled.' :
-      (yourTurn ? "You're on the clock. Tap a name to read his card, then draft him." : 'The computer is picking.') +
-      (D.cap ? ` Payroll ${money(payroll('you'))} of ${money(D.cap)}.` : '');
+      (yourTurn ? "You're on the clock. Click a name to read his card. Runs+ is how many runs his season is worth above an average player." : 'The computer is picking.') +
+      (D.cap ? ` Payroll ${money(payroll('you'))} of ${money(D.cap)}.` : '') + (sheet === 'RP' ? ' Starters can pitch in relief too.' : '');
     drawPreview();
   }
 
@@ -1223,11 +1355,12 @@ footer p { margin: 0 0 6px; }
     $('showYou').setAttribute('aria-pressed', view === 'you'); $('showCpu').setAttribute('aria-pressed', view === 'cpu');
     drawField(); drawPool(); drawTicker(); drawLog();
     $('donePanel').hidden = !D.done;
-    document.querySelector('.ptools').hidden = D.done; $('plist').hidden = D.done; $('preview').hidden = D.done;
+    $('laptop').hidden = D.done; $('preview').hidden = D.done;
     if (D.done) $('doneText').textContent = `Both rosters are full. Projection: your team beats the computer's ${lastProj ? Math.round(lastProj[0] * 100) : 50}% of the time. Time to find out.`;
   }
 
   function enterRoom() {
+    document.body.classList.add('war');
     $('setup').hidden = true; $('room').hidden = false; $('playSec').hidden = true;
     $('projWrap').hidden = false; $('gameBoard').hidden = true;
     view = 'you'; selSlot = null; previewKey = null;
@@ -1256,8 +1389,8 @@ footer p { margin: 0 0 6px; }
   $('resume').onclick = enterRoom;
   $('showYou').onclick = () => { view = 'you'; drawRoom(); };
   $('showCpu').onclick = () => { view = 'cpu'; drawRoom(); };
-  $('search').oninput = drawPool; $('posFilter').onchange = () => { selSlot = null; drawPool(); drawField(); }; $('sort').onchange = drawPool;
-  const toSetup = () => { $('setup').hidden = false; $('room').hidden = true; $('playSec').hidden = true; $('projWrap').hidden = true; $('gameBoard').hidden = true; drawSetup(); window.scrollTo(0, 0); };
+  $('search').oninput = drawPool; $('posFilter').onchange = () => { selSlot = null; drawPool(); drawField(); };
+  const toSetup = () => { document.body.classList.add('war'); $('setup').hidden = false; $('room').hidden = true; $('playSec').hidden = true; $('projWrap').hidden = true; $('gameBoard').hidden = true; drawSetup(); window.scrollTo(0, 0); };
   $('redraft').onclick = toSetup; $('newDraft2').onclick = toSetup;
   $('backRoom').onclick = enterRoom;
   $('toPlay').onclick = () => startGame();
@@ -1274,6 +1407,7 @@ footer p { margin: 0 0 6px; }
   let g = null, you = 1, busy = false, stage = 'duel', duelWinner = null, lastHalfKey = '', counted = false;
 
   function startGame() {
+    document.body.classList.remove('war');
     const me = gameTeam('you', 'Your Draft'), cpu = gameTeam('cpu', 'Computer Draft');
     you = 1; counted = false;
     const sp = () => Math.floor(Math.random() * 5);
