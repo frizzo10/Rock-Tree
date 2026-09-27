@@ -309,6 +309,10 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
 .wb .log p { border-bottom-color: #E8EBE9; color: #2A2F36; }
 .wb .log p.you b { color: var(--wb-green); }
 .wb .log p.cpu b { color: var(--wb-red); }
+.wb-banner { font: 400 22px/1.2 var(--marker); color: var(--wb-red); margin: 0 0 8px; min-height: 1.2em; }
+.wb-banner.picked { animation: bannerIn .35s ease-out; }
+@keyframes bannerIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .wb-banner.picked { animation: none; } }
 .wb-key { display: flex; gap: 16px; font-size: 13px; color: #4A5560; margin: 8px 0 0; }
 .wb-key i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 
@@ -1108,22 +1112,33 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
     D.pick++; fresh = { side, slot: s.id }; advice = null;
     if (side === 'you') { selSlot = null; previewKey = null; $('plist').scrollTop = 0; }
     if (D.pick >= TOTAL) D.done = true;
-    autoNext();
-    save(); drawRoom(); project();
-    if (!D.done && whoPicks(D.pick) === 'cpu') cpuPick();
+    save();
+    if (side === 'you') {
+      if (!D.done && whoPicks(D.pick) === 'cpu') { drawRoom(); project(); setTimeout(cpuPick, reduced ? 200 : 700); } // let your magnet land, then flip
+      else { autoNext(); drawRoom(); project(); }
+      return;
+    }
+    // the computer just picked: keep its board up, show the pick, then hand back
+    cpuPhase = 'picked'; busyCpu = true; previewKey = p.key;
+    drawRoom(); project();
+    setTimeout(() => {
+      busyCpu = false; cpuPhase = null;
+      if (!D.done && whoPicks(D.pick) === 'cpu') { cpuPick(); return; }
+      view = 'you'; previewKey = null; autoNext(); drawRoom();
+    }, reduced ? 700 : 1900);
   }
 
+  let cpuPhase = null; // 'thinking' while the computer is on the clock, 'picked' while its pick is on show
   async function cpuPick() {
-    busyCpu = true; drawTicker();
-    await wait(850);
+    busyCpu = true; cpuPhase = 'thinking'; view = 'cpu'; drawRoom();
+    await wait(900);
     const need = openSlots('cpu');
     const hitNeed = need.filter(s => s.kind === 'H').length, pitNeed = need.length - hitNeed;
     const cands = D.pool.map(k => BY.get(k)).filter(p => !canDraft(p, 'cpu'));
     // best available with a little randomness, nudged toward whatever the roster is short of
     const score = p => p.sal * (0.85 + Math.random() * 0.3) * (p.kind === 'H' ? (hitNeed >= pitNeed ? 1.08 : 0.95) : (pitNeed > hitNeed ? 1.08 : 0.95));
     cands.sort((a, b) => score(b) - score(a));
-    busyCpu = false;
-    if (cands[0]) draft(cands[0], 'cpu'); else { D.pick++; save(); drawRoom(); }
+    if (cands[0]) draft(cands[0], 'cpu'); else { busyCpu = false; cpuPhase = null; D.pick++; save(); view = 'you'; drawRoom(); }
   }
 
   // ---------- projections (fast engine, average players in open spots) ----------
@@ -1271,7 +1286,10 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
     const hit = SLOTS.filter(s => s.kind === 'H').map(s => spotHtml(s, r[s.id], side, true)).join('');
     const sp = SLOTS.filter(s => s.role === 'SP').map(s => spotHtml(s, r[s.id], side, false)).join('');
     const rp = SLOTS.filter(s => s.role === 'RP').map(s => spotHtml(s, r[s.id], side, false)).join('');
-    $('fieldHost').innerHTML = `<div class="park" role="group" aria-label="${side === 'you' ? 'Your' : "Computer's"} lineup">
+    const last = D.log[D.log.length - 1], lp = last && BY.get(last.key);
+    const banner = side === 'cpu' && cpuPhase === 'thinking' ? `<p class="wb-banner">Computer is on the clock…</p>`
+      : side === 'cpu' && cpuPhase === 'picked' && lp ? `<p class="wb-banner picked">Computer takes ${esc(lp.name)} (${lp.yr}) at ${SLOTS.find(s => s.id === last.slot).label}</p>` : '';
+    $('fieldHost').innerHTML = banner + `<div class="park" role="group" aria-label="${side === 'you' ? 'Your' : "Computer's"} lineup">
       <svg class="grass" viewBox="0 0 100 92" preserveAspectRatio="none" aria-hidden="true">
         <path d="M50 86 L4 42 Q50 -12 96 42 Z"/><path d="M50 82 L76 58 L50 34 L24 58 Z"/><circle cx="50" cy="59" r="2.6"/></svg>${hit}</div>
       <p class="wb-key"><span><i style="background:var(--wb-green)"></i>Your picks</span><span><i style="background:var(--wb-red)"></i>Computer's picks</span></p>
@@ -1353,7 +1371,7 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
     const round = Math.floor(D.pick / 2) + 1, you = whoPicks(D.pick) === 'you';
     const last = D.log[D.log.length - 1], lp = last && BY.get(last.key);
     const prev = lp ? `${last.side === 'you' ? 'You took' : 'Computer took'} ${lp.name} (${lp.yr}). ` : (D.youFirst ? 'You won the coin flip. ' : 'The computer won the coin flip. ');
-    $('ticker').innerHTML = `${esc(prev)}Round ${round} of 18. <b>${you ? "You're on the clock." : 'Computer is picking…'}</b>`;
+    $('ticker').innerHTML = `${esc(prev)}Round ${round} of 18. <b>${you ? (busyCpu ? "You're up next." : "You're on the clock.") : 'Computer is picking…'}</b>`;
   }
 
   function drawLog() {
