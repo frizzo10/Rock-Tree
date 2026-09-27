@@ -54,7 +54,8 @@ table.line { border-collapse: separate; border-spacing: 5px; min-width: 100%; }
 .now span { color: var(--dim); }
 
 /* setup */
-.setup.simple { grid-template-columns: minmax(0, 420px) auto; justify-content: start; }
+.setup.simple { grid-template-columns: minmax(0, 420px) auto auto; justify-content: start; }
+.btn-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-height: 46px; }
 .tip { font-size: 14px; color: var(--ink-soft); margin: 10px 0 0; }
 .setup { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 14px; align-items: end; margin-top: 18px; }
 .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin: 0 0 4px; }
@@ -181,6 +182,7 @@ footer p { margin: 0 0 6px; }
       <select id="youSel"></select>
     </div>
     <button class="btn btn-main" id="start">Play ball</button>
+    <a class="btn btn-alt btn-link" href="draft.html">Draft your own team</a>
   </div>
   <p class="tip" id="oppNote">The computer picks a different all-time great club to face you each game. You're the home team.</p>
 
