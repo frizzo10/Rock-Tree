@@ -245,6 +245,18 @@ footer p { margin: 0 0 6px; }
 .done-panel h2 { font: 700 26px var(--display); margin: 0 0 6px; }
 .done-panel p { margin: 0 0 12px; }
 :root { --stock: #F3EAD3; }
+.pool-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-scout { background: var(--lamp); color: var(--board-deep); font-weight: 600; padding: 8px 14px; }
+.btn-scout:hover { background: #F7C565; }
+.advice { background: var(--board); color: var(--numeral); border-radius: 8px; padding: 14px 16px; margin: 4px 0 12px; }
+.advice h3 { font: 700 20px/1.15 var(--display); margin: 0 0 6px; color: var(--lamp); }
+.advice p { margin: 0 0 8px; font-size: 15px; line-height: 1.45; }
+.advice ul { margin: 0 0 10px; padding-left: 18px; font-size: 14px; color: var(--dim); }
+.advice li { margin: 2px 0; }
+.advice li b { color: var(--numeral); font-weight: 600; }
+.advice .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.advice .btn-alt { color: var(--numeral); border-color: var(--dim); }
+.advice .btn-alt:hover { background: var(--board-deep); }
 @media (max-width: 900px) { .room { grid-template-columns: 1fr; } .vcard .body { grid-template-columns: 1fr; } }
 @media (max-width: 560px) {
   .spot { width: 29%; padding: 4px 5px; min-height: 40px; }
@@ -301,8 +313,9 @@ footer p { margin: 0 0 6px; }
         <div class="log" id="log" aria-label="Draft log"></div>
       </section>
       <section class="paper pool" aria-label="Player pool">
-        <h2 id="poolTitle">Player pool</h2>
+        <div class="pool-head"><h2 id="poolTitle">Player pool</h2><button class="btn btn-scout" id="scoutBtn">Ask the scout</button></div>
         <p class="tip" id="poolTip"></p>
+        <div id="advice" aria-live="polite"></div>
         <div id="preview"></div>
         <div class="ptools">
           <input id="search" type="search" placeholder="Search name, team or year" aria-label="Search players">
@@ -971,7 +984,7 @@ footer p { margin: 0 0 6px; }
     const s = slotFor(p, side, side === 'you' ? selSlot : null);
     D.teams[side][s.id] = p.key;
     D.log.push({ side, key: p.key, slot: s.id, n: D.pick + 1 });
-    D.pick++; fresh = { side, slot: s.id };
+    D.pick++; fresh = { side, slot: s.id }; advice = null;
     if (side === 'you') { selSlot = null; previewKey = null; $('plist').scrollTop = 0; }
     if (D.pick >= TOTAL) D.done = true;
     save(); drawRoom(); project();
@@ -1034,6 +1047,85 @@ footer p { margin: 0 0 6px; }
     lastProj = [a, b]; store.set('gts-proj', lastProj);
     if (D && D.done) $('doneText').textContent = `Both rosters are full. Projection: your team beats the computer's ${Math.round(a * 100)}% of the time. Time to find out.`;
   }
+
+
+  // ---------- the scout: draft advice ----------
+  // Value of a player-season in runs above average (salaries were set from runs, so invert that)
+  const runs = p => p.kind === 'H' ? (p.sal - 1) / 0.21 : p.role === 'SP' ? (p.sal - 1) / 0.26 : (p.sal - 1) / 0.3;
+  let advice = null, scouting = false;
+  const slotName = s => s.kind === 'H' ? (s.pos === 'dh' ? 'DH' : POSN[s.pos]) : POSN[s.role];
+  const plural = s => s.kind === 'H' ? (s.pos === 'dh' ? 'hitters for DH' : POSN[s.pos] + 's') : POSN[s.role] + 's';
+
+  function picksUntilMyNext() { let n = 0; for (let i = D.pick + 1; i < TOTAL && whoPicks(i) !== 'you'; i++) n++; return n; }
+
+  async function askScout() {
+    if (D.done || whoPicks(D.pick) !== 'you' || busyCpu || scouting) return;
+    scouting = true; $('scoutBtn').disabled = true;
+    $('advice').innerHTML = '<div class="advice"><h3>Scouting the board…</h3><p>Checking who fits your open spots, who the computer needs, and what each pick does to your odds.</p></div>';
+    await new Promise(r => setTimeout(r, 30));
+    const left = D.pool.map(k => BY.get(k)).filter(p => !taken().has(p.key));
+    const draftable = left.filter(p => !canDraft(p, 'you'));
+    const cpuOpen = openSlots('cpu'), myOpen = openSlots('you');
+    const gap = picksUntilMyNext();
+    const open = p => !(p.legend && !legendsOpen());
+    // Every open spot gets filled eventually; the question is which one to fill now.
+    // For each spot, find the player you'd be left with if both teams fill every remaining
+    // need at that spot before you do (the replacement). Draft where the gap is biggest.
+    const demand = s => {
+      const n = side => openSlots(side).filter(o => s.kind === 'H'
+        ? (s.pos === 'dh' ? o.kind === 'H' : o.pos === s.pos)
+        : (s.role === 'SP' ? o.role === 'SP' : o.kind === 'P')).length;
+      return Math.max(1, n('you') + n('cpu'));
+    };
+    const replacement = (s, except) => {
+      const pool = left.filter(p => p.key !== except && open(p) && strictFit(p, s)).sort((a, b) => runs(b) - runs(a));
+      return pool[Math.min(pool.length - 1, demand(s) - 1)];
+    };
+    const short = new Map();
+    draftable.slice().sort((a, b) => runs(b) - runs(a)).slice(0, 40).forEach(p => short.set(p.key, p));
+    for (const s of myOpen) draftable.filter(p => strictFit(p, s)).sort((a, b) => runs(b) - runs(a)).slice(0, 4).forEach(p => short.set(p.key, p));
+    const cands = [...short.values()].map(p => {
+      const s = slotFor(p, 'you', null), nb = replacement(s, p.key);
+      return { p, s, gain: runs(p) - (nb ? runs(nb) : 0), nb };
+    }).sort((a, b) => b.gain - a.gain || runs(b.p) - runs(a.p));
+    if (!cands.length) { scouting = false; $('scoutBtn').disabled = false; $('advice').innerHTML = '<div class="advice"><h3>No moves left</h3><p>Nobody left fits your open spots.</p></div>'; return; }
+    const top = cands[0];
+    // scarcity at his spot: strong players left for it (top third of the original pool at that spot)
+    const all = D.pool.map(k => BY.get(k)).filter(p => strictFit(p, top.s)).map(p => p.sal).sort((a, b) => b - a);
+    const bar = all[Math.floor(all.length / 3)] || 0;
+    const strongLeft = left.filter(p => strictFit(p, top.s) && p.sal >= bar && !(p.legend && !legendsOpen())).length;
+    const cpuNeedsIt = cpuOpen.some(s => strictFit(top.p, s));
+    const why = [];
+    const wins = top.gain / 10;
+    why.push(top.nb ? `He's about ${Math.round(top.gain)} runs a season better than the ${slotName(top.s)} you'd be left with if you fill that spot last (someone like ${top.nb.name}, ${top.nb.yr}). ${wins >= 1.5 ? `That's roughly ${Math.round(wins)} extra wins over a full season.` : wins >= 0.75 ? "That's about one extra win over a full season." : 'Every spot on your roster is deep right now, so it is also fine to take whoever you like best.'}`
+      : `If you wait, there may be no ${slotName(top.s)} left worth having.`);
+    if (strongLeft <= 4) why.push(`Only ${strongLeft} strong ${plural(top.s)} are left on the board${cpuNeedsIt ? ', and the computer still needs one' : ''}.`);
+    else if (cpuNeedsIt && gap >= 1) why.push(`The computer still needs a ${slotName(top.s)} and picks ${gap === 1 ? 'next' : `the next ${gap} times`}.`);
+    if (D.cap) { const per = (D.cap - payroll('you') - top.p.sal) / Math.max(1, myOpen.length - 1); why.push(`After him you'd have ${money(D.cap - payroll('you') - top.p.sal)} for ${myOpen.length - 1} spots, about ${money(Math.round(per * 2) / 2)} each.`); }
+    const hitOpen = myOpen.filter(s => s.kind === 'H').length, pitOpen = myOpen.length - hitOpen;
+    const roundsLeft = SLOTS.length - Object.keys(D.teams.you).length;
+    let balance = '';
+    if (pitOpen >= 7 && roundsLeft <= 12) balance = `Heads up: you still have ${pitOpen} pitching spots open. The good arms go fast.`;
+    else if (hitOpen >= 7 && roundsLeft <= 12) balance = `Heads up: you still have ${hitOpen} lineup spots open.`;
+    advice = { top, alts: cands.slice(1, 3), why, balance };
+    scouting = false; $('scoutBtn').disabled = false;
+    drawAdvice();
+  }
+
+  function drawAdvice() {
+    const yourTurn = !D.done && whoPicks(D.pick) === 'you' && !busyCpu;
+    $('scoutBtn').hidden = D.done; $('scoutBtn').disabled = !yourTurn || scouting;
+    if (!advice) { if (!scouting) $('advice').innerHTML = ''; return; }
+    const { top, alts, why, balance } = advice;
+    $('advice').innerHTML = `<div class="advice"><h3>Scout says: take ${esc(top.p.name)} (${top.p.yr}) at ${top.s.label}</h3>
+      <p>${esc(why.join(' '))}</p>${balance ? `<p>${esc(balance)}</p>` : ''}
+      ${alts.length ? `<ul>${alts.map(a => `<li>Also good: <b>${esc(a.p.name)}</b> (${a.p.yr}) at ${a.s.label}, about ${Math.round(a.gain)} runs over what's left there.</li>`).join('')}</ul>` : ''}
+      <div class="acts"><button class="btn btn-scout" id="takeTip">Draft ${esc(top.p.name.split(' ').slice(-1)[0])}</button><button class="btn btn-alt" id="readTip">Read his card</button><button class="btn btn-alt" id="hideTip">Dismiss</button></div></div>`;
+    $('takeTip').onclick = () => { if (!canDraft(top.p, 'you')) { selSlot = top.s.id; draft(top.p, 'you'); } };
+    $('readTip').onclick = () => { previewKey = top.p.key; drawPreview(); };
+    $('hideTip').onclick = () => { advice = null; drawAdvice(); };
+  }
+  $('scoutBtn').onclick = askScout;
 
   // ---------- drawing ----------
   function vcard(p) {
@@ -1098,6 +1190,7 @@ footer p { margin: 0 0 6px; }
     $('plist').querySelectorAll('[data-prev]').forEach(b => b.onclick = () => { previewKey = b.dataset.prev; drawPreview(); });
     const s = selSlot && SLOTS.find(x => x.id === selSlot);
     $('poolTitle').textContent = s ? `Pick a ${s.kind === 'H' ? POSN[s.pos] : POSN[s.role]}` : 'Player pool';
+    drawAdvice();
     $('poolTip').textContent = D.done ? 'Every spot is filled.' :
       (yourTurn ? "You're on the clock. Tap a name to read his card, then draft him." : 'The computer is picking.') +
       (D.cap ? ` Payroll ${money(payroll('you'))} of ${money(D.cap)}.` : '');
