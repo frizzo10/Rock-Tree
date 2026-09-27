@@ -386,10 +386,77 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
   .staff .row.pen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .proj .m b { font-size: 28px; }
 }
+.crumbs { margin: 0 0 10px; font-size: 14px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+/* ---------- war room: the game screen ---------- */
+body.war table.line td { background: transparent; border: 1.5px solid #A3ABB4; color: var(--wb-ink); font: 400 30px/1 var(--marker); }
+body.war .line th { color: #4A5560; }
+body.war .line td.team { border: 0; color: var(--wb-ink); font: 400 24px/1.1 var(--marker); }
+body.war .line td.team small { font: 500 13px var(--text); color: #4A5560; }
+body.war .line td.tot { background: transparent; color: var(--wb-red); }
+body.war .line td.live { box-shadow: inset 0 0 0 3px var(--lamp); background: rgba(242, 179, 61, .18); }
+body.war .status .now { color: #20262D; }
+body.war .status .now span { color: #4A5560; }
+body.war .tray { background: var(--wb); color: #20262D; box-shadow: inset 0 0 0 8px var(--wb-frame); border-radius: 4px; }
+body.war .tray h2 { font: 400 24px/1.15 var(--marker); color: var(--wb-ink); }
+body.war .tray .hint { color: #4A5560; }
+body.war .fieldview .infield { fill: none; stroke: var(--wb-ink); stroke-width: 2; }
+body.war .fieldview .bag { fill: #fff; stroke: var(--wb-ink); stroke-width: 1.5; opacity: 1; }
+body.war .fieldview .bag.on { fill: var(--lamp); }
+body.war .fieldview .plate { fill: #fff; stroke: var(--wb-ink); stroke-width: 1.5; }
+body.war .fieldview .runner { fill: var(--wb-red); font: 400 17px var(--marker); }
+body.war .fv-row, body.war .fv-inn { color: #20262D; }
+body.war .lamps { color: #4A5560; }
+body.war .lamp { background: #D5DAD7; }
+body.war .lamp.on { background: var(--wb-red); box-shadow: none; }
+body.war .fv-note { color: var(--wb-red); }
+body.war .die { color: #1B2A44; font-family: var(--marker); font-weight: 400; }
+body.war .d20 { background: #DDE2E7; }
+body.war .d20.you { background: var(--lamp); }
+body.war .d10 { background: #DDE2E7; }
+body.war .vs, body.war .die-wrap { color: #4A5560; }
+body.war .die-wrap.win span { color: var(--wb-green); }
+body.war .pct .total { color: var(--wb-red); font: 400 40px/1 var(--marker); }
+body.war .result { font: 400 22px/1.25 var(--marker); color: var(--wb-ink); }
+body.war .result.scored { color: var(--wb-red); }
+body.war .tray .btn-main { background: var(--wb-ink); color: #fff; }
+body.war .tray .btn-main:hover { background: #17306E; }
+body.war .tray .btn-alt { color: #20262D; border-color: #8C959E; }
+body.war .tray .btn-alt:hover { background: #E9ECEA; }
+/* player cards on vintage stock */
+body.war .card { background: var(--stock); color: #1B1A16; border: 1px solid #D8CDB4; }
+body.war .card-head { background: #1D2D5C; }
+body.war .card .rows li b { color: #6D6A60; }
+body.war .card .rows li.good b, body.war .card .rows li.good span { color: #9E2B22; }
+body.war .card .rows li.hit { background: #FFE38A; }
+body.war .card .rows li.hit b, body.war .card .rows li.hit span { color: #1B1A16; }
+body.war .card.owner { box-shadow: 0 0 0 3px var(--wb-ink); }
+/* play-by-play on a legal pad */
+body.war .panels > .paper:first-child { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border: 0; border-radius: 2px; padding-left: 44px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); }
+body.war .panels > .paper:first-child::before { content: ''; position: absolute; left: 32px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
+body.war .panels > .paper:first-child h2 { font: 400 26px var(--marker); color: var(--wb-red); }
+body.war .feed .half { font: 400 18px/26px var(--marker); color: var(--wb-ink); border-bottom-color: transparent; }
+body.war .feed .play { line-height: 26px; padding: 0; color: #2A2A2A; }
+body.war .feed .play small, body.war .feed .empty, body.war .feed .how { color: #5B5B4A; }
+body.war .feed .play.change { color: #6B6B55; }
+body.war .feed .play.scored { color: var(--wb-red); }
+body.war .feed .play.scored em { background: rgba(192, 57, 43, .12); }
+body.war .feed .final { font: 400 22px var(--marker); color: var(--wb-ink); border-top-color: var(--wb-ink); }
+/* box score on the laptop spreadsheet */
+body.war .panels > .paper:last-child { background: #fff; color: #1B1F24; border: 0; border-radius: 10px; box-shadow: 0 0 0 10px #2B2E33, 0 14px 0 0 #1A1C1F; margin: 10px; }
+body.war .panels > .paper:last-child h2 { font: 400 24px var(--marker); color: var(--wb-ink); }
+body.war .panels > .paper:last-child .empty { color: #5A6470; }
+body.war table.box th, body.war table.box td { border: 1px solid #D9DDE2; }
+body.war table.box th { background: #EEF0F3; color: #3B4450; }
+body.war table.box caption { font: 400 19px var(--marker); color: var(--wb-ink); }
+body.war table.box td.pos, body.war .notes { color: #5A6470; }
+body.war table.box tr.tot td { border-bottom: 2px solid #3B4450; }
+body.war .dec { color: var(--wb-red); }
 </style>
 </head>
 <body class="war">
 <div class="wrap">
+  <nav class="crumbs"><a href="index.html">Home</a></nav>
   <section class="board" aria-label="Draft board">
     <div class="board-top">
       <h1 id="boardTitle">Draft Room</h1>
@@ -1500,7 +1567,7 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
   let g = null, you = 1, busy = false, stage = 'duel', duelWinner = null, lastHalfKey = '', counted = false;
 
   function startGame() {
-    stopClock(); document.body.classList.remove('war');
+    stopClock(); document.body.classList.add('war');
     const me = gameTeam('you', 'Your Draft'), cpu = gameTeam('cpu', 'Computer Draft');
     you = 1; counted = false;
     const sp = () => Math.floor(Math.random() * 5);
@@ -1662,6 +1729,7 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
   // restore
   if (lastProj) showProj(lastProj[0], lastProj[1]);
   drawSetup();
+  if (location.hash === '#resume' && D && !D.done && D.pick > 0) enterRoom();
 })();
 </script>
 </body>
