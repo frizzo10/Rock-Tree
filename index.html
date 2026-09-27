@@ -99,6 +99,16 @@ table.line { border-collapse: separate; border-spacing: 5px; min-width: 100%; }
 .pct { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 8px; }
 .pct .total { font: 800 40px/1 var(--display); color: var(--lamp); min-width: 70px; text-align: left; }
 .pct .total:empty { display: none; }
+.fieldview { margin: 0 auto 14px; max-width: 280px; }
+.fieldview svg { width: 100%; height: auto; display: block; }
+.fieldview .infield { fill: #2A4A3C; stroke: var(--dim); stroke-width: 1.5; }
+.fieldview .bag { fill: var(--numeral); opacity: .35; }
+.fieldview .bag.on { fill: var(--lamp); opacity: 1; }
+.fieldview .plate { fill: var(--numeral); }
+.fieldview .runner { fill: var(--lamp); font: 700 16px var(--display); }
+.fv-row { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 14px; }
+.fv-inn { font-weight: 600; }
+.fv-note { margin: 6px 0 0; color: var(--lamp); font-size: 14px; }
 .rolling { animation: tumble .55s ease-out; }
 @keyframes tumble { 0% { transform: rotate(-180deg) scale(.7); } 70% { transform: rotate(20deg) scale(1.05); } 100% { transform: none; } }
 .result { font: 700 24px/1.15 var(--display); min-height: 2.4em; margin: 6px 0 12px; }
@@ -179,6 +189,7 @@ footer p { margin: 0 0 6px; }
     <section class="tray" aria-live="polite">
       <h2 id="trayTitle"></h2>
       <p class="hint" id="hint"></p>
+      <div class="fieldview" id="fieldView" aria-live="polite"></div>
       <div class="duel">
         <div class="die-wrap" id="dw0"><div class="die d20" id="dieBat">–</div><span>Batter</span></div>
         <div class="vs">vs</div>
@@ -646,7 +657,7 @@ footer p { margin: 0 0 6px; }
             sf ? `${b.short} hits a sacrifice fly ${pick(FIELD.FB)}.` : `${b.short} flies out ${pick(FIELD.FB)}.`;
         }
       }
-      const play = { txt, code, scored: off.runs - before, err, outs: this.outs, inning: this.inning, half: this.half,
+      const play = { txt, code, scored: off.runs - before, err, runners: B.map(r => r ? r.b.short : null), outs: this.outs, inning: this.inning, half: this.half,
         score: [this.teams[0].runs, this.teams[1].runs], pre: this.pending.splice(0) };
       this.advance(pr);
       return play;
@@ -747,13 +758,29 @@ footer p { margin: 0 0 6px; }
       const w = g.teams[g.winner];
       return $('status').innerHTML = `<div class="now"><b>Final${g.inning > 9 ? ` in ${g.inning}` : ''}</b> <span>${esc(w.t.nick)} win</span></div>`;
     }
-    const b = g.bases.map(Boolean), outs = g.outs;
-    $('status').innerHTML = `<div class="lamps">Outs ${[0, 1, 2].map(i => `<span class="lamp ${i < outs ? 'on' : ''}"></span>`).join('')}</div>
-      <svg class="diamond" viewBox="0 0 46 46" role="img" aria-label="Runners: ${['first', 'second', 'third'].filter((_, i) => b[i]).join(', ') || 'none'}">
-      <rect class="${b[1] ? 'on' : ''}" x="17" y="3" width="12" height="12" transform="rotate(45 23 9)"/>
-      <rect class="${b[2] ? 'on' : ''}" x="4" y="16" width="12" height="12" transform="rotate(45 10 22)"/>
-      <rect class="${b[0] ? 'on' : ''}" x="30" y="16" width="12" height="12" transform="rotate(45 36 22)"/></svg>
-      <div class="now"><b>${g.half ? 'Bottom' : 'Top'} of the ${ord(g.inning)}</b> <span>${esc(g.off.t.nick)} batting</span></div>`;
+    $('status').innerHTML = `<div class="now"><b>${g.half ? 'Bottom' : 'Top'} of the ${ord(g.inning)}</b> <span>${esc(g.off.t.nick)} batting</span></div>`;
+  }
+
+  // the field in the dice tray: runners by name on their bases, outs lamps, inning
+  function drawField(snap) {
+    if (!g) return;
+    const outs = snap ? snap.outs : g.outs;
+    const run = snap ? snap.runners : g.bases.map(r => r ? r.b.short : null);
+    const inn = snap ? `${snap.half ? 'Bottom' : 'Top'} ${ord(snap.inning)}` : `${g.half ? 'Bottom' : 'Top'} ${ord(g.inning)}`;
+    const shown = outs >= 3 ? [null, null, null] : run;
+    const base = (x, y, i) => `<rect class="bag ${shown[i] ? 'on' : ''}" x="${x - 11}" y="${y - 11}" width="22" height="22" transform="rotate(45 ${x} ${y})"/>`;
+    const tag = (x, y, i, anchor) => shown[i] ? `<text class="runner" x="${x}" y="${y}" text-anchor="${anchor}">${esc(shown[i])}</text>` : '';
+    const names = ['first', 'second', 'third'].map((b, i) => shown[i] ? `${shown[i]} on ${b}` : '').filter(Boolean).join(', ') || 'bases empty';
+    $('fieldView').innerHTML = `
+      <svg viewBox="0 0 260 176" role="img" aria-label="${esc(names)}, ${Math.min(outs, 3)} out">
+        <path class="infield" d="M130 160 L214 84 L130 12 L46 84 Z"/>
+        ${base(214, 84, 0)}${base(130, 16, 1)}${base(46, 84, 2)}
+        <path class="plate" d="M121 152 h18 v8 l-9 8 l-9 -8 Z"/>
+        ${tag(236, 70, 0, 'end')}${tag(130, 52, 1, 'middle')}${tag(24, 70, 2, 'start')}
+      </svg>
+      <div class="fv-row"><span class="fv-inn">${inn}</span>
+        <span class="lamps">Outs ${[0, 1, 2].map(i => `<span class="lamp ${i < outs ? 'on' : ''}"></span>`).join('')}</span></div>
+      ${outs >= 3 && !g.over ? '<p class="fv-note">Three outs. Side retired.</p>' : ''}`;
   }
 
   function cardHtml(pl, isBatter, mineSide, hitRoll) {
@@ -789,7 +816,7 @@ footer p { margin: 0 0 6px; }
     $('dieBat').classList.toggle('you', youBat); $('diePit').classList.toggle('you', !youBat);
     $('dw0').querySelector('span').textContent = youBat ? 'You' : 'Computer';
     $('dw1').querySelector('span').textContent = youBat ? 'Computer' : 'You';
-    drawCards(null); drawLine(); drawStatus();
+    drawCards(null); drawField(); drawLine(); drawStatus();
   }
 
   async function tumble(el, max, final, fmt = x => x) {
@@ -827,14 +854,15 @@ footer p { margin: 0 0 6px; }
     const row = DuelDice.readCard(owner.card, roll);
     drawCards(duelWinner, roll);
     const play = g.resolve(row.code);
-    logPlay(play, row, roll);
+    logPlay(play, `${String(roll).padStart(2, '0')} on ${owner.short}'s card`);
     $('result').textContent = play.txt; $('result').className = 'result' + (play.scored ? ' scored' : '');
-    drawLine(); drawStatus();
+    drawField(play); drawLine(); drawStatus();
+    if (g.over || play.outs >= 3) boxScore();
     $('act').textContent = g.over ? 'See the final' : 'Next batter';
     $('act').disabled = false; stage = 'next'; busy = false;
   }
 
-  function logPlay(play, row, roll) {
+  function logPlay(play, note) {
     const f = $('feed');
     if (f.querySelector('.how')) f.innerHTML = '';
     const key = `${play.inning}-${play.half}`;
@@ -848,7 +876,7 @@ footer p { margin: 0 0 6px; }
     const el = document.createElement('p');
     el.className = 'play' + (play.scored ? ' scored' : '');
     el.textContent = play.txt;
-    if (row) { const s = document.createElement('small'); s.textContent = `${roll} on ${row.card}`; el.appendChild(s); }
+    if (note) { const s = document.createElement('small'); s.textContent = note; el.appendChild(s); }
     if (play.scored) { const em = document.createElement('em'); em.textContent = `${g.teams[0].t.nick} ${play.score[0]}, ${g.teams[1].t.nick} ${play.score[1]}`; el.appendChild(em); }
     f.appendChild(el); f.scrollTop = f.scrollHeight;
   }
@@ -857,14 +885,13 @@ footer p { margin: 0 0 6px; }
     if (busy || g.over) return;
     const startKey = `${g.inning}-${g.half}`;
     do {
-      const ownerName = () => '';
+      const b = g.batter().short, p = g.pitcher().short;
       const r = DuelDice.autoAtBat(g);
-      r.row.card = (r.owner === 'batter' ? 'batter' : 'pitcher') + ' card';
-      logPlay(r.play, r.row, r.roll);
+      logPlay(r.play, `${String(r.roll).padStart(2, '0')} on ${r.owner === 'batter' ? b : p}'s card`);
     } while (!g.over && (!untilHalfEnd || `${g.inning}-${g.half}` === startKey));
     $('result').textContent = ''; $('tens').textContent = '–'; $('ones').textContent = '–'; $('pctTotal').textContent = '';
     $('dieBat').textContent = '–'; $('diePit').textContent = '–';
-    prompt();
+    boxScore(); prompt();
   }
 
   function endGame() {
@@ -897,6 +924,12 @@ footer p { margin: 0 0 6px; }
       for (const r of s.pit) html += `<tr><td>${esc(r.p.name)}${r.dec ? `<span class="dec">${r.dec}</span>` : ''}</td><td>${ip(r.outs)}</td><td>${r.H}</td><td>${r.R}</td><td>${r.ER}</td><td>${r.BB}</td><td>${r.SO}</td><td>${r.HR}</td></tr>`;
       html += '</tbody></table></div>';
     });
+    const done = g.over ? 'Final' : (() => { // label the box by how far the game has gone
+      const i = g.inning, h = g.half;
+      if (h === 1) return `After ${i - 1 === 0 ? 'the top of the 1st' : `the top of the ${ord(i)}`}`;
+      return i === 1 ? 'Before the first pitch' : `After ${i - 1} inning${i - 1 > 1 ? 's' : ''}`;
+    })();
+    $('rightTitle').textContent = `Box score: ${done}`;
     $('right').innerHTML = html;
   }
 
@@ -912,7 +945,7 @@ footer p { margin: 0 0 6px; }
     ['dieBat', 'diePit', 'tens', 'ones'].forEach(id => $(id).textContent = '–'); $('pctTotal').textContent = ''; $('result').textContent = '';
     $('start').textContent = 'New game';
     $('oppNote').textContent = `Tonight's opponent: the ${a.year} ${a.nick}. Starting pitchers: ${g.teams[0].pitcher.name} for them, ${g.teams[1].pitcher.name} for you.`;
-    prompt();
+    prompt(); boxScore();
     $('tableArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
