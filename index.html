@@ -24,7 +24,7 @@ html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
 :focus-visible { outline: 3px solid #F2B33D; outline-offset: 3px; }
-.wrap { max-width: 1040px; margin: 0 auto; padding: 22px 16px 48px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 22px 16px 48px; }
 .board { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 30px 34px 28px; }
 .board { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; }
 .board .logo { width: 190px; height: 190px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.25)); }
@@ -34,7 +34,8 @@ body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var
 .board p { margin: 0; max-width: 58ch; color: #3A434D; font-size: 17px; }
 .board .rec { margin-top: 14px; font-size: 15px; color: #4A5560; }
 .board .rec b { font: 400 22px var(--marker); color: var(--wb-red); margin-right: 4px; }
-.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 34px; }
+.choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 34px; }
+@media (max-width: 980px) { .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .folder { position: relative; background: var(--folder); color: var(--folder-ink); border-radius: 3px 12px 6px 6px; box-shadow: 0 3px 0 var(--folder-edge); padding: 26px 26px 24px; display: flex; flex-direction: column; }
 .folder::before { content: ''; position: absolute; top: -14px; left: 16px; width: 44%; height: 16px; background: var(--folder); border-radius: 8px 8px 0 0; }
 .folder .tab { position: absolute; top: -12px; left: 28px; font: 400 14px var(--marker); color: #6B5A2C; }
@@ -94,6 +95,20 @@ footer p { margin: 0 0 6px; }
       </ul>
       <div class="go"><a class="btn btn-main" href="play.html">Play a quick game</a></div>
     </section>
+
+    <section class="folder" aria-labelledby="leagueH">
+      <span class="tab" aria-hidden="true">League office</span>
+      <h2 id="leagueH">Run a league</h2>
+      <p>A full 10-club season: a 25-round draft, 27 games, trades and waivers, then the playoffs.</p>
+      <ul>
+        <li>You manage one club; the computer runs the other nine</li>
+        <li>Trade deadline, waiver wire and a league office that blocks lopsided deals</li>
+        <li>Standings, league leaders and a prize ledger (test mode)</li>
+      </ul>
+      <div class="go">
+        <a class="btn btn-main" href="league.html" id="leagueGo">Start a league</a>
+      </div>
+    </section>
   </div>
 
   <footer>
@@ -104,7 +119,15 @@ footer p { margin: 0 0 6px; }
 <script>
 (() => {
   const get = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
-  const d = get('gts-draft'), pr = get('gts-progress');
+  const d = get('gts-draft'), pr = get('gts-progress'), lg = get('cc-league-v1');
+  if (lg) {
+    const go = document.getElementById('leagueGo');
+    const where = { draft: `in the draft, round ${Math.floor(lg.pick / 10) + 1} of 25`, season: `day ${lg.day} of 27`, playoffs: 'in the playoffs', final: 'season complete' }[lg.phase] || '';
+    go.textContent = lg.phase === 'final' ? 'See your league' : 'Resume your league';
+    go.href = 'league.html' + (lg.phase === 'draft' ? '#/draft' : lg.phase === 'final' || lg.phase === 'playoffs' ? '#/playoffs' : '#/standings');
+    const note = document.createElement('p'); note.style.cssText = 'margin:8px 0 0;font-size:14px;width:100%';
+    note.textContent = `${lg.name}: ${where}.`; go.parentNode.appendChild(note);
+  }
   if (d && !d.done && d.pick > 0) {
     const r = document.getElementById('resume');
     r.hidden = false; r.textContent = `Resume your draft (round ${Math.floor(d.pick / 2) + 1} of 18)`;
