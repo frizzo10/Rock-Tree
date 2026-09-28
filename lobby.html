@@ -114,11 +114,11 @@ footer p { margin: 0 0 6px; }
 
   <header class="board">
     <h1>Find a table</h1>
-    <p>Sit down at an open table with nine other managers. When all ten seats fill, the league starts. Pick your seat, name your club, and you're in.</p>
+    <p>Sit down at an open table with nine other managers. You'll build a roster under a salary cap, and when all ten seats fill, the league starts. Pick your seat, name your club, and you're in.</p>
     <p class="stats" id="stats" aria-live="polite"></p>
     <div class="pad">
       <h2>Early access</h2>
-      <p>Seats are real and fill in real time. The live draft room for a full table is the next piece being built, so for now sitting down holds your place.</p>
+      <p>Seats are real and fill in real time. The live game days for a full table are the next piece being built, so for now sitting down holds your place.</p>
     </div>
   </header>
 
@@ -126,11 +126,6 @@ footer p { margin: 0 0 6px; }
     <div class="tabs" role="group" aria-label="Stakes">
       <button class="tab" id="tabFree" aria-pressed="true">Free tables</button>
       <button class="tab" id="tabCash" aria-pressed="false">Cash tables<small>Opening soon</small></button>
-    </div>
-    <div class="chips" role="group" aria-label="League format" id="fmtChips">
-      <button class="chip" data-fmt="all" aria-pressed="true">All formats</button>
-      <button class="chip" data-fmt="draft" aria-pressed="false">Draft leagues</button>
-      <button class="chip" data-fmt="cap" aria-pressed="false">Salary-cap leagues</button>
     </div>
   </div>
 
@@ -157,8 +152,8 @@ footer p { margin: 0 0 6px; }
     <div class="panel">
       <ol>
         <li><b>Sit down.</b> Choose an open seat and name your club. You need a free account, just your email.</li>
-        <li><b>Wait for the table to fill.</b> Ten seats, ten managers. You can leave your seat any time before the league starts.</li>
-        <li><b>Play the season.</b> Draft leagues start with a live snake draft; salary-cap leagues have you build a roster under a cap. Then 27 games, trades, waivers and the playoffs.</li>
+        <li><b>Wait for the table to fill.</b> Ten seats, ten managers, and no draft to schedule. You can leave your seat any time before the league starts.</li>
+        <li><b>Play the season.</b> Build a roster under the salary cap, then play 27 games, make roster moves, and chase the playoffs.</li>
       </ol>
     </div>
   </section>
@@ -243,19 +238,18 @@ footer p { margin: 0 0 6px; }
     $('stats').textContent = S.state === 'ready' ? `${freeOpen.length} free tables open, ${seatsLeft} seats available` : '';
     const cash = S.stakes === 'cash';
     $('tabFree').setAttribute('aria-pressed', String(!cash)); $('tabCash').setAttribute('aria-pressed', String(cash));
-    $('cash').hidden = !cash; $('floor').hidden = cash; $('fmtChips').hidden = cash;
-    document.querySelectorAll('#fmtChips [data-fmt]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fmt === S.fmt)));
+    $('cash').hidden = !cash; $('floor').hidden = cash;
     // your seats, including tables that just filled
     const mineLeagues = S.mine.map(m => ({ m, l: S.leagues.find(l => l.id === m.league_id) })).filter(x => x.l);
     $('mine').innerHTML = mineLeagues.length ? `<div class="pad"><h2>Your seats</h2>${mineLeagues.map(({ m, l }) => { const n = seatsOf(l.id).length;
-      return `<div class="row"><p><b>${esc(l.name)}</b>, seat ${m.seat_no} as ${esc(m.club_name)}: ${l.status === 'full' ? 'the table is full. Your league is set; the draft room opens here once live drafts launch.' : `${n} of 10 seated.`}</p><button class="btn btn-alt" data-leave="${l.id}">Leave seat</button></div>`; }).join('')}</div>` : '';
+      return `<div class="row"><p><b>${esc(l.name)}</b>, seat ${m.seat_no} as ${esc(m.club_name)}: ${l.status === 'full' ? 'the table is full. Your league is set; game days start here once live play launches.' : `${n} of 10 seated.`}</p><button class="btn btn-alt" data-leave="${l.id}">Leave seat</button></div>`; }).join('')}</div>` : '';
     if (cash) { bindAll(); return; }
     if (S.state === 'loading') $('floor').innerHTML = '<div class="msg">Finding tables…</div>';
     else if (S.state === 'offline') $('floor').innerHTML = "<div class=\"msg\"><b>We couldn't reach the lobby.</b> Check your connection and refresh the page.</div>";
     else if (S.state === 'error') $('floor').innerHTML = '<div class="msg"><b>Something went wrong loading the tables.</b> We\'ll keep trying. You can also refresh the page.</div>';
     else {
-      const list = freeOpen.filter(l => S.fmt === 'all' || l.format === S.fmt).sort((a, b) => seatsOf(b.id).length - seatsOf(a.id).length || a.created_at.localeCompare(b.created_at));
-      $('floor').innerHTML = list.length ? list.map(tableCard).join('') : '<div class="empty"><b>No open tables of that kind right now.</b> New tables open automatically as others fill. Try another format.</div>';
+      const list = freeOpen.sort((a, b) => seatsOf(b.id).length - seatsOf(a.id).length || a.created_at.localeCompare(b.created_at));
+      $('floor').innerHTML = list.length ? list.map(tableCard).join('') : '<div class="empty"><b>No open tables right now.</b> New tables open automatically as others fill, so check back in a moment.</div>';
     }
     bindAll();
   }
@@ -317,7 +311,6 @@ footer p { margin: 0 0 6px; }
   // ---------- filters and wiring ----------
   $('tabFree').onclick = () => { S.stakes = 'free'; S.sig = ''; render(); };
   $('tabCash').onclick = () => { S.stakes = 'cash'; S.sig = ''; render(); };
-  document.querySelectorAll('#fmtChips [data-fmt]').forEach(b => b.onclick = () => { S.fmt = b.dataset.fmt; S.sig = ''; render(); });
   window.addEventListener('cc-auth', () => { S.sig = ''; load(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
   setInterval(() => { if (!document.hidden && !$('sitDlg').open) load(); }, 5000);
