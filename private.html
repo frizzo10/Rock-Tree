@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Private leagues</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+button, input { font: inherit; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 18px 16px 48px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; }
+.crumbs .badge img { width: 100%; height: 100%; }
+.wb { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 22px 28px; }
+.wb h1 { font: 400 clamp(30px, 5.5vw, 46px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.wb p { margin: 0 0 8px; max-width: 66ch; color: #3A434D; }
+.card { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 24px; margin-top: 18px; }
+.card h2 { font: 400 26px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.card h3 { font: 400 22px/1.1 var(--marker); color: var(--wb-ink); margin: 0; }
+.pad { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border-radius: 2px; padding: 10px 16px 12px 42px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); margin: 16px 0 0; }
+.pad::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
+.pad h2 { font: 400 20px/26px var(--marker); color: var(--wb-red); margin: 0; }
+.pad p { line-height: 26px; margin: 0; }
+label { display: block; font-weight: 600; font-size: 14px; margin: 10px 0 4px; }
+input[type=text] { width: 100%; max-width: 420px; padding: 10px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: #1B1F24; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; margin: 8px 0; max-width: 60ch; }
+.check input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--wb-ink); }
+.btn { border: 0; border-radius: 4px; padding: 10px 18px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+.btn-main { background: var(--wb-ink); color: #fff; }
+.btn-main:hover { background: #17306E; }
+.btn-alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; }
+.btn-alt:hover { background: #E9ECEA; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.msg { margin: 10px 0 0; font-weight: 600; min-height: 1.4em; }
+.msg.ok { color: var(--wb-green); } .msg.err { color: var(--wb-red); }
+.lg header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.tag { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 10px; background: #E3E6E4; color: #3A434D; margin-left: 8px; }
+.tag.c { background: #D8E8DC; color: #17603A; }
+.sub { color: #4A5560; margin: 4px 0 0; }
+.members { columns: 2; margin: 8px 0 0; padding-left: 18px; }
+.invite { background: #EEF0F3; border-radius: 4px; padding: 10px 12px; margin-top: 12px; }
+.invite code { display: block; word-break: break-all; font-size: 13.5px; margin: 4px 0 8px; color: #1B1F24; }
+.reqs { list-style: none; margin: 8px 0 0; padding: 0; }
+.reqs li { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid #E3E6E4; }
+.reqs .btn { padding: 4px 12px; }
+.note { font-size: 13.5px; color: #4A5560; }
+footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
+footer p { margin: 0 0 6px; }
+@media (max-width: 560px) { .members { columns: 1; } .wb { padding: 18px 20px; } }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a></nav>
+
+  <header class="wb">
+    <h1>Private leagues</h1>
+    <p>Play with people you know. You're the commissioner: you invite your friends, and you approve everyone who joins. Each league has ten clubs and a salary cap.</p>
+    <div class="pad">
+      <h2>About money</h2>
+      <p>Cooperstown Cash doesn't collect, hold, take or pay out any money in private leagues. If your league plays for dues, that's a matter between you and your league.</p>
+    </div>
+  </header>
+
+  <section class="card" id="joinCard" hidden aria-label="Join a league">
+    <h2>You've been invited to a private league</h2>
+    <p class="note" id="joinNote">Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there's no password.</p>
+    <form id="joinForm" novalidate>
+      <label for="joinClub">Name your club</label>
+      <input type="text" id="joinClub" maxlength="24" autocomplete="off" placeholder="Brooklyn Bridgers">
+      <label class="check"><input type="checkbox" id="att1"> I am 18 or older.</label>
+      <label class="check"><input type="checkbox" id="att2"> Someone in this league invited me, and I know them.</label>
+      <div class="row"><button type="submit" class="btn btn-main" id="joinGo">Ask to join</button><button type="button" class="btn btn-alt" id="joinCancel">Not now</button></div>
+      <p class="msg" id="joinMsg" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <section id="mine" aria-label="Your private leagues"></section>
+
+  <section class="card" id="startCard" aria-label="Start a private league">
+    <h2>Start a private league</h2>
+    <p class="note">You'll be the commissioner and take the first seat. Then share your invite link with people you know.</p>
+    <form id="startForm" novalidate>
+      <label for="lgName">League name</label>
+      <input type="text" id="lgName" maxlength="40" autocomplete="off" placeholder="The Sandlot League">
+      <label for="lgClub">Your club's name</label>
+      <input type="text" id="lgClub" maxlength="24" autocomplete="off" placeholder="Sandlot Cubs">
+      <div class="row"><button type="submit" class="btn btn-main" id="startGo">Start the league</button></div>
+      <p class="msg" id="startMsg" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <footer>
+    <p>Prototype for testing. Game days for a full league are the next piece being built, so for now a league holds its members and seats.</p>
+    <p>Statistics from the Lahman Baseball Database by Sean Lahman, used under CC BY-SA 3.0.</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
+  const S = { leagues: [], board: new Map(), seats: [], reqs: [], sig: '' };
+  const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
+
+  // an invite code from the link is remembered, so it survives the sign-in email round trip
+  const fromUrl = new URLSearchParams(location.search).get('join');
+  if (fromUrl) { store.set('cc-join', fromUrl.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20)); history.replaceState(null, '', location.pathname); }
+  const joinCode = () => store.get('cc-join') || '';
+  const signedIn = () => !!(window.CC && window.CC.user);
+  const inviteUrl = code => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}private.html?join=${code}`;
+
+  async function load() {
+    const c = window.CC && window.CC.client;
+    if (!c || !signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.sig = ''; return render(); }
+    const [lg, ms, rq] = await Promise.all([
+      c.from('leagues').select('id,name,status,commissioner_id,invite_code,created_at').eq('is_public', false).order('created_at', { ascending: true }),
+      c.from('seats').select('league_id,seat_no,club_name'),
+      c.from('league_requests').select('id,league_id,user_id,club_name,status,created_at').order('created_at', { ascending: true })]);
+    if (lg.error) return;
+    const leagues = lg.data || [], ids = leagues.map(l => l.id), board = new Map();
+    if (ids.length) {
+      const { data: bd } = await c.from('seat_board').select('league_id,seat_no,club_name').in('league_id', ids);
+      (bd || []).forEach(r => { if (!board.has(r.league_id)) board.set(r.league_id, []); board.get(r.league_id).push(r); });
+    }
+    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data]);
+    if (sig === S.sig) return;
+    S.sig = sig; S.leagues = leagues; S.board = board; S.seats = ms.data || []; S.reqs = rq.data || []; render();
+  }
+
+  function leagueCard(l) {
+    const me = window.CC.user.id, isC = l.commissioner_id === me;
+    const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
+    const pending = S.reqs.filter(r => r.league_id === l.id && r.status === 'pending' && r.user_id !== me);
+    const mySeat = S.seats.find(s => s.league_id === l.id);
+    const status = l.status === 'full' ? "All ten seats are filled. Game days start here once live play launches." : `${n} of 10 seats filled.`;
+    return `<article class="card lg" data-id="${l.id}"><header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>
+      ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
+      <ul class="members">${members.map(m => `<li>${esc(m.club_name)}</li>`).join('')}</ul>
+      ${isC && l.status === 'open' ? `<div class="invite"><b>Invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval.</span><code>${esc(inviteUrl(l.invite_code))}</code><button class="btn btn-alt" data-copy="${esc(inviteUrl(l.invite_code))}">Copy link</button></div>` : ''}
+      ${isC && pending.length ? `<h3 style="margin-top:16px;font-size:19px">Waiting for your approval</h3><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and know someone here</span><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></li>`).join('')}</ul>` : ''}
+      ${mySeat && !isC ? `<div class="row"><button class="btn btn-alt" data-leave="${l.id}">Leave this league</button></div>` : ''}
+    </article>`;
+  }
+  function render() {
+    const me = signedIn() ? window.CC.user.id : null;
+    const waiting = S.reqs.filter(r => r.user_id === me && r.status === 'pending');
+    const declined = S.reqs.filter(r => r.user_id === me && r.status === 'declined');
+    let html = '';
+    if (waiting.length) html += `<div class="pad"><h2>Waiting on a commissioner</h2>${waiting.map(r => `<p>Your request to join as <b>${esc(r.club_name)}</b> is waiting for approval.</p>`).join('')}</div>`;
+    if (declined.length) html += `<div class="pad"><h2>Request declined</h2><p>A commissioner declined ${declined.length === 1 ? 'a request' : declined.length + ' requests'} from you.</p></div>`;
+    html += S.leagues.map(leagueCard).join('');
+    $('mine').innerHTML = html;
+    $('joinCard').hidden = !joinCode();
+    if (joinCode()) $('joinNote').textContent = signedIn() ? 'Name your club and confirm two things. The commissioner will review your request.' : 'Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there is no password.';
+    document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; } catch (e) { window.prompt('Copy this link:', b.dataset.copy); } });
+    document.querySelectorAll('[data-review]').forEach(b => b.onclick = () => review(+b.dataset.review, b.dataset.yes === '1', b));
+    document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => leave(b.dataset.leave));
+  }
+
+  async function review(id, yes, btn) {
+    btn.disabled = true;
+    const { error } = await window.CC.client.rpc('review_request', { p_request_id: id, p_approve: yes });
+    if (error) alert(error.message);
+    S.sig = ''; load();
+  }
+  async function leave(id) {
+    if (!confirm('Leave this league?')) return;
+    const { error } = await window.CC.client.from('seats').delete().eq('league_id', id);
+    if (error) alert('Could not leave that league. Please try again.');
+    S.sig = ''; load();
+  }
+
+  $('startForm').onsubmit = async e => {
+    e.preventDefault();
+    if (!window.CC || !window.CC.client) return say('startMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
+    if (!window.CC.requireSignIn('Create your free account to start a league')) return;
+    const name = $('lgName').value.trim(), club = $('lgClub').value.trim();
+    if (name.length < 3) return say('startMsg', 'League names are 3 to 40 characters.', 'err');
+    if (club.length < 2) return say('startMsg', 'Club names are 2 to 24 characters.', 'err');
+    $('startGo').disabled = true; say('startMsg', 'Starting your league…');
+    const { error } = await window.CC.client.rpc('create_private_league', { p_name: name, p_club: club });
+    $('startGo').disabled = false;
+    if (error) return say('startMsg', error.message, 'err');
+    $('lgName').value = ''; $('lgClub').value = ''; say('startMsg', 'Your league is ready. Copy the invite link above and share it with people you know.', 'ok');
+    S.sig = ''; load();
+  };
+
+  $('joinForm').onsubmit = async e => {
+    e.preventDefault();
+    if (!window.CC || !window.CC.client) return say('joinMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
+    if (!window.CC.requireSignIn('Create your free account to join this league')) return;
+    const club = $('joinClub').value.trim();
+    if (club.length < 2) return say('joinMsg', 'Club names are 2 to 24 characters.', 'err');
+    $('joinGo').disabled = true; say('joinMsg', 'Sending your request…');
+    const { data, error } = await window.CC.client.rpc('request_to_join', { p_code: joinCode(), p_club: club, p_attest: $('att1').checked && $('att2').checked });
+    $('joinGo').disabled = false;
+    if (error) return say('joinMsg', error.message, 'err');
+    store.del('cc-join');
+    say('joinMsg', `Request sent. The commissioner of ${data && data.league_name ? data.league_name : 'the league'} will review it, and you'll see the league here once you're approved.`, 'ok');
+    $('joinForm').querySelectorAll('input,button').forEach(x => x.disabled = true);
+    S.sig = ''; load();
+  };
+  $('joinCancel').onclick = () => { store.del('cc-join'); $('joinCard').hidden = true; };
+
+  window.addEventListener('cc-auth', () => { S.sig = ''; load(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+  setInterval(() => { if (!document.hidden) load(); }, 8000);
+  render();
+  (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
+})();
+</script>
+</body>
+</html>
