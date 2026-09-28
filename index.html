@@ -43,6 +43,7 @@ body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var
 .folder p { margin: 0 0 16px; color: #4F4121; }
 .folder ul { margin: 0 0 20px; padding-left: 18px; color: #4F4121; font-size: 15px; }
 .folder li { margin: 3px 0; }
+.folder .soon { font-weight: 600; color: var(--wb-red); margin: 0 0 14px; }
 .folder .go { margin-top: auto; display: flex; gap: 10px; flex-wrap: wrap; }
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 10px 20px; border-radius: 4px; font: 600 17px var(--text); text-decoration: none; }
 .btn-main { background: var(--wb-ink); color: #fff; }
@@ -99,16 +100,18 @@ footer p { margin: 0 0 6px; }
     </section>
 
     <section class="folder" aria-labelledby="leagueH">
-      <span class="tab" aria-hidden="true">League office</span>
-      <h2 id="leagueH">Run a league</h2>
-      <p>A full 10-club season: a 25-round draft, 27 games, trades and waivers, then the playoffs.</p>
+      <span class="tab" aria-hidden="true">Prize money</span>
+      <h2 id="leagueH">Cash leagues</h2>
+      <p>Draft against nine real managers and play a full season for a real prize pool.</p>
       <ul>
-        <li>You manage one club; the computer runs the other nine</li>
-        <li>Trade deadline, waiver wire and a league office that blocks lopsided deals</li>
-        <li>Standings, league leaders and a prize ledger (test mode)</li>
+        <li><b>$1,000 pot</b> from ten $100 buy-ins, paying $600, $300 and $100</li>
+        <li>Buy-ins held in LeagueSafe escrow, not by any person; $10 platform fee per club</li>
+        <li>27-game season, trades, waivers and playoffs, with a league office that blocks lopsided deals</li>
+        <li>Can't fill a spot? The computer manages it and can't win money</li>
       </ul>
+      <p class="soon">Opening soon. Until then, run a free practice league against the computer.</p>
       <div class="go">
-        <a class="btn btn-main" href="league.html" id="leagueGo">Start a league</a>
+        <a class="btn btn-main" href="league.html" id="leagueGo">Try a practice league</a>
       </div>
     </section>
   </div>
@@ -125,7 +128,7 @@ footer p { margin: 0 0 6px; }
   if (lg) {
     const go = document.getElementById('leagueGo');
     const where = { draft: `in the draft, round ${Math.floor(lg.pick / 10) + 1} of 25`, season: `day ${lg.day} of 27`, playoffs: 'in the playoffs', final: 'season complete' }[lg.phase] || '';
-    go.textContent = lg.phase === 'final' ? 'See your league' : 'Resume your league';
+    go.textContent = lg.phase === 'final' ? 'See your practice league' : 'Resume your practice league';
     go.href = 'league.html' + (lg.phase === 'draft' ? '#/draft' : lg.phase === 'final' || lg.phase === 'playoffs' ? '#/playoffs' : '#/standings');
     const note = document.createElement('p'); note.style.cssText = 'margin:8px 0 0;font-size:14px;width:100%';
     note.textContent = `${lg.name}: ${where}.`; go.parentNode.appendChild(note);
