@@ -128,9 +128,9 @@
     .ccgate-card button:disabled { opacity: .55; cursor: default; }
     .ccgate-card .small { font-size: 13px; color: #5A6470; margin: 12px 0 0; }
     .ccgate-card .err { color: #C0392B; font-weight: 600; margin: 10px 0 0; }`;
-  let gateEl = null, gateState = 'checking', gateMsg = '';
+  let gateEl = null, gateState = 'checking', gateMsg = '', forced = false, gateHead = null;
   function drawGate() {
-    if (!GATED) return;
+    if (!GATED && !forced) return;
     if (!gateEl) {
       const st = document.createElement('style'); st.textContent = gateCss; document.head.appendChild(st);
       gateEl = document.createElement('div'); gateEl.className = 'ccgate'; gateEl.setAttribute('role', 'dialog'); gateEl.setAttribute('aria-modal', 'true'); gateEl.setAttribute('aria-labelledby', 'ccgT');
@@ -142,9 +142,9 @@
     if (gateState === 'checking') body = `${head}<h2 id="ccgT">Cooperstown Cash</h2><p>One moment…</p>`;
     else if (gateState === 'offline') body = `${head}<h2 id="ccgT">We couldn't reach sign-in</h2><p>Check your connection and refresh the page. You need a free account to play.</p>`;
     else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play.</p><p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">try a different email</button>.</p>`;
-    else body = `${head}<h2 id="ccgT">Create your free account to play</h2><p>Play for fun or learn strategy. Your drafts, wins and unlocks are saved to your account. Just your email, no password.</p>
+    else body = `${head}<h2 id="ccgT">${esc(gateHead || 'Create your free account to play')}</h2><p>Play for fun or learn strategy. Your drafts, wins and unlocks are saved to your account. Just your email, no password.</p>
       <form id="ccgForm"><label for="ccgEmail">Email</label><input id="ccgEmail" type="email" required autocomplete="email" placeholder="you@example.com"><button type="submit" id="ccgGo">Email me a sign-in link</button></form>
-      ${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Already have an account? Use the same email and we'll send you a fresh link.</p>`;
+      ${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Already have an account? Use the same email and we'll send you a fresh link.</p>${forced && !GATED ? '<p class="small"><button type="button" id="ccgClose" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">Not now</button></p>' : ''}`;
     gateEl.innerHTML = `<div class="ccgate-card">${body}</div>`;
     const form = gateEl.querySelector('#ccgForm');
     if (form) {
@@ -158,23 +158,38 @@
         drawGate();
       };
     }
+    const closeBtn = gateEl.querySelector('#ccgClose'); if (closeBtn) closeBtn.onclick = () => { forced = false; openGate(); };
     const again = gateEl.querySelector('#ccgAgain'); if (again) again.onclick = () => { gateState = 'form'; gateMsg = ''; drawGate(); };
   }
-  function openGate() { if (GATED && gateEl) { gateEl.remove(); gateEl = null; const w = document.querySelector('.wrap'); if (w) w.removeAttribute('inert'); } }
+  function openGate() { if (gateEl) { gateEl.remove(); gateEl = null; const w = document.querySelector('.wrap'); if (w) w.removeAttribute('inert'); } }
   function setGate(state) { gateState = state; gateMsg = ''; drawGate(); }
+
+  // ---------- what other pages (like the lobby) can use ----------
+  const readyCbs = []; let isReady = false;
+  function markReady() { isReady = true; readyCbs.splice(0).forEach(f => { try { f(); } catch (e) {} }); }
+  window.CC = {
+    get client() { return client; },
+    get user() { return user; },
+    whenReady(fn) { isReady ? fn() : readyCbs.push(fn); },
+    // returns true if signed in; otherwise raises a dismissible sign-in box and returns false
+    requireSignIn(heading) { if (user) return true; forced = true; gateHead = heading || null; gateState = 'form'; gateMsg = ''; drawGate(); return false; },
+  };
 
   function start() {
     mount();
     if (GATED) setGate('checking');
-    if (!window.supabase || !window.supabase.createClient) { if (GATED) setGate('offline'); return; } // offline or blocked: open play still works without accounts
+    if (!window.supabase || !window.supabase.createClient) { if (GATED) setGate('offline'); markReady(); return; } // offline or blocked: open play still works without accounts
     client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, detectSessionInUrl: true } });
     client.auth.onAuthStateChange((event, session) => {
       const was = user && user.id;
       user = session ? session.user : null;
       if (user && user.id !== was) { mode = 'idle'; status = ''; setTimeout(sync, 0); }
       if (GATED) { if (user) openGate(); else if ((event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') && gateState !== 'sent') setGate('form'); }
+      if (forced && user) { forced = false; openGate(); }
       render();
+      window.dispatchEvent(new CustomEvent('cc-auth', { detail: { user } }));
     });
+    markReady();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

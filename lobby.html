@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Find a table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+button, input { font: inherit; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 16px 48px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; }
+.crumbs .badge img { width: 100%; height: 100%; }
+
+.board { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 22px 28px 20px; }
+.board h1 { font: 400 clamp(30px, 5.5vw, 48px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.board p { margin: 0; max-width: 64ch; color: #3A434D; }
+.stats { margin-top: 12px !important; font-weight: 600; color: var(--wb-green) !important; }
+.pad { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border-radius: 2px; padding: 10px 16px 12px 42px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); margin: 16px 0 0; }
+.pad::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
+.pad h2 { font: 400 20px/26px var(--marker); color: var(--wb-red); margin: 0; }
+.pad p, .pad li { line-height: 26px; margin: 0; }
+.pad ul { margin: 0; padding-left: 18px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin: 20px 0 14px; }
+.tabs, .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { background: transparent; border: 1.5px solid #8C959E; color: var(--ink); border-radius: 4px; padding: 8px 16px; font: 400 19px/1 var(--marker); cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--wb-ink); border-color: var(--wb-ink); color: #fff; }
+.tab small { font: 600 12px var(--text); margin-left: 6px; opacity: .85; }
+.chip { background: transparent; border: 1px solid #8C959E; color: var(--ink); border-radius: 16px; padding: 5px 14px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--wall); border-color: var(--ink); }
+
+.btn { border: 0; border-radius: 4px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+.btn-main { background: var(--wb-ink); color: #fff; }
+.btn-main:hover { background: #17306E; }
+.btn-alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; }
+.btn-alt:hover { background: #E9ECEA; }
+.btn[disabled] { opacity: .5; cursor: default; }
+
+.mine { display: grid; gap: 8px; margin-bottom: 18px; }
+.mine .pad { margin: 0; }
+.mine .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 2px 0; }
+.mine .pad .btn { padding: 4px 12px; }
+
+.tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 20px; }
+.tbl { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 22px 18px; display: flex; flex-direction: column; }
+.tbl h3 { font: 400 24px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 10px; background: #E3E6E4; color: #3A434D; }
+.tag.free { background: #D8E8DC; color: #17603A; }
+.fmt { font-size: 13.5px; color: #4A5560; margin: 6px 0 0; }
+.felt { position: relative; aspect-ratio: 5 / 3; margin: 8px 0 4px; }
+.felt::before { content: ''; position: absolute; inset: 15% 9%; border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, #2C6B4B, #1F5039); border: 7px solid #6A4A2C; box-shadow: inset 0 0 14px rgba(0,0,0,.35), 0 2px 4px rgba(0,0,0,.3); }
+.felt .count { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: #F3EAD3; pointer-events: none; }
+.felt .count b { font: 400 34px/1 var(--marker); }
+.felt .count small { font-size: 12px; opacity: .9; }
+.seats { list-style: none; margin: 0; padding: 0; }
+.seat { position: absolute; width: 14%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; display: grid; place-items: center; font: 400 13px/1 var(--marker); }
+.seat.open { border: 2px dashed #8C959E; background: rgba(247, 248, 246, .92); color: #5A6470; font-family: var(--text); font-weight: 600; }
+.seat.taken { background: var(--c); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
+.seat.me { outline: 3px solid var(--lamp); outline-offset: 1px; }
+.tbl details { font-size: 13.5px; color: #3A434D; margin: 2px 0 10px; }
+.tbl summary { cursor: pointer; font-weight: 600; }
+.tbl details ul { margin: 4px 0 0; padding-left: 18px; columns: 2; }
+.tbl .go { margin-top: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tbl .go .youare { font-size: 14px; font-weight: 600; color: var(--wb-green); }
+.empty, .msg { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame); padding: 22px 26px; grid-column: 1 / -1; }
+.toast { min-height: 1.5em; margin: 0 0 8px; font-weight: 600; color: var(--wb-green); }
+.toast.err { color: var(--wb-red); }
+.cash h2, .how h2 { font: 400 26px/1.15 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.cash .panel, .how .panel { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame); padding: 20px 24px; }
+.cash ul, .how ol { margin: 0 0 4px; padding-left: 20px; }
+.cash li, .how li { margin: 4px 0; }
+.how { margin-top: 30px; }
+dialog { border: 0; padding: 0; background: transparent; max-width: 100%; }
+dialog::backdrop { background: rgba(28, 32, 30, .8); }
+.dlg { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame); padding: 28px 30px 24px; width: min(440px, 92vw); }
+.dlg h2 { font: 400 26px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.dlg p { margin: 0 0 12px; color: #3A434D; }
+.dlg label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 4px; }
+.dlg input { width: 100%; padding: 11px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: #1B1F24; }
+.dlg .note { font-size: 13px; color: #5A6470; margin: 6px 0 12px; }
+.dlg .err { color: var(--wb-red); font-weight: 600; min-height: 1.4em; margin: 0 0 8px; }
+.dlg .row { display: flex; gap: 10px; flex-wrap: wrap; }
+footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
+footer p { margin: 0 0 6px; }
+@media (max-width: 560px) { .tables { grid-template-columns: 1fr; } .board { padding: 18px 20px; } .tbl details ul { columns: 1; } }
+@media (prefers-reduced-motion: no-preference) { .tbl { transition: transform .15s; } .tbl:hover { transform: translateY(-2px); } }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a></nav>
+
+  <header class="board">
+    <h1>Find a table</h1>
+    <p>Sit down at an open table with nine other managers. When all ten seats fill, the league starts. Pick your seat, name your club, and you're in.</p>
+    <p class="stats" id="stats" aria-live="polite"></p>
+    <div class="pad">
+      <h2>Early access</h2>
+      <p>Seats are real and fill in real time. The live draft room for a full table is the next piece being built, so for now sitting down holds your place.</p>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" role="group" aria-label="Stakes">
+      <button class="tab" id="tabFree" aria-pressed="true">Free tables</button>
+      <button class="tab" id="tabCash" aria-pressed="false">Cash tables<small>Opening soon</small></button>
+    </div>
+    <div class="chips" role="group" aria-label="League format" id="fmtChips">
+      <button class="chip" data-fmt="all" aria-pressed="true">All formats</button>
+      <button class="chip" data-fmt="draft" aria-pressed="false">Draft leagues</button>
+      <button class="chip" data-fmt="cap" aria-pressed="false">Salary-cap leagues</button>
+    </div>
+  </div>
+
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+  <section class="mine" id="mine" aria-label="Your seats"></section>
+  <section class="tables" id="floor" aria-label="Open tables"></section>
+
+  <section class="cash" id="cash" hidden aria-label="Cash tables">
+    <div class="panel">
+      <h2>Cash tables are opening soon</h2>
+      <p>The same ten-manager league with real money on the line:</p>
+      <ul>
+        <li><b>$100 buy-in</b> per manager, held in LeagueSafe escrow, not by us and not by any one person</li>
+        <li><b>$1,000 pot</b> paying $600 to the champion, $300 to the runner-up and $100 to third</li>
+        <li>A flat <b>$10 platform fee</b> per club, separate from the pot</li>
+        <li>Cash tables will be for adults only, and may not be available in every state</li>
+      </ul>
+      <p>Free tables run exactly the same way, for bragging rights. Sit at one now and learn the ropes.</p>
+    </div>
+  </section>
+
+  <section class="how" aria-label="How tables work">
+    <h2>How a table works</h2>
+    <div class="panel">
+      <ol>
+        <li><b>Sit down.</b> Choose an open seat and name your club. You need a free account, just your email.</li>
+        <li><b>Wait for the table to fill.</b> Ten seats, ten managers. You can leave your seat any time before the league starts.</li>
+        <li><b>Play the season.</b> Draft leagues start with a live snake draft; salary-cap leagues have you build a roster under a cap. Then 27 games, trades, waivers and the playoffs.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <p>Prototype for testing. Club names are public to everyone at the table.</p>
+    <p>Statistics from the Lahman Baseball Database by Sean Lahman, used under CC BY-SA 3.0.</p>
+  </footer>
+</div>
+
+<dialog id="sitDlg" aria-labelledby="sitT">
+  <form class="dlg" id="sitForm" novalidate>
+    <h2 id="sitT">Sit down</h2>
+    <p id="sitSub"></p>
+    <label for="clubName">Name your club</label>
+    <input id="clubName" maxlength="24" autocomplete="off" placeholder="Brooklyn Bridgers">
+    <p class="note">Your club name is public: everyone at the table will see it.</p>
+    <p class="err" id="sitErr" role="alert"></p>
+    <div class="row"><button type="submit" class="btn btn-main" id="sitGo">Sit down</button><button type="button" class="btn btn-alt" id="sitCancel">Cancel</button></div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const FMT = { draft: ['Draft league', 'A live snake draft starts when the table fills.'], cap: ['Salary-cap league', 'Build a roster under a salary cap. No draft to schedule.'] };
+  const COLORS = ['#1D2D5C', '#9E2B22', '#1E5B3A', '#2456A6', '#6B1F2E', '#A8501D', '#26272B', '#1F6F78', '#4B2E83', '#6B5A14'];
+  const hue = s => COLORS[[...s].reduce((n, c) => n + c.charCodeAt(0), 0) % COLORS.length];
+  const S = { leagues: [], board: new Map(), mine: [], stakes: 'free', fmt: 'all', state: 'loading', sig: '' };
+  const seatsOf = id => S.board.get(id) || [];
+  const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+  let toastTimer = null;
+  function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.classList.toggle('err', !!err); clearTimeout(toastTimer); if (msg) toastTimer = setTimeout(() => { t.textContent = ''; }, 7000); }
+
+  // ---------- loading ----------
+  async function load() {
+    const c = window.CC && window.CC.client;
+    if (!c) { S.state = 'offline'; return render(); }
+    const { data: ls, error } = await c.from('leagues').select('id,name,format,stakes,status,created_at').in('status', ['open', 'full']).order('created_at', { ascending: true }).limit(80);
+    if (error) { S.state = 'error'; return render(); }
+    const ids = ls.map(l => l.id), board = new Map();
+    if (ids.length) {
+      const { data: bd } = await c.from('seat_board').select('league_id,seat_no,club_name').in('league_id', ids);
+      (bd || []).forEach(r => { if (!board.has(r.league_id)) board.set(r.league_id, []); board.get(r.league_id).push(r); });
+    }
+    let mine = [];
+    if (window.CC.user) { const { data: ms } = await c.from('seats').select('league_id,seat_no,club_name'); mine = ms || []; }
+    const sig = JSON.stringify([ls, [...board], mine, !!window.CC.user, S.stakes, S.fmt]);
+    S.state = 'ready'; S.leagues = ls; S.board = board; S.mine = mine;
+    if (sig !== S.sig) { S.sig = sig; render(); }
+  }
+
+  // ---------- drawing ----------
+  function seatMap(l) {
+    const taken = new Map(seatsOf(l.id).map(r => [r.seat_no, r.club_name])), mine = new Map(S.mine.filter(m => m.league_id === l.id).map(m => [m.seat_no, true]));
+    let html = '';
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * 2 * Math.PI - Math.PI / 2, x = 50 + 43 * Math.cos(a), y = 50 + 41 * Math.sin(a), no = i + 1, name = taken.get(no);
+      const pos = `left:${x.toFixed(1)}%;top:${y.toFixed(1)}%`;
+      html += name ? `<li class="seat taken ${mine.has(no) ? 'me' : ''}" style="${pos};--c:${hue(name)}" aria-label="Seat ${no}, ${esc(name)}${mine.has(no) ? ', you' : ''}" title="${esc(name)}">${esc(name.slice(0, 2).toUpperCase())}</li>`
+        : `<li class="seat open" style="${pos}" aria-label="Seat ${no}, open">${no}</li>`;
+    }
+    return html;
+  }
+  function tableCard(l) {
+    const seated = seatsOf(l.id).slice().sort((a, b) => a.seat_no - b.seat_no), n = seated.length, mine = S.mine.find(m => m.league_id === l.id), full = l.status === 'full';
+    const [fname, fnote] = FMT[l.format];
+    return `<article class="tbl" data-id="${l.id}">
+      <h3>${esc(l.name)}</h3>
+      <div class="tags"><span class="tag">${fname}</span><span class="tag free">Free</span></div>
+      <p class="fmt">${fnote}</p>
+      <div class="felt"><ol class="seats" aria-label="Seats at ${esc(l.name)}">${seatMap(l)}</ol><div class="count"><b>${n}/10</b><small>${full ? 'table full' : n === 9 ? '1 seat left' : `${10 - n} seats left`}</small></div></div>
+      ${n ? `<details><summary>Who's seated (${n})</summary><ul>${seated.map(r => `<li>${esc(r.club_name)}</li>`).join('')}</ul></details>` : '<details hidden></details>'}
+      <div class="go">${mine ? `<span class="youare">You're in seat ${mine.seat_no} as ${esc(mine.club_name)}</span><button class="btn btn-alt" data-leave="${l.id}">Leave seat</button>`
+        : full ? '<span class="fmt">This table just filled.</span>' : `<button class="btn btn-main" data-sit="${l.id}">Sit down</button>`}</div>
+    </article>`;
+  }
+  function render() {
+    const freeOpen = S.leagues.filter(l => l.stakes === 'free' && l.status === 'open');
+    const seatsLeft = freeOpen.reduce((n, l) => n + 10 - seatsOf(l.id).length, 0);
+    $('stats').textContent = S.state === 'ready' ? `${freeOpen.length} free tables open, ${seatsLeft} seats available` : '';
+    const cash = S.stakes === 'cash';
+    $('tabFree').setAttribute('aria-pressed', String(!cash)); $('tabCash').setAttribute('aria-pressed', String(cash));
+    $('cash').hidden = !cash; $('floor').hidden = cash; $('fmtChips').hidden = cash;
+    document.querySelectorAll('#fmtChips [data-fmt]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fmt === S.fmt)));
+    // your seats, including tables that just filled
+    const mineLeagues = S.mine.map(m => ({ m, l: S.leagues.find(l => l.id === m.league_id) })).filter(x => x.l);
+    $('mine').innerHTML = mineLeagues.length ? `<div class="pad"><h2>Your seats</h2>${mineLeagues.map(({ m, l }) => { const n = seatsOf(l.id).length;
+      return `<div class="row"><p><b>${esc(l.name)}</b>, seat ${m.seat_no} as ${esc(m.club_name)}: ${l.status === 'full' ? 'the table is full. Your league is set; the draft room opens here once live drafts launch.' : `${n} of 10 seated.`}</p><button class="btn btn-alt" data-leave="${l.id}">Leave seat</button></div>`; }).join('')}</div>` : '';
+    if (cash) { bindAll(); return; }
+    if (S.state === 'loading') $('floor').innerHTML = '<div class="msg">Finding tables…</div>';
+    else if (S.state === 'offline') $('floor').innerHTML = "<div class=\"msg\"><b>We couldn't reach the lobby.</b> Check your connection and refresh the page.</div>";
+    else if (S.state === 'error') $('floor').innerHTML = '<div class="msg"><b>Something went wrong loading the tables.</b> We\'ll keep trying. You can also refresh the page.</div>';
+    else {
+      const list = freeOpen.filter(l => S.fmt === 'all' || l.format === S.fmt).sort((a, b) => seatsOf(b.id).length - seatsOf(a.id).length || a.created_at.localeCompare(b.created_at));
+      $('floor').innerHTML = list.length ? list.map(tableCard).join('') : '<div class="empty"><b>No open tables of that kind right now.</b> New tables open automatically as others fill. Try another format.</div>';
+    }
+    bindAll();
+  }
+  function bindAll() {
+    document.querySelectorAll('[data-sit]').forEach(b => b.onclick = () => openSit(b.dataset.sit));
+    document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => leave(b.dataset.leave));
+  }
+
+  // ---------- sitting down ----------
+  let sitting = null;
+  function openSit(id) {
+    if (!window.CC || !window.CC.client) return toast("We couldn't reach the lobby. Refresh the page and try again.", true);
+    if (!window.CC.requireSignIn('Create your free account to sit down')) return;
+    const l = S.leagues.find(x => x.id === id); if (!l) return;
+    sitting = id; $('sitT').textContent = `Sit down at ${l.name}`; $('sitSub').textContent = `${FMT[l.format][0]}. ${10 - seatsOf(id).length} of 10 seats open.`;
+    $('clubName').value = store.get('cc-club-name') || ''; $('sitErr').textContent = ''; $('sitGo').disabled = false; $('sitGo').textContent = 'Sit down';
+    $('sitDlg').showModal(); $('clubName').focus();
+  }
+  function explain(e) {
+    if (e === 'full') return 'That table just filled. Pick another one.';
+    const msg = (e && e.message) || '';
+    if (/hold at most/i.test(msg)) return msg;
+    if (e && e.code === '23505' && /user_id|league_id_user/i.test(msg + (e.details || ''))) return "You're already seated at this table.";
+    if (e && (e.code === '42501' || /row-level security/i.test(msg))) return 'That table just filled or closed. We refreshed the list.';
+    return 'Something went wrong. Please try again.';
+  }
+  async function takeSeat(id, club) {
+    const c = window.CC.client;
+    for (let tries = 0; tries < 4; tries++) {
+      const taken = new Set(seatsOf(id).map(r => r.seat_no)), free = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(n => !taken.has(n));
+      if (!free.length) return { error: 'full' };
+      const seat_no = free[Math.floor(Math.random() * free.length)];
+      const { error } = await c.from('seats').insert({ league_id: id, seat_no, club_name: club });
+      if (!error) return { seat_no };
+      if (error.code === '23505' && /seats_pkey/.test(error.message || '')) { S.sig = ''; await load(); continue; } // someone grabbed that seat a moment ago: pick another
+      return { error };
+    }
+    return { error: { message: 'busy' } };
+  }
+  $('sitForm').onsubmit = async e => {
+    e.preventDefault();
+    const club = $('clubName').value.trim();
+    if (club.length < 2 || club.length > 24) { $('sitErr').textContent = 'Club names are 2 to 24 characters.'; $('clubName').focus(); return; }
+    $('sitGo').disabled = true; $('sitGo').textContent = 'Sitting down…'; $('sitErr').textContent = '';
+    const r = await takeSeat(sitting, club);
+    if (r.error) { $('sitErr').textContent = explain(r.error); $('sitGo').disabled = false; $('sitGo').textContent = 'Sit down'; S.sig = ''; load(); return; }
+    store.set('cc-club-name', club); $('sitDlg').close();
+    const l = S.leagues.find(x => x.id === sitting);
+    S.sig = ''; await load(); toast(`You're seated at ${l ? l.name : 'the table'} in seat ${r.seat_no} as ${club}.`);
+  };
+  $('sitCancel').onclick = () => $('sitDlg').close();
+
+  async function leave(id) {
+    const { error } = await window.CC.client.from('seats').delete().eq('league_id', id);
+    if (error) return toast('Could not leave that seat. Please try again.', true);
+    const l = S.leagues.find(x => x.id === id); S.sig = ''; await load(); toast(`You left ${l ? l.name : 'the table'}.`);
+  }
+
+  // ---------- filters and wiring ----------
+  $('tabFree').onclick = () => { S.stakes = 'free'; S.sig = ''; render(); };
+  $('tabCash').onclick = () => { S.stakes = 'cash'; S.sig = ''; render(); };
+  document.querySelectorAll('#fmtChips [data-fmt]').forEach(b => b.onclick = () => { S.fmt = b.dataset.fmt; S.sig = ''; render(); });
+  window.addEventListener('cc-auth', () => { S.sig = ''; load(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+  setInterval(() => { if (!document.hidden && !$('sitDlg').open) load(); }, 5000);
+  render();
+  (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
+})();
+</script>
+</body>
+</html>
