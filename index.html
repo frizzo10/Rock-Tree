@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Greatest Teams Sim</title>
+<title>Cooperstown Cash: Historical Simulation Leagues</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
@@ -26,6 +26,10 @@ body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var
 :focus-visible { outline: 3px solid #F2B33D; outline-offset: 3px; }
 .wrap { max-width: 1040px; margin: 0 auto; padding: 22px 16px 48px; }
 .board { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 30px 34px 28px; }
+.board { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; }
+.board .logo { width: 190px; height: 190px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.25)); }
+.board .tag { font: 400 20px var(--marker); color: var(--wb-red); margin: -4px 0 10px; }
+@media (max-width: 720px) { .board { grid-template-columns: 1fr; justify-items: start; } .board .logo { width: 140px; height: 140px; } }
 .board h1 { font: 400 clamp(34px, 7vw, 60px)/1.02 var(--marker); color: var(--wb-ink); margin: 0 0 10px; }
 .board p { margin: 0; max-width: 58ch; color: #3A434D; font-size: 17px; }
 .board .rec { margin-top: 14px; font-size: 15px; color: #4A5560; }
@@ -48,13 +52,19 @@ footer { margin-top: 34px; font-size: 13px; color: var(--ink-soft); max-width: 8
 footer p { margin: 0 0 6px; }
 @media (max-width: 720px) { .choices { grid-template-columns: 1fr; gap: 30px; } .board { padding: 24px 22px; } }
 </style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
 <body>
 <div class="wrap">
   <header class="board">
-    <h1>Greatest Teams Sim</h1>
+    <img class="logo" src="logo.webp" alt="" width="190" height="190">
+    <div>
+    <h1>Cooperstown Cash</h1>
+    <p class="tag">Historical simulation leagues</p>
     <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Draft your own club against the computer, or grab a classic team and play right now.</p>
     <p class="rec" id="rec" hidden></p>
+    </div>
   </header>
 
   <div class="choices">
