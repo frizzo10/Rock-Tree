@@ -53,6 +53,12 @@ button, input { font: inherit; }
 .btn-alt:hover { background: #E9ECEA; }
 .btn[disabled] { opacity: .5; cursor: default; }
 
+.wallet { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 5px var(--wb-frame); padding: 10px 18px; margin: 0 0 16px; }
+.wallet .wl b { font: 400 28px/1 var(--marker); color: var(--wb-ink); margin-right: 4px; }
+.wallet .wl span { font-size: 13.5px; color: #4A5560; margin-left: 10px; }
+.wallet details { font-size: 13.5px; margin-top: 4px; }
+.wallet summary { cursor: pointer; font-weight: 600; }
+.wallet ul { margin: 4px 0 0; padding-left: 18px; }
 .mine { display: grid; gap: 8px; margin-bottom: 18px; }
 .mine .pad { margin: 0; }
 .mine .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 2px 0; }
@@ -130,6 +136,7 @@ footer p { margin: 0 0 6px; }
   </div>
 
   <p class="toast" id="toast" role="status" aria-live="polite"></p>
+  <section class="wallet" id="wallet" hidden aria-label="Your tokens"></section>
   <section class="mine" id="mine" aria-label="Your seats"></section>
   <section class="tables" id="floor" aria-label="Open tables"></section>
 
@@ -183,7 +190,7 @@ footer p { margin: 0 0 6px; }
   const FMT = { draft: ['Draft league', 'A live snake draft starts when the table fills.'], cap: ['Salary-cap league', 'Build a roster under a salary cap. No draft to schedule.'] };
   const COLORS = ['#1D2D5C', '#9E2B22', '#1E5B3A', '#2456A6', '#6B1F2E', '#A8501D', '#26272B', '#1F6F78', '#4B2E83', '#6B5A14'];
   const hue = s => COLORS[[...s].reduce((n, c) => n + c.charCodeAt(0), 0) % COLORS.length];
-  const S = { leagues: [], board: new Map(), mine: [], stakes: 'free', fmt: 'all', state: 'loading', sig: '' };
+  const S = { leagues: [], board: new Map(), mine: [], wallet: null, stakes: 'free', fmt: 'all', state: 'loading', sig: '' };
   const seatsOf = id => S.board.get(id) || [];
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
   let toastTimer = null;
@@ -193,17 +200,24 @@ footer p { margin: 0 0 6px; }
   async function load() {
     const c = window.CC && window.CC.client;
     if (!c) { S.state = 'offline'; return render(); }
-    const { data: ls, error } = await c.from('leagues').select('id,name,format,stakes,status,created_at').in('status', ['open', 'full']).order('created_at', { ascending: true }).limit(80);
+    const { data: ls, error } = await c.from('leagues').select('id,name,format,stakes,status,created_at,entry_tokens').in('status', ['open', 'full']).order('created_at', { ascending: true }).limit(80);
     if (error) { S.state = 'error'; return render(); }
     const ids = ls.map(l => l.id), board = new Map();
     if (ids.length) {
       const { data: bd } = await c.from('seat_board').select('league_id,seat_no,club_name').in('league_id', ids);
       (bd || []).forEach(r => { if (!board.has(r.league_id)) board.set(r.league_id, []); board.get(r.league_id).push(r); });
     }
-    let mine = [];
-    if (window.CC.user) { const { data: ms } = await c.from('seats').select('league_id,seat_no,club_name'); mine = ms || []; }
-    const sig = JSON.stringify([ls, [...board], mine, !!window.CC.user, S.stakes, S.fmt]);
-    S.state = 'ready'; S.leagues = ls; S.board = board; S.mine = mine;
+    let mine = [], wallet = null;
+    if (window.CC.user) {
+      const [ms, acc, hist] = await Promise.all([
+        c.from('seats').select('league_id,seat_no,club_name'),
+        c.from('token_accounts').select('balance'),
+        c.from('token_ledger').select('delta,kind,reason,balance_after,created_at').order('created_at', { ascending: false }).limit(15)]);
+      mine = ms.data || [];
+      wallet = { balance: acc.data && acc.data[0] ? acc.data[0].balance : 0, history: hist.data || [] };
+    }
+    const sig = JSON.stringify([ls, [...board], mine, wallet, !!window.CC.user, S.stakes, S.fmt]);
+    S.state = 'ready'; S.leagues = ls; S.board = board; S.mine = mine; S.wallet = wallet;
     if (sig !== S.sig) { S.sig = sig; render(); }
   }
 
@@ -224,7 +238,7 @@ footer p { margin: 0 0 6px; }
     const [fname, fnote] = FMT[l.format];
     return `<article class="tbl" data-id="${l.id}">
       <h3>${esc(l.name)}</h3>
-      <div class="tags"><span class="tag">${fname}</span><span class="tag free">Free</span></div>
+      <div class="tags"><span class="tag">${fname}</span>${(l.entry_tokens || 0) > 0 ? `<span class="tag">${l.entry_tokens} tokens to enter</span>` : '<span class="tag free">Free</span>'}</div>
       <p class="fmt">${fnote}</p>
       <div class="felt"><ol class="seats" aria-label="Seats at ${esc(l.name)}">${seatMap(l)}</ol><div class="count"><b>${n}/10</b><small>${full ? 'table full' : n === 9 ? '1 seat left' : `${10 - n} seats left`}</small></div></div>
       ${n ? `<details><summary>Who's seated (${n})</summary><ul>${seated.map(r => `<li>${esc(r.club_name)}</li>`).join('')}</ul></details>` : '<details hidden></details>'}
@@ -239,6 +253,12 @@ footer p { margin: 0 0 6px; }
     const cash = S.stakes === 'cash';
     $('tabFree').setAttribute('aria-pressed', String(!cash)); $('tabCash').setAttribute('aria-pressed', String(cash));
     $('cash').hidden = !cash; $('floor').hidden = cash;
+    $('wallet').hidden = !S.wallet;
+    if (S.wallet) {
+      const when = d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      $('wallet').innerHTML = `<div class="wl"><b>${S.wallet.balance}</b> tokens<span>Tokens are used to enter tables. Free tables cost none, and token purchases aren't open yet.</span></div>` +
+        (S.wallet.history.length ? `<details><summary>Token history</summary><ul>${S.wallet.history.map(h => `<li>${when(h.created_at)}: ${esc(h.reason)}, ${h.delta > 0 ? '+' : ''}${h.delta} (balance ${h.balance_after})</li>`).join('')}</ul></details>` : '');
+    }
     // your seats, including tables that just filled
     const mineLeagues = S.mine.map(m => ({ m, l: S.leagues.find(l => l.id === m.league_id) })).filter(x => x.l);
     $('mine').innerHTML = mineLeagues.length ? `<div class="pad"><h2>Your seats</h2>${mineLeagues.map(({ m, l }) => { const n = seatsOf(l.id).length;
@@ -264,14 +284,14 @@ footer p { margin: 0 0 6px; }
     if (!window.CC || !window.CC.client) return toast("We couldn't reach the lobby. Refresh the page and try again.", true);
     if (!window.CC.requireSignIn('Create your free account to sit down')) return;
     const l = S.leagues.find(x => x.id === id); if (!l) return;
-    sitting = id; $('sitT').textContent = `Sit down at ${l.name}`; $('sitSub').textContent = `${FMT[l.format][0]}. ${10 - seatsOf(id).length} of 10 seats open.`;
+    sitting = id; $('sitT').textContent = `Sit down at ${l.name}`; $('sitSub').textContent = `${FMT[l.format][0]}. ${10 - seatsOf(id).length} of 10 seats open.` + ((l.entry_tokens || 0) > 0 ? ` Entry costs ${l.entry_tokens} tokens, and you have ${S.wallet ? S.wallet.balance : 0}.` : '');
     $('clubName').value = store.get('cc-club-name') || ''; $('sitErr').textContent = ''; $('sitGo').disabled = false; $('sitGo').textContent = 'Sit down';
     $('sitDlg').showModal(); $('clubName').focus();
   }
   function explain(e) {
     if (e === 'full') return 'That table just filled. Pick another one.';
     const msg = (e && e.message) || '';
-    if (/hold at most/i.test(msg)) return msg;
+    if (/hold at most|not enough tokens/i.test(msg)) return msg;
     if (e && e.code === '23505' && /user_id|league_id_user/i.test(msg + (e.details || ''))) return "You're already seated at this table.";
     if (e && (e.code === '42501' || /row-level security/i.test(msg))) return 'That table just filled or closed. We refreshed the list.';
     return 'Something went wrong. Please try again.';
