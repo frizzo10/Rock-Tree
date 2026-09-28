@@ -444,6 +444,7 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
   // ---------- league state ----------
   let L = store.get('cc-league-v1', null);
   const save = () => store.set('cc-league-v1', L);
+  if (L) { L.tx = L.tx || []; L.offers = L.offers || []; L.waivers = L.waivers || []; L.claims = L.claims || []; }
   const ME = 0; // you are team 0 and the commissioner
 
   function newLeague(names) {
@@ -451,7 +452,7 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
     const order = [...teams.keys()].sort(() => Math.random() - 0.5);
     L = { id: 'cc-' + Date.now().toString(36), name: 'Cooperstown Cash League', created: new Date().toISOString(), phase: 'draft',
       teams, order, pick: 0, draftLog: [], schedule: makeSchedule(10).map((d, di) => d.map(g => ({ ...g, day: di + 1 }))), day: 0,
-      stats: { bat: {}, pit: {} }, gp: Array(10).fill(0), playoffs: null, ledger: { ...ledgerFor(teams), locked: new Date().toISOString(), status: 'test' } };
+      stats: { bat: {}, pit: {} }, gp: Array(10).fill(0), playoffs: null, tx: [], offers: [], waivers: [], claims: [], ledger: { ...ledgerFor(teams), locked: new Date().toISOString(), status: 'test' } };
     save();
   }
 
@@ -507,11 +508,139 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
     L.gp[away]++; L.gp[home]++;
     return res;
   }
+
+  // ---------- rosters: re-seat 25 players into legal spots after any move ----------
+  const TRADE_DEADLINE = 18; // trades close once 18 of 27 days are played
+  function assignRoster(keys) {
+    const ps = keys.map(k => BY.get(k));
+    const H = ps.filter(p => p.kind === 'H'), P = ps.filter(p => p.kind === 'P');
+    if (H.length !== 13 || P.length !== 12) return null;
+    const sp = P.filter(p => p.role === 'SP').sort((a, b) => runs(b) - runs(a)).slice(0, 5);
+    if (sp.length < 5) return null;
+    const rp = P.filter(p => !sp.includes(p)).sort((a, b) => runs(b) - runs(a));
+    // fill the eight fielding spots, scarcest position first, trying main-position players first
+    const order = POS.slice().sort((a, b) => H.filter(p => p.elig.includes(a)).length - H.filter(p => p.elig.includes(b)).length);
+    const used = new Set(), pick = {};
+    const solve = n => {
+      if (n === order.length) return true;
+      const pos = order[n];
+      const c = H.filter(p => !used.has(p.key) && p.elig.includes(pos)).sort((a, b) => (b.pos === pos) - (a.pos === pos) || runs(b) - runs(a));
+      for (const p of c) { used.add(p.key); pick[pos] = p; if (solve(n + 1)) return true; used.delete(p.key); }
+      return false;
+    };
+    if (!solve(0)) return null;
+    const rest = H.filter(p => !used.has(p.key)).sort((a, b) => runs(b) - runs(a));
+    const r = {}; for (const pos of POS) r[pos] = pick[pos].key;
+    r.dh = rest[0].key; rest.slice(1).forEach((p, i) => r['bn' + (i + 1)] = p.key);
+    sp.forEach((p, i) => r['sp' + (i + 1)] = p.key); rp.forEach((p, i) => r['rp' + (i + 1)] = p.key);
+    return r;
+  }
+  // what a roster is worth: the players who actually play count fully, depth a little
+  const teamValue = r => SLOTS.reduce((n, s) => n + (r[s.id] ? runs(BY.get(r[s.id])) * (s.core ? 1 : 0.15) : 0), 0);
+  const keysOf = i => Object.values(L.teams[i].roster);
+  const log = text => { L.tx.unshift({ day: L.day, text }); L.tx = L.tx.slice(0, 200); };
+  const tradeOpen = () => L.phase === 'season' && L.day < TRADE_DEADLINE;
+  const movesOpen = () => L.phase === 'season';
+  const names = ks => ks.map(k => { const p = BY.get(k); return `${p.name} (${p.yr})`; }).join(', ');
+
+  function evalTrade(a, b, give, get) { // a gives `give` to b and receives `get`
+    const ra = assignRoster(keysOf(a).filter(k => !give.includes(k)).concat(get));
+    const rb = assignRoster(keysOf(b).filter(k => !get.includes(k)).concat(give));
+    return { ok: !!(ra && rb), ra, rb,
+      da: ra ? teamValue(ra) - teamValue(L.teams[a].roster) : 0, db: rb ? teamValue(rb) - teamValue(L.teams[b].roster) : 0 };
+  }
+  function doTrade(a, b, give, get, ev) {
+    L.teams[a].roster = ev.ra; L.teams[b].roster = ev.rb; prepped = null;
+    log(`Trade: ${L.teams[a].name} send ${names(give)} to ${L.teams[b].name} for ${names(get)}.`);
+  }
+  // a computer club says yes when the deal makes its everyday lineup and staff better
+  const aiLikes = ev => ev.ok && ev.db >= 1.5 + Math.random() * 2;
+
+  // computer clubs float an offer now and then: something they can spare for something they need
+  function aiOffer() {
+    if (!tradeOpen() || Math.random() > 0.3) return;
+    const from = 1 + Math.floor(Math.random() * 9), mine = keysOf(ME), theirs = keysOf(from);
+    let best = null;
+    for (let n = 0; n < 60; n++) {
+      const g = theirs[Math.floor(Math.random() * theirs.length)], y = mine[Math.floor(Math.random() * mine.length)];
+      if (BY.get(g).kind !== BY.get(y).kind) continue;
+      const ev = evalTrade(from, ME, [g], [y]); // `from` gives g, receives y
+      if (!ev.ok || ev.da < 2 || ev.db < -3) continue;
+      if (!best || ev.da + ev.db > best.ev.da + best.ev.db) best = { give: [g], get: [y], ev };
+    }
+    if (best) L.offers.push({ from, give: best.give, get: best.get, day: L.day });
+  }
+
+  // ---------- waivers: dropped players sit one day; claims go worst record first ----------
+  const onRoster = () => new Set(L.teams.flatMap(t => Object.values(t.roster)));
+  const onWaivers = () => new Set(L.waivers.map(w => w.key));
+  const freeAgents = () => { const r = onRoster(), w = onWaivers(); return ALL.filter(p => !r.has(p.key) && !w.has(p.key)); };
+  function waiverOrder() { return standings().slice().reverse().map(s => s.i); } // worst record claims first
+  function dropTo(i, key) { L.waivers.push({ key, from: i, since: L.day }); }
+  function addPlayer(i, addKey, dropKey) {
+    const r = assignRoster(keysOf(i).filter(k => k !== dropKey).concat(addKey));
+    if (!r) return false;
+    L.teams[i].roster = r; prepped = null; dropTo(i, dropKey);
+    return true;
+  }
+  function processWaivers() {
+    const due = L.waivers.filter(w => w.since < L.day); // on the wire for at least one full day
+    if (!due.length) return;
+    const order = waiverOrder();
+    for (const w of due) {
+      let claimed = false;
+      for (const i of order) {
+        if (i === w.from) continue;
+        let drop = null;
+        if (i === ME) { const c = L.claims.find(c => c.key === w.key); if (!c || !keysOf(ME).includes(c.drop)) continue; drop = c.drop; }
+        else drop = aiDropFor(i, w.key);
+        if (!drop) continue;
+        const r = assignRoster(keysOf(i).filter(k => k !== drop).concat(w.key));
+        if (!r) continue;
+        L.teams[i].roster = r; prepped = null;
+        log(`Waivers: ${L.teams[i].name} claim ${names([w.key])} (dropped ${names([drop])}).`);
+        L.waivers.push({ key: drop, from: i, since: L.day });
+        claimed = true;
+        // the claiming club drops to the back of the order
+        order.splice(order.indexOf(i), 1); order.push(i);
+        break;
+      }
+      L.waivers = L.waivers.filter(x => x !== w);
+      if (!claimed) log(`${names([w.key])} cleared waivers and is a free agent.`);
+    }
+    L.claims = L.claims.filter(c => onWaivers().has(c.key));
+  }
+  // a computer club wants a player if swapping him for its weakest same-type player helps by 3+ runs
+  function aiDropFor(i, key) {
+    const p = BY.get(key), mine = keysOf(i).filter(k => BY.get(k).kind === p.kind);
+    let best = null, before = teamValue(L.teams[i].roster);
+    for (const d of mine) {
+      const r = assignRoster(keysOf(i).filter(k => k !== d).concat(key));
+      if (r && teamValue(r) - before >= 3 && (!best || teamValue(r) > best.v)) best = { d, v: teamValue(r) };
+    }
+    return best && best.d;
+  }
+  // computer clubs also pick up the odd free agent
+  function aiFreeAgency() {
+    const fa = freeAgents().sort((a, b) => runs(b) - runs(a)).slice(0, 40);
+    for (let i = 1; i < 10; i++) {
+      if (Math.random() > 0.2) continue;
+      for (const p of fa) {
+        if (onRoster().has(p.key)) continue;
+        const d = aiDropFor(i, p.key);
+        if (d && addPlayer(i, p.key, d)) { log(`Free agency: ${L.teams[i].name} sign ${names([p.key])}, drop ${names([d])} to waivers.`); break; }
+      }
+    }
+  }
+
   function simDay() {
     if (L.phase !== 'season' || L.day >= L.schedule.length) return;
     for (const g of L.schedule[L.day]) record(g, playGame(g.away, g.home));
     L.day++;
-    if (L.day >= L.schedule.length) startPlayoffs();
+    processWaivers(); aiFreeAgency();
+    L.offers = L.offers.filter(o => o.day >= L.day - 1); aiOffer();
+    if (L.day === TRADE_DEADLINE) { L.offers = []; log('Trade deadline passed. Trades are closed for the season.'); }
+    if (L.day >= L.schedule.length) { startPlayoffs(); log('Regular season over. Rosters are locked for the playoffs.'); }
     save();
   }
 
@@ -559,7 +688,7 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
   }
 
   // ---------- views ----------
-  const TABS = [['league', 'League'], ['draft', 'Draft'], ['standings', 'Standings'], ['schedule', 'Schedule'], ['leaders', 'Leaders'], ['teams', 'Teams'], ['playoffs', 'Playoffs'], ['ledger', 'Ledger']];
+  const TABS = [['league', 'League'], ['draft', 'Draft'], ['standings', 'Standings'], ['schedule', 'Schedule'], ['leaders', 'Leaders'], ['teams', 'Teams'], ['trades', 'Trades'], ['waivers', 'Waivers'], ['playoffs', 'Playoffs'], ['ledger', 'Ledger']];
   function route() { const h = location.hash.replace(/^#\/?/, '').split('/'); return { tab: h[0] || (L ? (L.phase === 'draft' ? 'draft' : 'standings') : 'league'), arg: h[1] }; }
   function head() {
     $('lgName').textContent = L ? L.name : 'Cooperstown Cash';
@@ -639,7 +768,7 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
       <section class="wb"><h2 class="m">${L.phase === 'season' ? `Day ${L.day} of 27` : 'Regular season complete'}</h2>
       ${L.phase === 'season' ? `<div class="row"><button class="btn btn-main" id="simDay">Sim next day</button><button class="btn btn-alt" id="simWeek">Sim 5 days</button><button class="btn btn-alt" id="simAll">Sim rest of season</button></div>` : '<a class="btn btn-main" href="#/playoffs">Go to the playoffs</a>'}
       ${today ? `<div class="day" style="margin-top:14px"><h4>Day ${L.day} results</h4>${today.map(gameLine).join('')}</div>` : ''}
-      <p style="font-size:13px;color:#4A5560">Top 4 make the playoffs. Ties go to head-to-head record, then run differential.</p></section></div>`;
+      <p style="font-size:13px;color:#4A5560">Top 4 make the playoffs. Ties go to head-to-head record, then run differential. ${tradeOpen() ? `Trade deadline after day ${TRADE_DEADLINE}.` : L.phase === 'season' ? 'Trade deadline has passed.' : ''}${L.offers.length ? ` <a href="#/trades">You have ${L.offers.length} trade offer${L.offers.length > 1 ? 's' : ''}.</a>` : ''}</p></section></div>`;
   }
   function gameLine(g) {
     const me = g.home === ME || g.away === ME, aw = g.played && g.ar > g.hr, hw = g.played && g.hr > g.ar;
@@ -675,6 +804,61 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
     return sheet(`${esc(t.name)}.xls`, `<table><thead><tr><th class="l">Spot</th><th class="l">Player</th><th>AB / IP</th><th>AVG / ERA</th><th>HR / SO</th><th>RBI / W-L</th><th>BB</th></tr></thead><tbody>${rows}</tbody></table>`, sel) +
       `<p style="font-size:13px;color:var(--ink-soft)">Bench bats and relievers 5 through 7 are depth: the sim uses the nine starters, five starting pitchers and the top of the bullpen.</p>`;
   }
+
+  // ---------- trades view ----------
+  let tPartner = 1, tGive = [], tGet = [], tMsg = '';
+  function rosterPick(i, chosen, attr) {
+    const r = L.teams[i].roster;
+    return SLOTS.map(s => { const k = r[s.id], p = BY.get(k);
+      return `<tr><td><input type="checkbox" ${attr}="${k}" ${chosen.includes(k) ? 'checked' : ''} ${!tradeOpen() ? 'disabled' : ''} aria-label="${esc(p.name)}"></td><td class="l">${slotLabel(s.id)}</td><td class="l"><b>${esc(p.name)}</b><span class="sub">${p.yr} ${esc(p.tm)}</span></td><td>${Math.round(runs(p))}</td></tr>`; }).join('');
+  }
+  function vTrades() {
+    if (L.phase === 'draft') return `<section class="wb"><h2 class="m">Trades</h2><p>Trades open when the season starts.</p></section>`;
+    const ev = tGive.length && tGet.length ? evalTrade(ME, tPartner, tGive, tGet) : null;
+    const status = !tradeOpen() ? `<p class="warn">${L.day >= TRADE_DEADLINE ? `The trade deadline passed after day ${TRADE_DEADLINE}.` : 'Trades are closed.'}</p>`
+      : `<p>Trades go through the moment the other club accepts. Deadline: after day ${TRADE_DEADLINE} (${Math.max(0, TRADE_DEADLINE - L.day)} days left).</p>`;
+    const verdict = !ev ? '<p>Pick up to 3 players from each side.</p>'
+      : !ev.ok ? '<p class="warn">Not a legal trade: both clubs must keep 13 hitters, 12 pitchers (5 of them starters) and someone who can play every position.</p>'
+      : `<p>Your everyday team changes by <b class="${ev.da >= 0 ? 'ok' : 'warn'}">${ev.da >= 0 ? '+' : ''}${Math.round(ev.da)} runs</b> a season.</p>`;
+    const offers = L.offers.map((o, n) => `<li>${tname(o.from)} offer <b>${esc(names(o.give))}</b> for your <b>${esc(names(o.get))}</b>. <button class="btn btn-alt" data-accept="${n}">Accept</button> <button class="btn btn-alt" data-decline="${n}">Decline</button></li>`).join('');
+    return `<div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)"><div style="display:grid;gap:14px">
+      ${sheet(`${esc(L.teams[ME].name)}.xls (you give)`, `<table><thead><tr><th></th><th class="l">Spot</th><th class="l">Player</th><th>Runs+</th></tr></thead><tbody>${rosterPick(ME, tGive, 'data-give')}</tbody></table>`)}</div>
+      <div style="display:grid;gap:14px;align-content:start">
+      <section class="wb"><h2 class="m">Make a trade</h2>${status}
+        <div class="row"><label for="tp">Trade with</label><select id="tp">${L.teams.map((x, k) => k === ME ? '' : `<option value="${k}" ${k === tPartner ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+        ${verdict}${tMsg ? `<p class="clockline" style="font-size:18px">${esc(tMsg)}</p>` : ''}
+        <button class="btn btn-main" id="propose" ${!ev || !ev.ok || !tradeOpen() ? 'disabled' : ''}>Propose trade</button></section>
+      ${offers ? `<div class="pad"><h3>Offers for you</h3><ul>${offers}</ul></div>` : ''}
+      ${sheet(`${esc(L.teams[tPartner].name)}.xls (you get)`, `<table><thead><tr><th></th><th class="l">Spot</th><th class="l">Player</th><th>Runs+</th></tr></thead><tbody>${rosterPick(tPartner, tGet, 'data-get')}</tbody></table>`)}</div></div>`;
+  }
+
+  // ---------- waivers and free agents view ----------
+  let wq = '', wpos = '', wAdd = null;
+  function vWaivers() {
+    if (L.phase === 'draft') return `<section class="wb"><h2 class="m">Waivers and free agents</h2><p>Opens when the season starts. Every undrafted player becomes a free agent.</p></section>`;
+    const open = movesOpen(), wset = onWaivers();
+    let fa = freeAgents();
+    if (wpos === 'SP' || wpos === 'RP') fa = fa.filter(p => p.kind === 'P' && p.role === wpos); else if (wpos) fa = fa.filter(p => p.kind === 'H' && p.pos === wpos);
+    if (wq) fa = fa.filter(p => `${p.name} ${p.tm} ${p.yr}`.toLowerCase().includes(wq));
+    fa.sort((a, b) => runs(b) - runs(a));
+    const addRow = (p, onW) => `<tr><td class="l"><b>${esc(p.name)}</b><span class="sub">${p.yr} ${esc(p.tm)}</span></td><td class="l">${p.kind === 'H' ? p.pos.toUpperCase() : p.role}</td><td>${Math.round(runs(p))}</td><td><button class="btn btn-go" data-add="${p.key}" data-w="${onW ? 1 : 0}" ${open ? '' : 'disabled'}>${onW ? 'Claim' : 'Add'}</button></td></tr>`;
+    const wire = L.waivers.map(w => { const p = BY.get(w.key), c = L.claims.find(c => c.key === w.key);
+      return addRow(p, true).replace('</td><td class="l">', `<span class="sub">From ${tname(w.from)}, clears after day ${w.since + 1}${c ? `. Your claim is in (dropping ${esc(BY.get(c.drop).name)})` : ''}</span></td><td class="l">`); }).join('');
+    const pickDrop = wAdd ? (() => { const p = BY.get(wAdd.key), mine = keysOf(ME).filter(k => BY.get(k).kind === p.kind && assignRoster(keysOf(ME).filter(x => x !== k).concat(wAdd.key))).map(k => BY.get(k)).sort((a, b) => runs(a) - runs(b));
+      return `<div class="pad"><h3>${wAdd.w ? 'Claim' : 'Sign'} ${esc(p.name)} (${p.yr}): who goes?</h3><p>Rosters stay at 25. Pick a ${p.kind === 'H' ? 'hitter' : 'pitcher'} to drop to waivers. Only players you can drop without leaving a position uncovered are listed.</p>
+        <div class="row"><select id="dropSel">${mine.map(x => `<option value="${x.key}">${esc(x.name)} (${x.yr}), ${Math.round(runs(x))} Runs+</option>`).join('')}</select>
+        <button class="btn btn-main" id="confirmAdd">${wAdd.w ? 'Put in claim' : 'Sign him'}</button><button class="btn btn-alt" id="cancelAdd">Cancel</button></div>${tMsg ? `<p class="warn">${esc(tMsg)}</p>` : ''}</div>`; })() : '';
+    const tools = `<div class="tools"><input id="wq" type="search" placeholder="Search free agents" value="${esc(wq)}" aria-label="Search free agents"><select id="wpos" aria-label="Position">${[['', 'All'], ...POS.map(p => [p, p.toUpperCase()]), ['SP', 'Starters'], ['RP', 'Relievers']].map(([v, l]) => `<option value="${v}" ${wpos === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
+    const order = waiverOrder().map((i, n) => `${n + 1}. ${tname(i)}`).join(', ');
+    return `<div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)"><div style="display:grid;gap:14px">${pickDrop}
+      ${sheet('free_agents.xls', `<table><thead><tr><th class="l">Player</th><th class="l">Pos</th><th>Runs+</th><th></th></tr></thead><tbody>${fa.slice(0, 120).map(p => addRow(p, false)).join('')}</tbody></table>`, tools)}</div>
+      <div style="display:grid;gap:14px;align-content:start">
+      <section class="wb"><h2 class="m">Waiver wire</h2><p>${open ? 'Dropped players sit on waivers for one day. Claims are processed after each simmed day, worst record first; a club that claims someone moves to the back of the line. Free agents who are not on waivers can be signed right away.' : 'Rosters are locked for the playoffs.'}</p>
+      <p style="font-size:13px;color:#4A5560">Claim order now: ${order}</p></section>
+      ${wire ? sheet('waiver_wire.xls', `<table><thead><tr><th class="l">Player</th><th class="l">Pos</th><th>Runs+</th><th></th></tr></thead><tbody>${wire}</tbody></table>`) : ''}
+      <div class="pad"><h3>Transactions</h3>${L.tx.length ? `<ul>${L.tx.slice(0, 25).map(x => `<li>Day ${x.day}: ${esc(x.text)}</li>`).join('')}</ul>` : '<p>No moves yet.</p>'}</div></div></div>`;
+  }
+
   function vPlayoffs() {
     if (!L.playoffs) return `<section class="wb"><h2 class="m">Playoffs</h2><p>The top four clubs after 27 games make the playoffs: 1 plays 4 and 2 plays 3 in best-of-3 semifinals, then a best-of-5 final.</p></section>`;
     const P = L.playoffs, series = (s, label) => `<div class="day"><h4>${label}: ${tname(s.hi)} vs ${tname(s.lo)}${s.winner != null ? `, ${tname(s.winner)} win ${s.g.filter(x => x.w === s.winner).length}-${s.g.filter(x => x.w !== s.winner).length}` : ''}</h4>${s.g.map(x => `<div class="game ${x.home === ME || x.away === ME ? 'me' : ''}"><span class="a ${x.w === x.away ? 'w' : ''}">${tname(x.away)}</span><span class="s">${x.ar} – ${x.hr}</span><span class="${x.w === x.home ? 'w' : ''}">${tname(x.home)}</span></div>`).join('')}</div>`;
@@ -708,7 +892,7 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
   function render() {
     head();
     const r = route();
-    const v = { league: vLeague, draft: vDraft, standings: vStandings, schedule: vSchedule, leaders: vLeaders, teams: () => vTeams(r.arg), playoffs: vPlayoffs, ledger: vLedger };
+    const v = { league: vLeague, draft: vDraft, standings: vStandings, schedule: vSchedule, leaders: vLeaders, teams: () => vTeams(r.arg), trades: vTrades, waivers: vWaivers, playoffs: vPlayoffs, ledger: vLedger };
     $('view').innerHTML = (L || r.tab === 'ledger' ? (v[r.tab] || vLeague) : vLeague)();
     bind();
     if (L && L.phase === 'draft' && pickTeam(L.pick) !== ME && !drafting) runAiPicks();
@@ -726,6 +910,38 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
     on('simWeek', () => { for (let i = 0; i < 5; i++) simDay(); render(); });
     on('simAll', () => { while (L.phase === 'season') simDay(); render(); });
     on('simPO', () => { simPlayoffs(); render(); });
+    // trades
+    const tp = $('tp'); if (tp) tp.onchange = e => { tPartner = +e.target.value; tGet = []; tMsg = ''; render(); };
+    const toggle = (arr, k) => arr.includes(k) ? arr.filter(x => x !== k) : (arr.length < 3 ? [...arr, k] : arr);
+    document.querySelectorAll('[data-give]').forEach(c => c.onchange = () => { tGive = toggle(tGive, c.dataset.give); tMsg = ''; render(); });
+    document.querySelectorAll('[data-get]').forEach(c => c.onchange = () => { tGet = toggle(tGet, c.dataset.get); tMsg = ''; render(); });
+    on('propose', () => {
+      const ev = evalTrade(ME, tPartner, tGive, tGet);
+      if (aiLikes(ev)) { doTrade(ME, tPartner, tGive, tGet, ev); tMsg = `${L.teams[tPartner].name} accept. The trade is done.`; tGive = []; tGet = []; }
+      else tMsg = ev.db <= -1 ? `${L.teams[tPartner].name} pass: they'd lose about ${Math.round(-ev.db)} runs a season.` : `${L.teams[tPartner].name} pass: not enough in it for them.`;
+      save(); render();
+    });
+    document.querySelectorAll('[data-accept]').forEach(b => b.onclick = () => { const o = L.offers[+b.dataset.accept]; const ev = evalTrade(o.from, ME, o.give, o.get);
+      if (ev.ok && tradeOpen()) { doTrade(o.from, ME, o.give, o.get, ev); tMsg = 'Offer accepted. The trade is done.'; } else tMsg = 'That offer is no longer valid.';
+      L.offers.splice(+b.dataset.accept, 1); save(); render(); });
+    document.querySelectorAll('[data-decline]').forEach(b => b.onclick = () => { L.offers.splice(+b.dataset.decline, 1); save(); render(); });
+    // waivers
+    document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { wAdd = { key: b.dataset.add, w: b.dataset.w === '1' }; tMsg = ''; render(); window.scrollTo(0, 0); });
+    on('cancelAdd', () => { wAdd = null; render(); });
+    on('confirmAdd', () => {
+      const drop = $('dropSel').value;
+      if (wAdd.w) {
+        if (!assignRoster(keysOf(ME).filter(k => k !== drop).concat(wAdd.key))) { tMsg = "That drop would leave a position uncovered. Pick someone else."; render(); return; }
+        L.claims = L.claims.filter(c => c.key !== wAdd.key).concat({ key: wAdd.key, drop }); wAdd = null;
+      } else {
+        const add = wAdd.key;
+        if (!addPlayer(ME, add, drop)) { tMsg = "That drop would leave a position uncovered. Pick someone else."; render(); return; }
+        log(`Free agency: ${L.teams[ME].name} sign ${names([add])}, drop ${names([drop])} to waivers.`); wAdd = null;
+      }
+      save(); render();
+    });
+    const wqEl = $('wq'); if (wqEl) wqEl.oninput = e => { wq = e.target.value.trim().toLowerCase(); const pos = e.target.selectionStart; render(); const n = $('wq'); n.focus(); n.setSelectionRange(pos, pos); };
+    const wp = $('wpos'); if (wp) wp.onchange = e => { wpos = e.target.value; render(); };
     const ts = $('teamSel'); if (ts) ts.onchange = e => { location.hash = `#/teams/${e.target.value}`; };
   }
   // computer clubs pick quickly so a 250-pick draft stays watchable
