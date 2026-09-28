@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cooperstown Cash: Draft Room</title>
+<title>Cooperstown Cash: Mock Draft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;1,400&family=Permanent+Marker&display=swap" rel="stylesheet">
@@ -493,6 +493,33 @@ body.war .dec { color: var(--wb-red); }
 .nb-body textarea:focus { outline: 2px dashed var(--wb-ink); }
 .nb-body .muted { color: #6B6655; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .notebook { box-shadow: -8px 0 24px rgba(0,0,0,.6); } }
+
+.tickrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 6px 0; }
+.tickrow .ticker { margin: 0; flex: 1 1 320px; }
+.btn-pause { background: transparent; color: #20262D; border: 1.5px solid #8C959E; padding: 6px 16px; font-weight: 600; }
+.btn-pause:hover { background: #E9ECEA; }
+.btn-pause[aria-pressed="true"] { background: var(--wb-red); border-color: var(--wb-red); color: #fff; }
+.row-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+/* report card */
+.rc { display: flex; flex-wrap: wrap; gap: 14px 36px; align-items: flex-end; margin: 4px 0 6px; }
+.rc .blk { display: flex; flex-direction: column; }
+.rc .blk b { font: 400 54px/1 var(--marker); color: var(--wb-ink); }
+.rc .blk b.score { font-size: 44px; }
+.rc .blk small { font-size: 13px; color: #4A5560; max-width: 15ch; line-height: 1.25; margin-top: 4px; }
+.rc .blk b.g-A, .rc .blk b.g-B { color: var(--wb-green); }
+.rc .blk b.g-C { color: #B07D10; }
+.rc .blk b.g-D, .rc .blk b.g-F { color: var(--wb-red); }
+.rc-sub { margin: 0 0 10px; color: #3A434D; }
+.rc-table { border-collapse: collapse; width: 100%; max-width: 520px; font-size: 14.5px; margin: 6px 0 12px; }
+.rc-table th, .rc-table td { border-bottom: 1px solid #D9DDE2; padding: 5px 8px; text-align: center; }
+.rc-table th:first-child, .rc-table td:first-child { text-align: left; font-weight: 400; color: #20262D; }
+.rc-table th { color: #4A5560; font-weight: 600; font-size: 13px; }
+.rc-table td.g-A, .rc-table td.g-B { color: var(--wb-green); font-weight: 600; }
+.rc-table td.g-C { color: #B07D10; font-weight: 600; }
+.rc-table td.g-D, .rc-table td.g-F { color: var(--wb-red); font-weight: 600; }
+.rc-table { max-width: 420px; }
+.rc-verdict { margin: 0 0 8px; line-height: 1.5; max-width: 70ch; }
+.rc-fine { margin: 0 0 4px; font-size: 13px; color: #5A6470; max-width: 70ch; }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -504,15 +531,15 @@ body.war .dec { color: var(--wb-red); }
   <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a></nav>
   <section class="board" aria-label="Draft board">
     <div class="board-top">
-      <h1 id="boardTitle">Draft Room</h1>
-      <p id="boardSub">Take turns picking all-time greats with the computer, then play the team it drafted.</p>
+      <h1 id="boardTitle">Mock Draft</h1>
+      <p id="boardSub">Practice drafting against the computer. When it ends you get a score, a grade and your chance of beating its team.</p>
     </div>
     <div id="projWrap" hidden>
       <div class="proj">
         <div class="m">Your team vs the computer's draft<b id="pCpu">–</b><div class="bar"><i id="pCpuBar" style="width:50%"></i></div></div>
         <div class="m">Your team vs the 1927 Yankees<b id="pNyy">–</b><div class="bar"><i id="pNyyBar" style="width:50%"></i></div></div>
       </div>
-      <p class="ticker" id="ticker" aria-live="polite"></p>
+      <div class="tickrow"><p class="ticker" id="ticker" aria-live="polite"></p><button class="btn btn-pause" id="pauseBtn" aria-pressed="false">Pause</button></div>
     </div>
     <div id="gameBoard" hidden>
       <div class="line-scroll"><table class="line" id="line"></table></div>
@@ -522,16 +549,16 @@ body.war .dec { color: var(--wb-red); }
 
   <!-- SETUP -->
   <section id="setup">
-    <h2 class="sec-title">Choose your draft</h2>
-    <p class="lede">You and the computer take turns, one pick each, from the same pool until both 18-man rosters are full. Every player you take is one it can't have.</p>
+    <h2 class="sec-title">Choose your mock draft</h2>
+    <p class="lede">You and the computer take turns, one pick each, from the same pool until both 18-man rosters are full. Every player you take is one it can't have. When it ends you get a score, a letter grade and your chance of beating the computer's team.</p>
     <div class="modes" id="modes"></div>
     <div class="setup-row">
       <div class="field" id="decadeField" hidden><label for="decadeSel">Decade</label><select id="decadeSel"></select></div>
       <div class="field" id="franchField" hidden><label for="franchSel">Franchise</label><select id="franchSel"></select></div>
-      <button class="btn btn-main" id="startDraft">Start the draft</button>
-      <button class="btn btn-alt" id="resume" hidden>Resume your draft</button>
+      <button class="btn btn-main" id="startDraft">Start the mock draft</button>
+      <button class="btn btn-alt" id="resume" hidden>Resume your mock draft</button>
     </div>
-    <label class="clockopt"><input type="checkbox" id="clockOpt" checked> Pick clock: 60 seconds per pick. If time runs out, the scout picks for you.</label>
+    <label class="clockopt"><input type="checkbox" id="clockOpt" checked> Pick clock: 60 seconds per pick, and you can pause it. If time runs out, the scout picks for you.</label>
     <p class="unlock" id="unlock"></p>
   </section>
 
@@ -565,10 +592,12 @@ body.war .dec { color: var(--wb-red); }
       </section>
     </div>
     <div class="done-panel" id="donePanel" hidden>
-      <h2>Draft complete</h2>
-      <p id="doneText"></p>
-      <button class="btn btn-main" id="toPlay">Play the computer's team</button>
-      <button class="btn btn-alt" id="redraft">Start a new draft</button>
+      <h2>Draft complete: your report card</h2>
+      <div id="reportCard" aria-live="polite"></div>
+      <div class="row-btns">
+        <button class="btn btn-main" id="toPlay">Play the computer's team</button>
+        <button class="btn btn-alt" id="redraft">Start a new mock draft</button>
+      </div>
     </div>
   </section>
 
@@ -609,7 +638,7 @@ body.war .dec { color: var(--wb-red); }
     </div>
     <div class="setup-row">
       <button class="btn btn-alt" id="backRoom">Back to the draft room</button>
-      <button class="btn btn-alt" id="newDraft2">Start a new draft</button>
+      <button class="btn btn-alt" id="newDraft2">Start a new mock draft</button>
     </div>
   </section>
 
@@ -1236,6 +1265,7 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function draft(p, side) {
+    if (side === 'you' && paused) return;
     if (side === 'you') stopClock();
     const s = slotFor(p, side, side === 'you' ? selSlot : null);
     D.teams[side][s.id] = p.key;
@@ -1246,7 +1276,7 @@ body.war .dec { color: var(--wb-red); }
     if (D.pick >= TOTAL) D.done = true;
     save();
     if (side === 'you') {
-      if (!D.done && whoPicks(D.pick) === 'cpu') { drawRoom(); project(); setTimeout(cpuPick, reduced ? 200 : 700); } // let your magnet land, then flip
+      if (!D.done && whoPicks(D.pick) === 'cpu') { drawRoom(); project(); psleep(reduced ? 200 : 700).then(cpuPick); } // let your magnet land, then flip
       else { autoNext(); drawRoom(); project(); startClock(); }
       return;
     }
@@ -1254,26 +1284,44 @@ body.war .dec { color: var(--wb-red); }
     // the computer just picked: keep its board up, show the pick, then hand back
     cpuPhase = 'picked'; busyCpu = true; previewKey = p.key;
     drawRoom(); project();
-    setTimeout(() => {
+    psleep(reduced ? 700 : 1900).then(() => {
       busyCpu = false; cpuPhase = null;
       if (!D.done && whoPicks(D.pick) === 'cpu') { cpuPick(); return; }
       view = 'you'; previewKey = null; autoNext(); drawRoom(); startClock();
-    }, reduced ? 700 : 1900);
+    });
   }
 
   // ---------- pick clock: 60 seconds, then the scout picks for you ----------
   const CLOCK_SECS = 60;
-  let clockEnd = 0, clockTimer = null;
+  let clockEnd = 0, clockTimer = null, paused = false, clockLeftMs = 0;
   const clockOn = () => D && D.clock !== false;
   const fmtClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  function stopClock() { clearInterval(clockTimer); clockTimer = null; clockEnd = 0; }
+  function stopClock() { clearInterval(clockTimer); clockTimer = null; clockEnd = 0; clockLeftMs = 0; }
   function startClock() {
     stopClock();
     if (!clockOn() || D.done || whoPicks(D.pick) !== 'you' || busyCpu) return;
+    if (paused) { clockLeftMs = CLOCK_SECS * 1000; return; }
     clockEnd = Date.now() + CLOCK_SECS * 1000;
     clockTimer = setInterval(tickClock, 250); tickClock();
   }
-  function clockLeft() { return clockEnd ? Math.max(0, Math.ceil((clockEnd - Date.now()) / 1000)) : null; }
+  function clockLeft() {
+    if (clockEnd) return Math.max(0, Math.ceil((clockEnd - Date.now()) / 1000));
+    if (paused && clockLeftMs > 0) return Math.ceil(clockLeftMs / 1000);
+    return null;
+  }
+  // sleeps only count while the draft is running, so a pause freezes the computer's timers too
+  function psleep(ms) { return new Promise(res => { let left = ms; const t = setInterval(() => { if (paused) return; left -= 100; if (left <= 0) { clearInterval(t); res(); } }, 100); }); }
+  function setPaused(v) {
+    if (!D || D.done || v === paused) return;
+    paused = v;
+    if (paused) {
+      if (clockEnd) { clockLeftMs = Math.max(0, clockEnd - Date.now()); clearInterval(clockTimer); clockTimer = null; clockEnd = 0; }
+    } else if (clockLeftMs > 0) {
+      clockEnd = Date.now() + clockLeftMs; clockLeftMs = 0; clockTimer = setInterval(tickClock, 250);
+    }
+    drawRoom();
+    if (!paused) tickClock();
+  }
   function tickClock() {
     const left = clockLeft(); if (left == null) return;
     for (const id of ['clockBanner', 'tickClock']) {
@@ -1289,21 +1337,23 @@ body.war .dec { color: var(--wb-red); }
     const pick = scoutPick();
     let p, s;
     if (pick) { p = pick.top.p; s = pick.top.s; }
-    else { p = D.pool.map(k => BY.get(k)).filter(x => !canDraft(x, 'you')).sort((a, b) => b.sal - a.sal)[0]; s = p && slotFor(p, 'you', null); }
-    if (!p) return;
+    else { p = D.pool.map(k => BY.get(k)).filter(x => !canDraft(x, 'you')).sort((a, b) => b.sal - a.sal)[0]; s = p && (slotFor(p, 'you', selSlot) || slotFor(p, 'you', null)); }
+    if (!p || !s) return;
     selSlot = s.id; autoPicked = true;
     draft(p, 'you');
   }
   let autoPicked = false;
 
-  let cpuPhase = null, cpuThinkEnd = 0; // 'thinking' while the computer is on the clock, 'picked' while its pick is on show
+  let cpuPhase = null, cpuThinkLeft = 0; // 'thinking' while the computer is on the clock, 'picked' while its pick is on show
   async function cpuPick() {
     busyCpu = true; cpuPhase = 'thinking'; view = 'cpu'; drawRoom();
     const THINK = 7;
-    cpuThinkEnd = Date.now() + THINK * 1000;
-    const tk = setInterval(() => { const el = $('cpuClock'); if (el) el.textContent = fmtClock(Math.max(0, Math.ceil((cpuThinkEnd - Date.now()) / 1000))); }, 250);
-    await new Promise(r => setTimeout(r, THINK * 1000));
-    clearInterval(tk); cpuThinkEnd = 0;
+    cpuThinkLeft = THINK;
+    while (cpuThinkLeft > 0) {
+      await psleep(250); cpuThinkLeft -= 0.25;
+      const el = $('cpuClock'); if (el) el.textContent = fmtClock(Math.max(0, Math.ceil(cpuThinkLeft)));
+    }
+    cpuThinkLeft = 0;
     const need = openSlots('cpu');
     const hitNeed = need.filter(s => s.kind === 'H').length, pitNeed = need.length - hitNeed;
     const cands = D.pool.map(k => BY.get(k)).filter(p => !canDraft(p, 'cpu'));
@@ -1354,7 +1404,6 @@ body.war .dec { color: var(--wb-red); }
     $('pCpuBar').style.width = a * 100 + '%'; $('pNyyBar').style.width = b * 100 + '%';
     $('pCpu').classList.toggle('up', !!prev && a > prev[0] + 0.02); $('pNyy').classList.toggle('up', !!prev && b > prev[1] + 0.02);
     lastProj = [a, b]; store.set('gts-proj', lastProj);
-    if (D && D.done) $('doneText').textContent = `Both rosters are full. Projection: your team beats the computer's ${Math.round(a * 100)}% of the time. Time to find out.`;
   }
 
 
@@ -1370,7 +1419,7 @@ body.war .dec { color: var(--wb-red); }
   // the scout's reasoning, usable by the button and by the pick clock
   function scoutPick() {
     const left = D.pool.map(k => BY.get(k)).filter(p => !taken().has(p.key));
-    const draftable = left.filter(p => !canDraft(p, 'you'));
+    const draftable = left.filter(p => !canDraft(p, 'you') && slotFor(p, 'you', null)); // must fit an open spot on his own merits
     const cpuOpen = openSlots('cpu'), myOpen = openSlots('you');
     const gap = picksUntilMyNext();
     const open = p => !(p.legend && !legendsOpen());
@@ -1417,18 +1466,18 @@ body.war .dec { color: var(--wb-red); }
   }
 
   async function askScout() {
-    if (D.done || whoPicks(D.pick) !== 'you' || busyCpu || scouting) return;
+    if (D.done || whoPicks(D.pick) !== 'you' || busyCpu || scouting || paused) return;
     scouting = true; $('scoutBtn').disabled = true;
     $('advice').innerHTML = '<div class="advice"><h3>Scouting the board…</h3><p>Checking who fits your open spots, who the computer needs, and what each pick does to your odds.</p></div>';
     await new Promise(r => setTimeout(r, 30));
-    advice = scoutPick();
-    scouting = false;
+    try { advice = scoutPick(); } catch (e) { advice = null; }
+    scouting = false; $('scoutBtn').disabled = false;
     if (!advice) { $('advice').innerHTML = '<div class="advice"><h3>No moves left</h3><p>Nobody left fits your open spots.</p></div>'; return; }
     drawAdvice();
   }
 
   function drawAdvice() {
-    const yourTurn = !D.done && whoPicks(D.pick) === 'you' && !busyCpu;
+    const yourTurn = !D.done && whoPicks(D.pick) === 'you' && !busyCpu && !paused;
     $('scoutBtn').hidden = D.done; $('scoutBtn').disabled = !yourTurn || scouting;
     if (!advice) { if (!scouting) $('advice').innerHTML = ''; return; }
     const { top, alts, why, balance } = advice;
@@ -1466,8 +1515,8 @@ body.war .dec { color: var(--wb-red); }
     const rp = SLOTS.filter(s => s.role === 'RP').map(s => spotHtml(s, r[s.id], side, false)).join('');
     const last = D.log[D.log.length - 1], lp = last && BY.get(last.key);
     const yourClock = side === 'you' && clockOn() && !D.done && whoPicks(D.pick) === 'you' && !busyCpu;
-    const banner = yourClock ? `<p class="wb-banner clock" id="clockBanner">On the clock: ${fmtClock(clockLeft() ?? CLOCK_SECS)}</p>`
-      : side === 'cpu' && cpuPhase === 'thinking' ? `<p class="wb-banner">Computer is on the clock: <span id="cpuClock">${fmtClock(cpuThinkEnd ? Math.max(0, Math.ceil((cpuThinkEnd - Date.now()) / 1000)) : 7)}</span></p>`
+    const banner = yourClock ? `<p class="wb-banner clock" id="clockBanner">${paused ? 'Paused' : 'On the clock'}: ${fmtClock(clockLeft() ?? CLOCK_SECS)}</p>`
+      : side === 'cpu' && cpuPhase === 'thinking' ? `<p class="wb-banner">Computer is on the clock: <span id="cpuClock">${fmtClock(cpuThinkLeft > 0 ? Math.max(0, Math.ceil(cpuThinkLeft)) : 7)}</span>${paused ? ' (paused)' : ''}</p>`
       : side === 'cpu' && cpuPhase === 'picked' && lp ? `<p class="wb-banner picked">Computer takes ${esc(lp.name)} (${lp.yr}) at ${SLOTS.find(s => s.id === last.slot).label}</p>` : '';
     $('fieldHost').innerHTML = banner + `<div class="park" role="group" aria-label="${side === 'you' ? 'Your' : "Computer's"} lineup">
       <svg class="grass" viewBox="0 0 100 92" preserveAspectRatio="none" aria-hidden="true">
@@ -1497,7 +1546,7 @@ body.war .dec { color: var(--wb-red); }
   };
 
   function drawPool() {
-    const yourTurn = !D.done && whoPicks(D.pick) === 'you' && !busyCpu;
+    const yourTurn = !D.done && whoPicks(D.pick) === 'you' && !busyCpu && !paused;
     const q = $('search').value.trim().toLowerCase(), pf = $('posFilter').value;
     $('posFilter').hidden = sheet !== 'H';
     let list = D.pool.map(k => BY.get(k)).filter(p => !taken().has(p.key));
@@ -1548,13 +1597,13 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function drawTicker() {
-    if (D.done) { $('ticker').innerHTML = '<b>Draft complete.</b> Scroll down to play the computer\'s team.'; return; }
+    if (D.done) { $('ticker').innerHTML = '<b>Draft complete.</b> Your report card is below.'; return; }
     const round = Math.floor(D.pick / 2) + 1, you = whoPicks(D.pick) === 'you';
     const last = D.log[D.log.length - 1], lp = last && BY.get(last.key);
     const prev = lp ? (last.auto ? `Time ran out, so the scout took ${lp.name} (${lp.yr}) for you. ` : `${last.side === 'you' ? 'You took' : 'Computer took'} ${lp.name} (${lp.yr}). `)
       : (D.youFirst ? 'You won the coin flip. ' : 'The computer won the coin flip. ');
     const clock = you && !busyCpu && clockOn() ? ` <span class="tclock" id="tickClock">${fmtClock(clockLeft() ?? CLOCK_SECS)}</span>` : '';
-    $('ticker').innerHTML = `${esc(prev)}Round ${round} of 18. <b>${you ? (busyCpu ? "You're up next." : "You're on the clock.") : 'Computer is picking…'}</b>${clock}`;
+    $('ticker').innerHTML = `${esc(prev)}Round ${round} of 18. <b>${paused ? 'Draft paused.' : you ? (busyCpu ? "You're up next." : "You're on the clock.") : 'Computer is picking…'}</b>${clock}`;
   }
 
   function drawLog() {
@@ -1668,6 +1717,67 @@ body.war .dec { color: var(--wb-red); }
   $('nbClose').onclick = closeNotebook;
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('notebook').hidden) closeNotebook(); });
 
+
+  // ---------- draft report card: a score, a grade and your chance of winning, all against the computer ----------
+  // Everything comes from the same 1,000 simulated games, so the score, the grade and the win chance always agree.
+  let grading = false, justGraded = false;
+  const letterFor = p => p >= 0.70 ? 'A+' : p >= 0.65 ? 'A' : p >= 0.61 ? 'A-' : p >= 0.57 ? 'B+' : p >= 0.54 ? 'B' : p >= 0.51 ? 'B-' : p >= 0.48 ? 'C+' : p >= 0.45 ? 'C' : p >= 0.42 ? 'C-' : p >= 0.38 ? 'D' : 'F';
+  const bestOf7 = p => [1, 4, 10, 20].reduce((n, c, k) => n + c * Math.pow(p, 4) * Math.pow(1 - p, k), 0);
+  async function playSeries(a, b, n) { // n games between the two teams, home field alternating, in small batches so the page stays responsive
+    let w = 0, ra = 0, rb = 0;
+    for (let s = 0; s < n; s += 100) {
+      for (let i = s; i < Math.min(n, s + 100); i++) {
+        const home = i % 2 === 0, g = Diamond.simGame(home ? b : a, home ? a : b, { neutral: N, starters: [i % 5, i % 5] });
+        const aRuns = home ? g.teams[1].runs : g.teams[0].runs, bRuns = home ? g.teams[0].runs : g.teams[1].runs;
+        ra += aRuns; rb += bRuns; if (aRuns > bRuns) w++;
+      }
+      await new Promise(r => setTimeout(r, 0));
+    }
+    return { p: w / n, a: ra / n, b: rb / n };
+  }
+  async function gradeDraft() {
+    if (!D || !D.done) return;
+    if (D.report) { drawReportCard(); return; }
+    if (grading) return;
+    grading = true; const d0 = D;
+    $('reportCard').innerHTML = '<p>Grading your draft: simulating 1,000 games against the computer…</p>';
+    const r = await playSeries(simTeam('you', 'You'), simTeam('cpu', 'Computer'), 1000);
+    if (D !== d0) { grading = false; return; }
+    D.report = { p: r.p, grade: letterFor(Math.round(r.p * 100) / 100), bo7: bestOf7(r.p), you: r.a, cpu: r.b, gy: teamGrades('you'), gc: teamGrades('cpu') };
+    save(); grading = false; justGraded = true;
+    drawReportCard();
+  }
+  function drawReportCard() {
+    const R = D.report; if (!R) return;
+    const g = R.grade, num = { A: 4, B: 3, C: 2, D: 1, F: 0 };
+    const cats = R.gy.map(([name, mine], i) => ({ name, mine, theirs: R.gc[i][1], d: num[mine] - num[R.gc[i][1]] }));
+    const best = cats.reduce((a, b) => b.d > a.d ? b : a);
+    let worst = cats.filter(c => c.name !== 'Speed').reduce((a, b) => b.d < a.d ? b : a);
+    const spd = cats.find(c => c.name === 'Speed'); if (worst.d >= 0 && spd && spd.d < 0) worst = spd;
+    const tips = { 'On-base': 'Next time, look for hitters who get on base: walks and hits keep innings alive.',
+      Power: 'Next time, add a power bat or two for the middle of the order.',
+      Speed: 'Speed has only a small effect on results, so a low grade here costs little.',
+      Rotation: "Next time, don't wait too long on your top starters: they pitch most of every game.",
+      Bullpen: 'Next time, make sure you have a solid closer and a couple of good relievers for tight late innings.' };
+    const line = c => `${c.name.toLowerCase()} (${c.mine} to ${c.theirs})`;
+    const verdict = best.d > 0 && worst.d < 0 && worst.name === 'Speed' ? `You beat the computer on ${line(best)} and only trailed on ${line(worst)}. ${tips.Speed}`
+      : best.d > 0 && worst.d < 0 ? `You beat the computer on ${line(best)} but trailed on ${line(worst)}. ${tips[worst.name]}`
+      : best.d > 0 ? `You matched or beat the computer in every area, most of all ${line(best)}. Keep filling scarce spots early and watching the scout's needs list.`
+      : worst.d < 0 ? `The computer was at least as good in every area, most of all ${line(worst)}. ${tips[worst.name]}`
+      : 'The two teams are built almost the same way, so it comes down to the dice.';
+    const rows = cats.map(c => `<tr><td>${c.name}</td><td class="g-${c.mine}">${c.mine}</td><td class="g-${c.theirs}">${c.theirs}</td></tr>`).join('');
+    const margin = R.you - R.cpu;
+    $('reportCard').innerHTML = `<div class="rc">
+        <div class="blk"><b class="g-${g[0]}">${g}</b><small>Draft grade</small></div>
+        <div class="blk"><b class="score">${R.you.toFixed(1)} – ${R.cpu.toFixed(1)}</b><small>Projected score: you, then the computer</small></div>
+        <div class="blk"><b>${Math.round(R.p * 100)}%</b><small>chance of winning a game against the computer</small></div></div>
+      <p class="rc-sub">${margin >= 0 ? 'Your team is projected to win by' : 'The computer is projected to win by'} ${Math.abs(margin).toFixed(1)} runs a game. In a best-of-7 series you would win about ${Math.round(R.bo7 * 100)}% of the time.</p>
+      <table class="rc-table"><thead><tr><th>Team strengths</th><th>You</th><th>Computer</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="rc-verdict"><b>Scout's verdict:</b> ${esc(verdict)}</p>
+      <p class="rc-fine">Projected score is the average result of 1,000 simulated games between the two teams, and your grade is based on your chance of winning one. Strength grades compare each team's players with the rest of the pool.</p>`;
+    if (justGraded) { justGraded = false; $('donePanel').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); }
+  }
+
   function drawRoom() {
     const m = MODES.find(x => x.id === D.mode);
     $('boardTitle').textContent = m.name + (D.mode === 'decade' ? `: the ${D.param}s` : D.mode === 'franchise' ? `: ${POOL.franchises[D.param]}` : '');
@@ -1677,10 +1787,12 @@ body.war .dec { color: var(--wb-red); }
     if (!$('notebook').hidden) drawNotebook();
     $('donePanel').hidden = !D.done;
     $('laptop').hidden = D.done; $('preview').hidden = D.done;
-    if (D.done) $('doneText').textContent = `Both rosters are full. Projection: your team beats the computer's ${lastProj ? Math.round(lastProj[0] * 100) : 50}% of the time. Time to find out.`;
+    const pb = $('pauseBtn'); pb.hidden = !!D.done; pb.textContent = paused ? 'Resume draft' : 'Pause'; pb.setAttribute('aria-pressed', String(paused));
+    if (D.done) gradeDraft();
   }
 
   function enterRoom() {
+    paused = false;
     document.body.classList.add('war');
     $('setup').hidden = true; $('room').hidden = false; $('playSec').hidden = true;
     $('projWrap').hidden = false; $('gameBoard').hidden = true;
@@ -1698,9 +1810,10 @@ body.war .dec { color: var(--wb-red); }
     const nLeg = ALL.filter(p => p.legend).length;
     $('unlock').innerHTML = legendsOpen() ? `<b>All ${nLeg} legends are unlocked.</b> Ruth, Bonds, Pedro and the rest are in every draft.`
       : `<b>${nLeg} legends are locked</b>, including Ruth, Bonds and Pedro Martinez. Win ${WINS_TO_UNLOCK} games to unlock them (${pr.wins} of ${WINS_TO_UNLOCK} so far). They're off the board for the computer too.`;
-    $('resume').hidden = !(D && !D.done && D.pick > 0);
-    $('boardTitle').textContent = 'Draft Room';
-    $('boardSub').textContent = 'Take turns picking all-time greats with the computer, then play the team it drafted.';
+    $('resume').hidden = !(D && D.pick > 0);
+    $('resume').textContent = D && D.done ? "See your last draft's report card" : 'Resume your mock draft';
+    $('boardTitle').textContent = 'Mock Draft';
+    $('boardSub').textContent = 'Practice drafting against the computer. When it ends you get a score, a grade and your chance of beating its team.';
   }
   $('decadeSel').innerHTML = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020].map(d => `<option value="${d}">${d}s</option>`).join('');
   $('decadeSel').value = '1960';
@@ -1709,11 +1822,12 @@ body.war .dec { color: var(--wb-red); }
   $('clockOpt').checked = store.get('gts-clock', true);
   $('clockOpt').onchange = () => store.set('gts-clock', $('clockOpt').checked);
   $('startDraft').onclick = newDraft;
+  $('pauseBtn').onclick = () => setPaused(!paused);
   $('resume').onclick = enterRoom;
   $('showYou').onclick = () => { view = 'you'; drawRoom(); };
   $('showCpu').onclick = () => { view = 'cpu'; drawRoom(); };
   $('search').oninput = drawPool; $('posFilter').onchange = () => { selSlot = null; drawPool(); drawField(); };
-  const toSetup = () => { $('notebook').hidden = true; stopClock(); document.body.classList.add('war'); $('setup').hidden = false; $('room').hidden = true; $('playSec').hidden = true; $('projWrap').hidden = true; $('gameBoard').hidden = true; drawSetup(); window.scrollTo(0, 0); };
+  const toSetup = () => { $('notebook').hidden = true; paused = false; stopClock(); document.body.classList.add('war'); $('setup').hidden = false; $('room').hidden = true; $('playSec').hidden = true; $('projWrap').hidden = true; $('gameBoard').hidden = true; drawSetup(); window.scrollTo(0, 0); };
   $('redraft').onclick = toSetup; $('newDraft2').onclick = toSetup;
   $('backRoom').onclick = enterRoom;
   $('toPlay').onclick = () => startGame();
@@ -1730,7 +1844,7 @@ body.war .dec { color: var(--wb-red); }
   let g = null, you = 1, busy = false, stage = 'duel', duelWinner = null, lastHalfKey = '', counted = false;
 
   function startGame() {
-    $('notebook').hidden = true; stopClock(); document.body.classList.add('war');
+    $('notebook').hidden = true; paused = false; stopClock(); document.body.classList.add('war');
     const me = gameTeam('you', 'Your Draft'), cpu = gameTeam('cpu', 'Computer Draft');
     you = 1; counted = false;
     const sp = () => Math.floor(Math.random() * 5);

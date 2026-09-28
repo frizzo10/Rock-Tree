@@ -66,7 +66,7 @@ footer p { margin: 0 0 6px; }
     <div>
     <h1>Cooperstown Cash</h1>
     <p class="tag">Historical simulation leagues</p>
-    <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Create a free account (just your email, no password) to play for fun, learn strategy against the computer, and draft a team. When you're ready, take it into a cash league.</p>
+    <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Create a free account (just your email, no password) to play for fun and learn strategy against the computer in quick games and mock drafts. When you're ready, take it into a cash league.</p>
     <p class="rec" id="rec" hidden></p>
     </div>
   </header>
@@ -74,16 +74,16 @@ footer p { margin: 0 0 6px; }
   <div class="choices">
     <section class="folder" aria-labelledby="draftH">
       <span class="tab" aria-hidden="true">Front office</span>
-      <h2 id="draftH">Draft a team</h2>
-      <p>Take turns with the computer picking from 1,400 all-time player-seasons, then play the team it drafted.</p>
+      <h2 id="draftH">Mock draft</h2>
+      <p>Practice drafting against the computer. Take turns picking from 1,400 all-time player-seasons, then get graded: a score, a letter grade and your chance of beating its team.</p>
       <ul>
         <li>Five challenges, from a classic draft to a $100M payroll crunch</li>
-        <li>A scout who advises your picks, and a 60-second clock</li>
-        <li>Win games to unlock the legends</li>
+        <li>A scout who advises your picks, and a 60-second clock you can pause</li>
+        <li>Play the team it drafted, and win games to unlock the legends</li>
       </ul>
       <div class="go">
-        <a class="btn btn-main" href="draft.html">Start a draft</a>
-        <a class="btn btn-alt" href="draft.html#resume" id="resume" hidden>Resume your draft</a>
+        <a class="btn btn-main" href="draft.html">Start a mock draft</a>
+        <a class="btn btn-alt" href="draft.html#resume" id="resume" hidden>Resume your mock draft</a>
       </div>
     </section>
 
@@ -136,7 +136,7 @@ footer p { margin: 0 0 6px; }
   }
   if (d && !d.done && d.pick > 0) {
     const r = document.getElementById('resume');
-    r.hidden = false; r.textContent = `Resume your draft (round ${Math.floor(d.pick / 2) + 1} of 18)`;
+    r.hidden = false; r.textContent = `Resume your mock draft (round ${Math.floor(d.pick / 2) + 1} of 18)`;
   }
   if (pr && pr.games > 0) {
     const rec = document.getElementById('rec');
