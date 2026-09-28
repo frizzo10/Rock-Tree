@@ -455,6 +455,44 @@ body.war .dec { color: var(--wb-red); }
 .crumbs { display: flex; align-items: center; gap: 10px; }
 .crumbs .badge { width: 52px; height: 52px; display: block; }
 .crumbs .badge img { width: 100%; height: 100%; }
+
+/* scout's standing report */
+.report { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border-radius: 2px; padding: 10px 16px 12px 40px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); margin: 4px 0 12px; }
+.report::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
+.report h3 { font: 400 19px/26px var(--marker); color: var(--wb-ink); margin: 0; }
+.report p { margin: 0; line-height: 26px; font-size: 14.5px; }
+.report .grades { display: flex; flex-wrap: wrap; gap: 4px 14px; line-height: 26px; font-size: 14px; }
+.report .grades b { font: 400 18px var(--marker); margin-left: 4px; }
+.report .g-A, .report .g-B { color: var(--wb-green); } .report .g-C { color: #8A6D1F; } .report .g-D, .report .g-F { color: var(--wb-red); }
+.report .alert { color: var(--wb-red); font-weight: 600; }
+/* target stars in the spreadsheet */
+.sheet .star { all: unset; cursor: pointer; font-size: 17px; line-height: 1; color: #B7BDC2; padding: 0 2px; }
+.sheet .star[aria-pressed="true"] { color: #D4A017; }
+.sheet .star:focus-visible { outline: 2px solid var(--wb-ink); }
+/* the notebook */
+.nb-btn { margin-left: auto; background: #1B1B1B !important; color: #F3EAD3 !important; border-color: #1B1B1B !important; }
+.notebook { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); z-index: 40; background: #FBF8EE repeating-linear-gradient(#FBF8EE 0 27px, #D5DFEA 27px 28px); color: #26241E; box-shadow: -8px 0 24px rgba(0,0,0,.28); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); border-left: 14px solid #1B1B1B; }
+.notebook::before { content: ''; position: absolute; left: 34px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
+.nb-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 6px 46px; }
+.nb-head h2 { font: 400 24px var(--marker); color: var(--wb-ink); margin: 0; }
+.nb-close { background: none; border: 1.5px solid #8C959E; border-radius: 4px; padding: 5px 10px; font-weight: 600; cursor: pointer; color: #26241E; }
+.nb-tabs { display: flex; gap: 4px; padding: 0 12px 0 46px; flex-wrap: wrap; }
+.nb-tabs button { background: #EDE6D2; border: 0; border-radius: 4px 4px 0 0; padding: 6px 10px; font-weight: 600; cursor: pointer; color: #4F4121; }
+.nb-tabs button[aria-selected="true"] { background: var(--wb-ink); color: #fff; }
+.nb-body { overflow-y: auto; padding: 10px 16px 24px 46px; line-height: 28px; font-size: 14.5px; }
+.nb-body h4 { font: 400 17px/28px var(--marker); color: var(--wb-red); margin: 8px 0 0; }
+.nb-body ol, .nb-body ul { margin: 0; padding-left: 20px; }
+.nb-body li { line-height: 28px; }
+.nb-body .gone { text-decoration: line-through; color: #8C8878; }
+.nb-body .mine { color: var(--wb-green); font-weight: 600; text-decoration: none; }
+.nb-body .tier { font-size: 12px; font-weight: 600; color: #8A6D1F; margin-left: 4px; }
+.nb-body button.lk { all: unset; cursor: pointer; font-weight: 600; }
+.nb-body button.lk:hover { text-decoration: underline; }
+.nb-body button.lk:focus-visible { outline: 2px solid var(--wb-ink); }
+.nb-body textarea { width: 100%; min-height: 300px; background: transparent; border: 0; font: 15px/28px var(--text); color: #26241E; resize: vertical; padding: 0; }
+.nb-body textarea:focus { outline: 2px dashed var(--wb-ink); }
+.nb-body .muted { color: #6B6655; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .notebook { box-shadow: -8px 0 24px rgba(0,0,0,.6); } }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -504,6 +542,7 @@ body.war .dec { color: var(--wb-red); }
         <div class="toggle" role="group" aria-label="Show roster">
           <button id="showYou" aria-pressed="true">Your team</button>
           <button id="showCpu" aria-pressed="false">Computer's team</button>
+          <button id="nbOpen" class="nb-btn" aria-haspopup="dialog">Open notebook</button>
         </div>
         <div id="fieldHost"></div>
         <div class="log" id="log" aria-label="Draft log"></div>
@@ -511,6 +550,7 @@ body.war .dec { color: var(--wb-red); }
       <section class="paper pool desk" aria-label="Player pool">
         <div class="pool-head"><h2 id="poolTitle">Player pool</h2><button class="btn btn-scout" id="scoutBtn">Ask the scout</button></div>
         <p class="tip" id="poolTip"></p>
+        <div id="report"></div>
         <div id="advice" aria-live="polite"></div>
         <div id="preview"></div>
         <div class="laptop" id="laptop">
@@ -531,6 +571,13 @@ body.war .dec { color: var(--wb-red); }
       <button class="btn btn-alt" id="redraft">Start a new draft</button>
     </div>
   </section>
+
+  <!-- MANAGER'S NOTEBOOK -->
+  <aside class="notebook" id="notebook" role="dialog" aria-modal="false" aria-labelledby="nbTitle" hidden>
+    <div class="nb-head"><h2 id="nbTitle">Manager's notebook</h2><button class="nb-close" id="nbClose" aria-label="Close notebook">Close</button></div>
+    <div class="nb-tabs" role="tablist" id="nbTabs"></div>
+    <div class="nb-body" id="nbBody"></div>
+  </aside>
 
   <!-- PLAY -->
   <section id="playSec" hidden>
@@ -1203,6 +1250,7 @@ body.war .dec { color: var(--wb-red); }
       else { autoNext(); drawRoom(); project(); startClock(); }
       return;
     }
+    if (side === 'cpu' && (D.targets || []).includes(p.key)) { D.alerts = [...(D.alerts || []), { key: p.key, n: D.pick }].slice(-5); save(); }
     // the computer just picked: keep its board up, show the pick, then hand back
     cpuPhase = 'picked'; busyCpu = true; previewKey = p.key;
     drawRoom(); project();
@@ -1467,10 +1515,10 @@ body.war .dec { color: var(--wb-red); }
     list.sort((a, b) => lk(a) - lk(b) || (special[sortKey] ? special[sortKey](a, b) * -sortDir : (val(a) - val(b)) * dir));
     const shown = list.slice(0, 150);
     const th = (name, key) => `<th class="${key ? 'key' : ''} ${sortKey === name ? 'sorted' : ''}"><button data-sort="${name}" aria-label="Sort by ${name}">${name}${sortKey === name ? (sortDir < 0 ? ' ▼' : ' ▲') : ''}</button></th>`;
-    const head = `<tr><th></th>${th('Player')}<th>${sheet === 'H' ? 'Pos' : 'W-L'}</th>${allCols.map(c => th(c[0], c[3])).join('')}<th></th></tr>`;
+    const head = `<tr><th></th><th aria-label="Target"></th>${th('Player')}<th>${sheet === 'H' ? 'Pos' : 'W-L'}</th>${allCols.map(c => th(c[0], c[3])).join('')}<th></th></tr>`;
     const rows = shown.map((p, i) => {
       const why = canDraft(p, 'you'), locked = p.legend && !legendsOpen();
-      return `<tr class="${locked ? 'locked' : ''} ${previewKey === p.key ? 'pv' : ''}"><td class="rn">${i + 1}</td>
+      return `<tr class="${locked ? 'locked' : ''} ${previewKey === p.key ? 'pv' : ''}"><td class="rn">${i + 1}</td><td><button class="star" data-star="${p.key}" aria-pressed="${(D.targets || []).includes(p.key)}" aria-label="${(D.targets || []).includes(p.key) ? 'Remove' : 'Add'} ${esc(p.name)} ${(D.targets || []).includes(p.key) ? 'from' : 'to'} your targets">${(D.targets || []).includes(p.key) ? '★' : '☆'}</button></td>
         <td class="nm"><button data-prev="${p.key}">${esc(p.name)}</button>${locked ? ' <span class="lock">Locked</span>' : ''}<small>${p.yr} ${esc(p.tm)}</small></td><td class="tx">${p.kind === 'H' ? p.pos.toUpperCase() : `${p.W}-${p.L}`}</td>
         ${allCols.map(c => `<td class="${c[3] ? 'key' : ''}">${c[2](c[1](p))}</td>`).join('')}
         <td><button class="btn btn-draft" data-draft="${p.key}" ${!yourTurn || why ? `disabled title="${esc(why || 'Wait for your pick')}"` : ''}>Draft</button></td></tr>`;
@@ -1479,6 +1527,7 @@ body.war .dec { color: var(--wb-red); }
       : '<p class="more">No available players match. Clear the search or change the position.</p>';
     $('plist').querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { const k = b.dataset.sort; sortDir = sortKey === k ? -sortDir : (k === 'Player' ? 1 : -1); sortKey = k; drawPool(); });
     $('plist').querySelectorAll('[data-draft]').forEach(b => b.onclick = () => draft(BY.get(b.dataset.draft), 'you'));
+    $('plist').querySelectorAll('[data-star]').forEach(b => b.onclick = () => toggleTarget(b.dataset.star));
     $('plist').querySelectorAll('[data-prev]').forEach(b => b.onclick = () => { previewKey = b.dataset.prev; drawPool(); });
     const tabs = [['H', 'Hitters'], ['SP', 'Starters'], ['RP', 'Relievers']];
     $('sheetTabs').innerHTML = tabs.map(([k, l]) => `<button role="tab" aria-selected="${sheet === k}" data-sheet="${k}">${l}</button>`).join('');
@@ -1513,12 +1562,119 @@ body.war .dec { color: var(--wb-red); }
       return `<p class="${l.side}">Pick ${l.n}: <b>${l.side === 'you' ? 'You' : 'Computer'}</b> took ${esc(p.name)} (${p.yr} ${esc(p.fr)}) at ${SLOTS.find(s => s.id === l.slot).label}${l.auto ? ' (scout, time ran out)' : ''}</p>`; }).join('');
   }
 
+
+  // ---------- scout's standing report: game plan, grades and needs, updated every pick ----------
+  const pctile = (list, v) => list.length ? list.filter(x => x <= v).length / list.length : 0.5;
+  const grade = p => p >= 0.8 ? 'A' : p >= 0.6 ? 'B' : p >= 0.4 ? 'C' : p >= 0.2 ? 'D' : 'F';
+  let gradeBase = null;
+  function baseFor() {
+    if (gradeBase && gradeBase.pool === D.pool) return gradeBase;
+    const ps = D.pool.map(k => BY.get(k)), H = ps.filter(p => p.kind === 'H');
+    // compare against the better half of the pool: the kind of players who actually get drafted
+    const top = (list, f) => list.map(f).sort((a, b) => b - a).slice(0, Math.max(10, Math.floor(list.length / 2)));
+    gradeBase = { pool: D.pool,
+      obp: top(H, p => (p.H + p.BB + p.HBP) / p.PA), pow: top(H, p => p.HR / p.PA), spd: top(H, p => (p.SB + p.T * 2) / p.PA),
+      sp: top(ps.filter(p => p.role === 'SP'), runs), rp: top(ps.filter(p => p.role === 'RP'), runs) };
+    return gradeBase;
+  }
+  function teamGrades(side) {
+    const b = baseFor(), r = D.teams[side], got = ids => ids.map(i => r[i] && BY.get(r[i])).filter(Boolean);
+    const H = got(['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']), SP = got(['sp1', 'sp2', 'sp3', 'sp4', 'sp5']), RP = got(['rp1', 'rp2', 'rp3', 'rp4']);
+    const avg = (list, f) => list.reduce((n, p) => n + f(p), 0) / list.length;
+    const g = (list, f, base) => list.length ? grade(pctile(base, avg(list, f))) : null;
+    return [['On-base', g(H, p => (p.H + p.BB + p.HBP) / p.PA, b.obp)], ['Power', g(H, p => p.HR / p.PA, b.pow)], ['Speed', g(H, p => (p.SB + p.T * 2) / p.PA, b.spd)],
+      ['Rotation', g(SP, runs, b.sp)], ['Bullpen', g(RP, runs, b.rp)]];
+  }
+  function gamePlan() {
+    const plans = {
+      classic: 'Bats first. Elite hitters are the scarcest thing on the board; the pitching pool is deep, so good starters will still be there in the middle rounds.',
+      decade: `Only ${D.param}s seasons are in play, so every position is thin. Grab the best player at the scarcest spots early and watch the needs list below.`,
+      franchise: 'One franchise means a small pool. Take the true stars early; the drop-off after them is steep.',
+      payroll: 'Budget is everything. Pay for one or two stars, then hunt the best Runs+ you can afford at each spot; the scout will flag when money gets tight.',
+      onefr: 'Each franchise can only appear once on your team, so taking a star also closes the door on his teammates. Spread your picks across clubs.',
+    };
+    return plans[D.mode] || plans.classic;
+  }
+  function drawReport() {
+    if (D.done) { $('report').innerHTML = ''; return; }
+    const mine = Object.keys(D.teams.you).length, open = openSlots('you');
+    const grades = teamGrades('you').filter(([, g]) => g).map(([k, g]) => `<span>${k}<b class="g-${g}">${g}</b></span>`).join('');
+    // needs: open spots, scarcest first (fewest strong options left)
+    const left = D.pool.map(k => BY.get(k)).filter(p => !taken().has(p.key) && !(p.legend && !legendsOpen()));
+    const need = open.filter(s => s.pos !== 'dh').map(s => { // any hitter can DH, so it's never scarce
+      const all = D.pool.map(k => BY.get(k)).filter(p => strictFit(p, s) && !(p.legend && !legendsOpen())).map(runs).sort((a, b) => b - a), bar = all[Math.min(all.length - 1, s.kind === 'P' ? 24 : 11)] || 0; // "strong" = the top dozen at the spot (two dozen for pitchers)
+      return { s, strong: left.filter(p => strictFit(p, s) && runs(p) >= bar).length };
+    }).sort((a, b) => a.strong - b.strong);
+    const needTxt = [...new Map(need.map(n => [n.s.kind === 'H' ? n.s.pos : n.s.role, n])).values()].slice(0, 4)
+      .map(n => `${n.s.kind === 'H' ? (n.s.pos === 'dh' ? 'DH' : n.s.pos.toUpperCase()) : n.s.role} (${n.strong} strong left)`).join(', ');
+    const alert = (D.alerts || []).filter(a => a.n >= D.pick - 2).map(a => BY.get(a.key)).map(p => `The computer took your target ${p.name} (${p.yr}).`).join(' ');
+    const tLeft = (D.targets || []).filter(k => !taken().has(k)).length;
+    $('report').innerHTML = `<div class="report"><h3>Scout's report</h3>
+      ${mine < 2 ? `<p><b>Game plan:</b> ${esc(gamePlan())}</p>` : ''}
+      ${grades ? `<div class="grades">${grades}</div>` : ''}
+      ${needTxt ? `<p><b>Needs, scarcest first:</b> ${needTxt}</p>` : ''}
+      ${alert ? `<p class="alert">${esc(alert)}</p>` : ''}
+      <p class="muted" style="font-size:13px">${tLeft ? `${tLeft} of your targets still on the board. ` : 'Star players in the spreadsheet to track targets. '}Open the notebook for your cheat sheet.</p></div>`;
+  }
+
+  // ---------- targets ----------
+  function toggleTarget(k) {
+    D.targets = D.targets || [];
+    D.targets = D.targets.includes(k) ? D.targets.filter(x => x !== k) : [...D.targets, k];
+    save(); drawPool(); drawReport(); if (!$('notebook').hidden) drawNotebook();
+  }
+
+  // ---------- the manager's notebook ----------
+  let nbTab = 'cheat';
+  const NB_TABS = [['cheat', 'Cheat sheet'], ['targets', 'Targets'], ['notes', 'Notes'], ['how', 'How it works']];
+  function whoHas(k) { if (Object.values(D.teams.you).includes(k)) return 'you'; if (Object.values(D.teams.cpu).includes(k)) return 'cpu'; return null; }
+  function nbName(p) {
+    const w = whoHas(p.key), lock = p.legend && !legendsOpen();
+    const cls = w === 'you' ? 'mine' : w ? 'gone' : '';
+    return `<button class="lk ${cls}" data-nbprev="${p.key}">${esc(p.name)}</button> <span class="muted">${p.yr}</span>${w === 'you' ? ' <span class="mine">(yours)</span>' : w ? ' <span class="muted">(computer)</span>' : lock ? ' <span class="muted">(locked)</span>' : ''}`;
+  }
+  function drawNotebook() {
+    $('nbTabs').innerHTML = NB_TABS.map(([k, l]) => `<button role="tab" aria-selected="${nbTab === k}" data-nbtab="${k}">${l}</button>`).join('');
+    let html = '';
+    if (nbTab === 'cheat') {
+      const groups = [...['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf'].map(p => [p.toUpperCase(), x => x.kind === 'H' && x.pos === p]), ['Starting pitchers', x => x.role === 'SP'], ['Relievers', x => x.role === 'RP']];
+      html = `<p class="muted">The top 10 you can draft at each spot, by Runs+, in tiers. Players get crossed off as they go.${legendsOpen() ? '' : ' Locked legends are left off.'}</p>` + groups.map(([label, f]) => {
+        const list = D.pool.map(k => BY.get(k)).filter(p => f(p) && !(p.legend && !legendsOpen())).sort((a, b) => runs(b) - runs(a)).slice(0, 10);
+        return `<h4>${label}</h4><ol>${list.map((p, i) => `<li>${nbName(p)}${i === 0 || i === 3 || i === 7 ? ` <span class="tier">Tier ${i === 0 ? 1 : i === 3 ? 2 : 3}</span>` : ''}</li>`).join('')}</ol>`;
+      }).join('');
+    } else if (nbTab === 'targets') {
+      const ts = (D.targets || []).map(k => BY.get(k));
+      html = ts.length ? `<ol>${ts.map(p => `<li>${nbName(p)} <button class="lk muted" data-unstar="${p.key}" aria-label="Remove ${esc(p.name)} from targets">remove</button></li>`).join('')}</ol>`
+        : '<p class="muted">No targets yet. Tap the star next to any player in the spreadsheet to add him here. The scout will warn you if the computer takes one.</p>';
+    } else if (nbTab === 'notes') {
+      html = `<label class="muted" for="nbNotes">Your notes for this draft. They save automatically.</label><textarea id="nbNotes" placeholder="Need a lefty bat. Wait on relievers. Don't let the computer get Mays…">${esc(D.notes || '')}</textarea>`;
+    } else {
+      html = `<h4>The dice</h4><p>Every at-bat is a duel: you and the computer each roll a 20-sided die. The higher roll decides whose card the play comes from, the hitter's or the pitcher's. Then two 10-sided dice give a number from 01 to 100, which is read off that card.</p>
+        <h4>The cards</h4><p>Cards are built from each player's real season, adjusted for his era. Red rows help the hitter. A great hitter's card is full of red; a great pitcher's card is full of outs.</p>
+        <h4>Runs+</h4><p>How many runs a player's season is worth over an average player. It's the fastest way to compare anyone, from 1906 to today.</p>
+        <h4>What wins</h4><ul><li>On-base percentage: walks and hits keep innings alive</li><li>Power in the middle of the order</li><li>Five solid starters; the rotation cycles every game</li><li>A closer for tight late innings</li></ul>
+        <h4>Draft tips</h4><ul><li>Fill scarce positions (usually C and SS) before they dry up</li><li>Watch the scout's needs list</li><li>Star your targets so you know who's left</li></ul>`;
+    }
+    $('nbBody').innerHTML = html;
+    $('nbTabs').querySelectorAll('[data-nbtab]').forEach(b => b.onclick = () => { nbTab = b.dataset.nbtab; drawNotebook(); });
+    $('nbBody').querySelectorAll('[data-nbprev]').forEach(b => b.onclick = () => { previewKey = b.dataset.nbprev; drawPool(); if (matchMedia('(max-width: 900px)').matches) closeNotebook(); });
+    $('nbBody').querySelectorAll('[data-unstar]').forEach(b => b.onclick = () => toggleTarget(b.dataset.unstar));
+    const ta = $('nbNotes'); let nt = null;
+    if (ta) ta.oninput = () => { clearTimeout(nt); nt = setTimeout(() => { D.notes = ta.value; save(); }, 500); };
+  }
+  function openNotebook() { $('notebook').hidden = false; $('nbOpen').setAttribute('aria-expanded', 'true'); drawNotebook(); $('nbClose').focus(); }
+  function closeNotebook() { const ta = $('nbNotes'); if (ta) { D.notes = ta.value; save(); } $('notebook').hidden = true; $('nbOpen').setAttribute('aria-expanded', 'false'); $('nbOpen').focus(); }
+  $('nbOpen').onclick = () => $('notebook').hidden ? openNotebook() : closeNotebook();
+  $('nbClose').onclick = closeNotebook;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('notebook').hidden) closeNotebook(); });
+
   function drawRoom() {
     const m = MODES.find(x => x.id === D.mode);
     $('boardTitle').textContent = m.name + (D.mode === 'decade' ? `: the ${D.param}s` : D.mode === 'franchise' ? `: ${POOL.franchises[D.param]}` : '');
     $('boardSub').textContent = m.desc;
     $('showYou').setAttribute('aria-pressed', view === 'you'); $('showCpu').setAttribute('aria-pressed', view === 'cpu');
-    drawField(); drawPool(); drawTicker(); drawLog();
+    drawField(); drawPool(); drawTicker(); drawLog(); drawReport();
+    if (!$('notebook').hidden) drawNotebook();
     $('donePanel').hidden = !D.done;
     $('laptop').hidden = D.done; $('preview').hidden = D.done;
     if (D.done) $('doneText').textContent = `Both rosters are full. Projection: your team beats the computer's ${lastProj ? Math.round(lastProj[0] * 100) : 50}% of the time. Time to find out.`;
@@ -1557,7 +1713,7 @@ body.war .dec { color: var(--wb-red); }
   $('showYou').onclick = () => { view = 'you'; drawRoom(); };
   $('showCpu').onclick = () => { view = 'cpu'; drawRoom(); };
   $('search').oninput = drawPool; $('posFilter').onchange = () => { selSlot = null; drawPool(); drawField(); };
-  const toSetup = () => { stopClock(); document.body.classList.add('war'); $('setup').hidden = false; $('room').hidden = true; $('playSec').hidden = true; $('projWrap').hidden = true; $('gameBoard').hidden = true; drawSetup(); window.scrollTo(0, 0); };
+  const toSetup = () => { $('notebook').hidden = true; stopClock(); document.body.classList.add('war'); $('setup').hidden = false; $('room').hidden = true; $('playSec').hidden = true; $('projWrap').hidden = true; $('gameBoard').hidden = true; drawSetup(); window.scrollTo(0, 0); };
   $('redraft').onclick = toSetup; $('newDraft2').onclick = toSetup;
   $('backRoom').onclick = enterRoom;
   $('toPlay').onclick = () => startGame();
@@ -1574,7 +1730,7 @@ body.war .dec { color: var(--wb-red); }
   let g = null, you = 1, busy = false, stage = 'duel', duelWinner = null, lastHalfKey = '', counted = false;
 
   function startGame() {
-    stopClock(); document.body.classList.add('war');
+    $('notebook').hidden = true; stopClock(); document.body.classList.add('war');
     const me = gameTeam('you', 'Your Draft'), cpu = gameTeam('cpu', 'Computer Draft');
     you = 1; counted = false;
     const sp = () => Math.floor(Math.random() * 5);
