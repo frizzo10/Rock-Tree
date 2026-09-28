@@ -552,7 +552,29 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
   function doTrade(a, b, give, get, ev) {
     L.teams[a].roster = ev.ra; L.teams[b].roster = ev.rb; prepped = null;
     log(`Trade: ${L.teams[a].name} send ${names(give)} to ${L.teams[b].name} for ${names(get)}.`);
+    Object.assign(L.tx[0], { trade: true, a, b });
   }
+  // ---------- league office: platform check on every trade ----------
+  // Blocks lopsided deals and repeat deals between the same two clubs. Rules, not judgment calls,
+  // so every manager gets the same answer and the reason is written down.
+  const OFFICE = { maxSwing: 12, maxGap: 20, maxPairTrades: 2 };
+  // talent in a package: best player counts fully, the second half, the third a quarter (so 2-for-1 and 3-for-1 deals aren't punished)
+  const pkg = ks => ks.map(k => runs(BY.get(k))).sort((x, y) => y - x).reduce((n, v, i) => n + v * [1, 0.5, 0.25][i], 0);
+  function officeCheck(a, b, give, get, ev) {
+    const pair = L.tx.filter(x => x.trade && ((x.a === a && x.b === b) || (x.a === b && x.b === a))).length;
+    if (pair >= OFFICE.maxPairTrades) return { ok: false, why: `${L.teams[a].name} and ${L.teams[b].name} have already made ${pair} trades this season; the limit is ${OFFICE.maxPairTrades} between the same two clubs.` };
+    const ga = pkg(give), gb = pkg(get), gap = Math.abs(ga - gb);
+    if (gap >= OFFICE.maxGap) {
+      const more = ga > gb ? a : b, less = more === a ? b : a;
+      return { ok: false, why: `Too lopsided: ${L.teams[more].name} would give up about ${Math.round(gap)} more Runs+ of talent than they get back from ${L.teams[less].name}. The limit is ${OFFICE.maxGap}.` };
+    }
+    const loser = ev.da < ev.db ? a : b, winner = loser === a ? b : a;
+    const lose = Math.min(ev.da, ev.db), gain = Math.max(ev.da, ev.db);
+    if (-lose >= OFFICE.maxSwing && gain >= OFFICE.maxSwing)
+      return { ok: false, why: `Too lopsided: ${L.teams[loser].name} would lose about ${Math.round(-lose)} runs a season while ${L.teams[winner].name} gain about ${Math.round(gain)}. Deals that move more than ${OFFICE.maxSwing} runs each way are blocked.` };
+    return { ok: true, why: `Approved. Swing: ${L.teams[a].name} ${ev.da >= 0 ? '+' : ''}${Math.round(ev.da)}, ${L.teams[b].name} ${ev.db >= 0 ? '+' : ''}${Math.round(ev.db)} runs.` };
+  }
+
   // a computer club says yes when the deal makes its everyday lineup and staff better
   const aiLikes = ev => ev.ok && ev.db >= 1.5 + Math.random() * 2;
 
@@ -565,7 +587,7 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
       const g = theirs[Math.floor(Math.random() * theirs.length)], y = mine[Math.floor(Math.random() * mine.length)];
       if (BY.get(g).kind !== BY.get(y).kind) continue;
       const ev = evalTrade(from, ME, [g], [y]); // `from` gives g, receives y
-      if (!ev.ok || ev.da < 2 || ev.db < -3) continue;
+      if (!ev.ok || ev.da < 2 || ev.db < -3 || !officeCheck(from, ME, [g], [y], ev).ok) continue;
       if (!best || ev.da + ev.db > best.ev.da + best.ev.db) best = { give: [g], get: [y], ev };
     }
     if (best) L.offers.push({ from, give: best.give, get: best.get, day: L.day });
@@ -819,7 +841,8 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
       : `<p>Trades go through the moment the other club accepts. Deadline: after day ${TRADE_DEADLINE} (${Math.max(0, TRADE_DEADLINE - L.day)} days left).</p>`;
     const verdict = !ev ? '<p>Pick up to 3 players from each side.</p>'
       : !ev.ok ? '<p class="warn">Not a legal trade: both clubs must keep 13 hitters, 12 pitchers (5 of them starters) and someone who can play every position.</p>'
-      : `<p>Your everyday team changes by <b class="${ev.da >= 0 ? 'ok' : 'warn'}">${ev.da >= 0 ? '+' : ''}${Math.round(ev.da)} runs</b> a season.</p>`;
+      : `<p>Your everyday team changes by <b class="${ev.da >= 0 ? 'ok' : 'warn'}">${ev.da >= 0 ? '+' : ''}${Math.round(ev.da)} runs</b> a season.</p>` +
+        (officeCheck(ME, tPartner, tGive, tGet, ev).ok ? '' : `<p class="warn">League office would block this: ${esc(officeCheck(ME, tPartner, tGive, tGet, ev).why)}</p>`);
     const offers = L.offers.map((o, n) => `<li>${tname(o.from)} offer <b>${esc(names(o.give))}</b> for your <b>${esc(names(o.get))}</b>. <button class="btn btn-alt" data-accept="${n}">Accept</button> <button class="btn btn-alt" data-decline="${n}">Decline</button></li>`).join('');
     return `<div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)"><div style="display:grid;gap:14px">
       ${sheet(`${esc(L.teams[ME].name)}.xls (you give)`, `<table><thead><tr><th></th><th class="l">Spot</th><th class="l">Player</th><th>Runs+</th></tr></thead><tbody>${rosterPick(ME, tGive, 'data-give')}</tbody></table>`)}</div>
@@ -827,7 +850,8 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
       <section class="wb"><h2 class="m">Make a trade</h2>${status}
         <div class="row"><label for="tp">Trade with</label><select id="tp">${L.teams.map((x, k) => k === ME ? '' : `<option value="${k}" ${k === tPartner ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
         ${verdict}${tMsg ? `<p class="clockline" style="font-size:18px">${esc(tMsg)}</p>` : ''}
-        <button class="btn btn-main" id="propose" ${!ev || !ev.ok || !tradeOpen() ? 'disabled' : ''}>Propose trade</button></section>
+        <button class="btn btn-main" id="propose" ${!ev || !ev.ok || !tradeOpen() ? 'disabled' : ''}>Propose trade</button>
+        <p style="font-size:13px;color:#4A5560;margin-top:10px">League office rules: every trade is checked the moment it's accepted. Blocked if one side gives up ${OFFICE.maxGap}+ more Runs+ of talent than it gets, if one club loses ${OFFICE.maxSwing}+ runs a season while the other gains ${OFFICE.maxSwing}+, or if the same two clubs have already traded ${OFFICE.maxPairTrades} times.</p></section>
       ${offers ? `<div class="pad"><h3>Offers for you</h3><ul>${offers}</ul></div>` : ''}
       ${sheet(`${esc(L.teams[tPartner].name)}.xls (you get)`, `<table><thead><tr><th></th><th class="l">Spot</th><th class="l">Player</th><th>Runs+</th></tr></thead><tbody>${rosterPick(tPartner, tGet, 'data-get')}</tbody></table>`)}</div></div>`;
   }
@@ -917,12 +941,16 @@ if (typeof module !== 'undefined') module.exports = makeSchedule;
     document.querySelectorAll('[data-get]').forEach(c => c.onchange = () => { tGet = toggle(tGet, c.dataset.get); tMsg = ''; render(); });
     on('propose', () => {
       const ev = evalTrade(ME, tPartner, tGive, tGet);
-      if (aiLikes(ev)) { doTrade(ME, tPartner, tGive, tGet, ev); tMsg = `${L.teams[tPartner].name} accept. The trade is done.`; tGive = []; tGet = []; }
+      const oc = aiLikes(ev) ? officeCheck(ME, tPartner, tGive, tGet, ev) : null;
+      if (oc && !oc.ok) { tMsg = `${L.teams[tPartner].name} said yes, but the league office blocked it. ${oc.why}`; log(`League office blocked a trade between ${L.teams[ME].name} and ${L.teams[tPartner].name}. ${oc.why}`); }
+      else if (oc) { doTrade(ME, tPartner, tGive, tGet, ev); tMsg = `${L.teams[tPartner].name} accept, and the league office approved it. The trade is done.`; tGive = []; tGet = []; }
       else tMsg = ev.db <= -1 ? `${L.teams[tPartner].name} pass: they'd lose about ${Math.round(-ev.db)} runs a season.` : `${L.teams[tPartner].name} pass: not enough in it for them.`;
       save(); render();
     });
     document.querySelectorAll('[data-accept]').forEach(b => b.onclick = () => { const o = L.offers[+b.dataset.accept]; const ev = evalTrade(o.from, ME, o.give, o.get);
-      if (ev.ok && tradeOpen()) { doTrade(o.from, ME, o.give, o.get, ev); tMsg = 'Offer accepted. The trade is done.'; } else tMsg = 'That offer is no longer valid.';
+      const oc = ev.ok && tradeOpen() ? officeCheck(o.from, ME, o.give, o.get, ev) : null;
+      if (oc && oc.ok) { doTrade(o.from, ME, o.give, o.get, ev); tMsg = 'Offer accepted and approved by the league office. The trade is done.'; }
+      else tMsg = oc ? `The league office blocked it. ${oc.why}` : 'That offer is no longer valid.';
       L.offers.splice(+b.dataset.accept, 1); save(); render(); });
     document.querySelectorAll('[data-decline]').forEach(b => b.onclick = () => { L.offers.splice(+b.dataset.decline, 1); save(); render(); });
     // waivers
