@@ -2,7 +2,8 @@
 import './rng.js';        // must come first: the engine captures Math.random when it loads
 import './engine.js';
 import './dice-engine.js';
-const { Diamond, DuelDice } = globalThis;
+const G = globalThis.Diamond ? globalThis : (typeof window !== 'undefined' ? window : globalThis);
+const { Diamond, DuelDice } = G;
 const LINEUP = ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh'];
 
 // A roster (slot -> player key) becomes a team the engine can play, with its dice cards built from real stats.
