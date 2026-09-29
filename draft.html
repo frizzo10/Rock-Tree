@@ -369,6 +369,8 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
 .advice::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
 .advice h3 { font: 400 20px/1.25 var(--marker); color: var(--wb-red); }
 .advice p { font-size: 15px; line-height: 26px; margin: 0 0 4px; }
+.advice .scout-voice { font: 600 16.5px/26px var(--text); color: #1F3F8F; }
+.advice .thin { font-size: 13.5px; color: #555; line-height: 22px; }
 .advice ul { color: #3A3A3A; line-height: 26px; }
 .advice li b { color: #1B1B1B; }
 .advice .btn-alt { color: #2A2A2A; border-color: #8A845A; background: transparent; }
@@ -1475,6 +1477,27 @@ body.war .dec { color: var(--wb-red); }
     scouting = false; $('scoutBtn').disabled = false;
     if (!advice) { $('advice').innerHTML = '<div class="advice"><h3>No moves left</h3><p>Nobody left fits your open spots.</p></div>'; return; }
     drawAdvice();
+    aiVoice(advice);
+  }
+
+  // The AI scout puts the game's own numbers into words. If it isn't available for any reason, nothing changes.
+  async function aiVoice(adv) {
+    const cc = window.CC; if (!adv || !cc || !cc.client || !cc.user || !cc.client.functions) return;
+    adv.aiState = 'loading'; drawAdvice();
+    const t = adv.top, myOpen = openSlots('you');
+    const facts = { draftType: D.cap ? 'payroll cap' : 'classic', yourBestPick: { player: t.p.name, season: t.p.yr, spot: t.s.label, edgeInRunsOverWhatWouldBeLeft: Math.round(t.gain), whatWouldBeLeft: t.nb ? `${t.nb.name} (${t.nb.yr})` : null },
+      alsoGood: adv.alts.map(a => ({ player: a.p.name, season: a.p.yr, spot: a.s.label, edgeInRuns: Math.round(a.gain) })),
+      yourOpenSpots: myOpen.length, picksBeforeYourNextTurn: picksUntilMyNext(), budgetLeftMillions: D.cap ? Math.round((D.cap - payroll('you')) * 10) / 10 : null,
+      headsUp: adv.balance || null, scoutsNotes: adv.why };
+    let text = null;
+    try { const { data, error } = await cc.client.functions.invoke('scout-ai', { body: { kind: 'draft', facts } }); text = !error && data && data.text ? String(data.text) : null; } catch (e) { text = null; }
+    adv.ai = text; adv.aiState = 'done'; if (advice === adv) drawAdvice();
+  }
+  function aiBlock(a) {
+    if (a.aiState === 'loading') return '<p class="thin">The scout is putting it in his own words…</p>';
+    if (a.ai) return `<p class="scout-voice">${esc(a.ai)}</p>`;
+    const cc = window.CC; if (a.aiState !== 'done' && cc && cc.client && !cc.user) return '<p class="thin">Sign in and the scout will write out his advice in his own words.</p>';
+    return '';
   }
 
   function drawAdvice() {
@@ -1483,7 +1506,7 @@ body.war .dec { color: var(--wb-red); }
     if (!advice) { if (!scouting) $('advice').innerHTML = ''; return; }
     const { top, alts, why, balance } = advice;
     $('advice').innerHTML = `<div class="advice"><h3>Scout says: take ${esc(top.p.name)} (${top.p.yr}) at ${top.s.label}</h3>
-      <p>${esc(why.join(' '))}</p>${balance ? `<p>${esc(balance)}</p>` : ''}
+      ${aiBlock(advice)}<p${advice.ai ? ' class="thin"' : ''}>${advice.ai ? '<b>The numbers:</b> ' : ''}${esc(why.join(' '))}</p>${balance ? `<p>${esc(balance)}</p>` : ''}
       ${alts.length ? `<ul>${alts.map(a => `<li>Also good: <b>${esc(a.p.name)}</b> (${a.p.yr}) at ${a.s.label}, about ${Math.round(a.gain)} runs over what's left there.</li>`).join('')}</ul>` : ''}
       <div class="acts"><button class="btn btn-scout" id="takeTip">Draft ${esc(top.p.name.split(' ').slice(-1)[0])}</button><button class="btn btn-alt" id="readTip">Read his card</button><button class="btn btn-alt" id="hideTip">Dismiss</button></div></div>`;
     $('takeTip').onclick = () => { if (!canDraft(top.p, 'you')) { selSlot = top.s.id; draft(top.p, 'you'); } };
