@@ -525,6 +525,7 @@ body.war .dec { color: var(--wb-red); }
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
+<script src="fx.js"></script>
 </head>
 <body class="war">
 <div class="wrap">
@@ -1942,6 +1943,7 @@ body.war .dec { color: var(--wb-red); }
     $('act').textContent = g.over ? 'See the final' : 'Next batter'; $('act').disabled = false; stage = 'next'; busy = false;
   }
   function logPlay(play, note) {
+    if (play.code === 'HR' && window.FX) FX.homeRun({ text: play.txt, runs: play.scored, walkOff: g.over && play.half === 1 && play.inning >= 9 });
     const f = $('feed'), k = `${play.inning}-${play.half}`;
     if (k !== lastHalfKey) { lastHalfKey = k; const h = document.createElement('p'); h.className = 'half'; h.textContent = `${play.half ? 'Bottom' : 'Top'} of the ${ord(play.inning)}, ${g.teams[play.half].t.nick} batting`; f.appendChild(h); }
     for (const c of play.pre) { const e = document.createElement('p'); e.className = 'play change'; e.textContent = c.txt; f.appendChild(e); }

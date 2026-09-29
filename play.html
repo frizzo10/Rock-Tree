@@ -248,6 +248,7 @@ body.war .dec { color: var(--wb-red); }
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
+<script src="fx.js"></script>
 </head>
 <body class="war">
 <div class="wrap">
@@ -950,6 +951,7 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function logPlay(play, note) {
+    if (play.code === 'HR' && window.FX) FX.homeRun({ text: play.txt, runs: play.scored, walkOff: g.over && play.half === 1 && play.inning >= 9 });
     const f = $('feed');
     if (f.querySelector('.how')) f.innerHTML = '';
     const key = `${play.inning}-${play.half}`;
