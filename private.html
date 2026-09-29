@@ -20,7 +20,7 @@ html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 *, *::before, *::after { box-sizing: inherit; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
-button, input { font: inherit; }
+button, input, textarea { font: inherit; }
 :focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
 .wrap { max-width: 1000px; margin: 0 auto; padding: 18px 16px 48px; }
 .crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
@@ -37,10 +37,13 @@ button, input { font: inherit; }
 .pad::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
 .pad h2 { font: 400 20px/26px var(--marker); color: var(--wb-red); margin: 0; }
 .pad p { line-height: 26px; margin: 0; }
+.linkbtn { all: unset; cursor: pointer; color: var(--wb-ink); font-weight: 600; text-decoration: underline; }
+.linkbtn:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
 label { display: block; font-weight: 600; font-size: 14px; margin: 10px 0 4px; }
-input[type=text] { width: 100%; max-width: 420px; padding: 10px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: #1B1F24; }
-.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; margin: 8px 0; max-width: 60ch; }
-.check input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--wb-ink); }
+input[type=text], textarea { width: 100%; max-width: 480px; padding: 10px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: #1B1F24; }
+textarea { min-height: 70px; resize: vertical; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; margin: 8px 0; max-width: 62ch; }
+.check input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--wb-ink); flex: none; }
 .btn { border: 0; border-radius: 4px; padding: 10px 18px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
 .btn-main { background: var(--wb-ink); color: #fff; }
 .btn-main:hover { background: #17306E; }
@@ -55,15 +58,31 @@ input[type=text] { width: 100%; max-width: 420px; padding: 10px 12px; border: 1.
 .tag.c { background: #D8E8DC; color: #17603A; }
 .sub { color: #4A5560; margin: 4px 0 0; }
 .members { columns: 2; margin: 8px 0 0; padding-left: 18px; }
-.invite { background: #EEF0F3; border-radius: 4px; padding: 10px 12px; margin-top: 12px; }
+.invite, .ls { background: #EEF0F3; border-radius: 4px; padding: 10px 14px; margin-top: 12px; }
 .invite code { display: block; word-break: break-all; font-size: 13.5px; margin: 4px 0 8px; color: #1B1F24; }
+.ls ol { margin: 6px 0 8px; padding-left: 20px; }
 .reqs { list-style: none; margin: 8px 0 0; padding: 0; }
-.reqs li { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid #E3E6E4; }
-.reqs .btn { padding: 4px 12px; }
+.reqs li { padding: 10px 0; border-bottom: 1px solid #E3E6E4; }
+.reqs .row { margin-top: 6px; } .reqs .btn { padding: 4px 12px; }
+.ai { margin: 4px 0 0; }
+.ai.approve b { color: var(--wb-green); } .ai.review b { color: #9A6A00; } .ai.decline b { color: var(--wb-red); }
+.support { background: #FFF3A0; border-radius: 4px; padding: 12px 16px; margin-top: 12px; color: #2A2A2A; max-width: 70ch; }
 .note { font-size: 13.5px; color: #4A5560; }
 footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
 footer p { margin: 0 0 6px; }
-@media (max-width: 560px) { .members { columns: 1; } .wb { padding: 18px 20px; } }
+dialog { border: 0; padding: 0; background: transparent; max-width: 100%; }
+dialog::backdrop { background: rgba(28, 32, 30, .82); }
+.dlg { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame); padding: 30px 32px 26px; width: min(780px, 94vw); max-height: 88vh; overflow-y: auto; }
+.dlg h2 { font: 400 28px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.dlg h3 { font: 400 19px/1.2 var(--marker); color: var(--wb-red); margin: 18px 0 4px; }
+.dlg p { margin: 0 0 8px; }
+.initbox { position: sticky; top: -30px; background: var(--wb); padding: 8px 0 10px; border-bottom: 1px solid #D9DDE2; z-index: 1; }
+.sec p { max-width: 70ch; }
+.sec .ini { display: flex; gap: 10px; align-items: center; margin: 6px 0 4px; }
+.sec .ini .btn { padding: 4px 12px; }
+.stamp { font: 400 22px/1 var(--marker); color: var(--wb-ink); border: 2px solid var(--wb-ink); border-radius: 6px; padding: 2px 10px; transform: rotate(-3deg); }
+.part { font: 400 22px/1.1 var(--marker); color: var(--wb-ink); margin: 24px 0 0; }
+@media (max-width: 560px) { .members { columns: 1; } .wb { padding: 18px 20px; } .dlg { padding: 22px 20px 20px; } }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -79,7 +98,7 @@ footer p { margin: 0 0 6px; }
     <p>Play with people you know. You're the commissioner: you invite your friends, and you approve everyone who joins. Each league has ten clubs and a salary cap.</p>
     <div class="pad">
       <h2>About money</h2>
-      <p>Cooperstown Cash doesn't collect, hold, take or pay out any money in private leagues. If your league plays for dues, that's a matter between you and your league.</p>
+      <p>Cooperstown Cash doesn't collect, hold, take or pay out any money in private leagues. If your league plays for dues, that's a matter between you and your league. <button class="linkbtn" id="readAgr" type="button">Read the full league agreement</button></p>
     </div>
   </header>
 
@@ -89,8 +108,11 @@ footer p { margin: 0 0 6px; }
     <form id="joinForm" novalidate>
       <label for="joinClub">Name your club</label>
       <input type="text" id="joinClub" maxlength="24" autocomplete="off" placeholder="Brooklyn Bridgers">
+      <label for="joinRel">How do you know the people in this league?</label>
+      <textarea id="joinRel" maxlength="300" placeholder="For example: I play softball with the commissioner every Sunday."></textarea>
       <label class="check"><input type="checkbox" id="att1"> I am 18 or older.</label>
       <label class="check"><input type="checkbox" id="att2"> Someone in this league invited me, and I know them.</label>
+      <p class="note">You'll be asked to read and sign the league agreement before your request is sent.</p>
       <div class="row"><button type="submit" class="btn btn-main" id="joinGo">Ask to join</button><button type="button" class="btn btn-alt" id="joinCancel">Not now</button></div>
       <p class="msg" id="joinMsg" role="status" aria-live="polite"></p>
     </form>
@@ -100,7 +122,7 @@ footer p { margin: 0 0 6px; }
 
   <section class="card" id="startCard" aria-label="Start a private league">
     <h2>Start a private league</h2>
-    <p class="note">You'll be the commissioner and take the first seat. Then share your invite link with people you know.</p>
+    <p class="note">You'll be the commissioner and take the first seat. You'll read and sign a commissioner agreement first. Then share your invite link with people you know.</p>
     <form id="startForm" novalidate>
       <label for="lgName">League name</label>
       <input type="text" id="lgName" maxlength="40" autocomplete="off" placeholder="The Sandlot League">
@@ -117,51 +139,146 @@ footer p { margin: 0 0 6px; }
   </footer>
 </div>
 
+<dialog id="agrDlg" aria-labelledby="agrT">
+  <div class="dlg">
+    <h2 id="agrT">League agreement</h2>
+    <p class="note" id="agrIntro"></p>
+    <div class="initbox" id="agrInitBox"><label for="agrIni" style="margin-top:0">Type your initials once (2 to 4 letters), then tap "Initial here" beside each section</label><input type="text" id="agrIni" maxlength="4" autocomplete="off" style="max-width:120px;text-transform:uppercase"></div>
+    <div id="agrBody"></div>
+    <div id="agrSign">
+      <label for="agrName">Your full legal name. Typing it is your electronic signature.</label>
+      <input type="text" id="agrName" maxlength="80" autocomplete="name">
+      <label class="check"><input type="checkbox" id="agrConsent"> I agree to sign this agreement electronically. I understand that my typed name, my initials and the time I sign will be kept as a record, and that this has the same effect as signing on paper.</label>
+      <p class="msg err" id="agrMsg" role="alert"></p>
+      <div class="row"><button type="button" class="btn btn-main" id="agrGo" disabled>Sign the agreement</button><button type="button" class="btn btn-alt" id="agrCancel">Cancel</button></div>
+    </div>
+    <div id="agrReadOnly" class="row" hidden><button type="button" class="btn btn-alt" id="agrClose">Close</button></div>
+  </div>
+</dialog>
+
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
-  const S = { leagues: [], board: new Map(), seats: [], reqs: [], sig: '' };
+  const S = { leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '' };
   const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
+  const signedIn = () => !!(window.CC && window.CC.user);
+  const client = () => window.CC && window.CC.client;
 
   // an invite code from the link is remembered, so it survives the sign-in email round trip
   const fromUrl = new URLSearchParams(location.search).get('join');
   if (fromUrl) { store.set('cc-join', fromUrl.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20)); history.replaceState(null, '', location.pathname); }
   const joinCode = () => store.get('cc-join') || '';
-  const signedIn = () => !!(window.CC && window.CC.user);
   const inviteUrl = code => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}private.html?join=${code}`;
+  const LEAGUESAFE = 'https://www.leaguesafe.com/';
 
+  // ---------- the agreement ----------
+  async function loadAgreement() {
+    const c = client(); if (!c) return;
+    const { data } = await c.from('agreement_versions').select('version,title,intro,member_sections,commissioner_sections').order('created_at', { ascending: false }).limit(1);
+    S.agr = data && data[0] ? data[0] : null;
+    await loadConfig();
+    if (signedIn() && S.agr) {
+      const { data: sg } = await c.from('agreement_signatures').select('role,version');
+      S.signed = new Set((sg || []).filter(s => s.version === S.agr.version).map(s => s.role));
+    } else S.signed = new Set();
+  }
+  async function loadConfig() {
+    const c = client(); if (!c) return;
+    const cfg = await c.from('site_config').select('key,value').eq('key', 'support_url');
+    S.support = cfg.data && cfg.data[0] && /^https:\/\//i.test(cfg.data[0].value) ? cfg.data[0].value : '';
+  }
+  const hasSigned = role => role === 'member' ? (S.signed.has('member') || S.signed.has('commissioner')) : S.signed.has('commissioner');
+
+  // Shows the agreement. Resolves true once signed. In read-only mode it just shows the text.
+  function showAgreement(role, readOnly) {
+    return new Promise(resolve => {
+      const A = S.agr; if (!A) { alert('The agreement could not be loaded. Please refresh the page.'); return resolve(false); }
+      const dlg = $('agrDlg'), initialed = new Map();
+      const secs = [...A.member_sections, ...(role === 'commissioner' ? A.commissioner_sections : [])];
+      const nMember = A.member_sections.length;
+      $('agrT').textContent = A.title + (role === 'commissioner' ? ' (commissioner)' : '');
+      $('agrIntro').textContent = A.intro;
+      $('agrInitBox').hidden = readOnly; $('agrSign').hidden = readOnly; $('agrReadOnly').hidden = !readOnly;
+      $('agrBody').innerHTML = secs.map((s, i) => `${i === nMember ? '<p class="part">Additional terms for commissioners</p>' : ''}<section class="sec" data-id="${esc(s.id)}"><h3>${i + 1}. ${esc(s.heading)}</h3><p>${esc(s.text)}</p>${readOnly ? '' : `<div class="ini"><button type="button" class="btn btn-alt" data-ini="${esc(s.id)}" disabled>Initial here</button><span class="stamp" hidden></span></div>`}</section>`).join('');
+      $('agrIni').value = ''; $('agrName').value = ''; $('agrConsent').checked = false; $('agrMsg').textContent = ''; $('agrGo').disabled = true;
+      const iniVal = () => $('agrIni').value.trim().toUpperCase();
+      const validIni = () => /^[A-Z]{2,4}$/.test(iniVal());
+      const refresh = () => {
+        document.querySelectorAll('#agrBody [data-ini]').forEach(b => { b.disabled = !validIni() || initialed.has(b.dataset.ini); });
+        const nameOk = $('agrName').value.trim().length >= 5 && /\s/.test($('agrName').value.trim());
+        $('agrGo').disabled = !(initialed.size === secs.length && nameOk && $('agrConsent').checked);
+      };
+      $('agrIni').oninput = () => { initialed.clear(); document.querySelectorAll('#agrBody .stamp').forEach(s => { s.hidden = true; }); refresh(); };
+      $('agrName').oninput = refresh; $('agrConsent').onchange = refresh;
+      document.querySelectorAll('#agrBody [data-ini]').forEach(b => b.onclick = () => {
+        initialed.set(b.dataset.ini, iniVal()); const st = b.parentNode.querySelector('.stamp'); st.textContent = iniVal(); st.hidden = false; refresh();
+      });
+      let done = false;
+      const finish = ok => { if (done) return; done = true; if (dlg.open) dlg.close(); resolve(ok); };
+      dlg.onclose = () => finish(false);
+      $('agrCancel').onclick = () => finish(false); $('agrClose').onclick = () => finish(false);
+      $('agrGo').onclick = async () => {
+        $('agrGo').disabled = true; $('agrMsg').textContent = '';
+        const { error } = await client().rpc('sign_agreement', { p_version: A.version, p_role: role, p_initials: iniVal(), p_sections: [...initialed.keys()], p_name: $('agrName').value.trim(), p_consent: $('agrConsent').checked });
+        if (error) { $('agrMsg').textContent = error.message; refresh(); return; }
+        S.signed.add(role); finish(true);
+      };
+      dlg.showModal(); dlg.scrollTop = 0; (readOnly ? $('agrClose') : $('agrIni')).focus();
+    });
+  }
+  async function requireAgreement(role) { if (hasSigned(role)) return true; return showAgreement(role, false); }
+  $('readAgr').onclick = async () => { if (!S.agr) await loadAgreement(); showAgreement('commissioner', true); };
+
+  // ---------- loading your leagues ----------
   async function load() {
-    const c = window.CC && window.CC.client;
-    if (!c || !signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.sig = ''; return render(); }
-    const [lg, ms, rq] = await Promise.all([
+    const c = client();
+    if (!c) return render();
+    if (!S.agr) await loadAgreement();
+    if (!signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.signed = new Set(); S.sig = ''; return render(); }
+    const [lg, ms, rq, sg] = await Promise.all([
       c.from('leagues').select('id,name,status,commissioner_id,invite_code,created_at').eq('is_public', false).order('created_at', { ascending: true }),
       c.from('seats').select('league_id,seat_no,club_name'),
-      c.from('league_requests').select('id,league_id,user_id,club_name,status,created_at').order('created_at', { ascending: true })]);
+      c.from('league_requests').select('id,league_id,user_id,club_name,relationship,ai_review,status,created_at').order('created_at', { ascending: true }),
+      S.agr ? c.from('agreement_signatures').select('role,version') : Promise.resolve({ data: [] })]);
     if (lg.error) return;
+    if (S.agr) S.signed = new Set((sg.data || []).filter(s => s.version === S.agr.version).map(s => s.role));
     const leagues = lg.data || [], ids = leagues.map(l => l.id), board = new Map();
+    if (!S.support && leagues.some(l => l.status === 'complete')) await loadConfig(); // the optional support link is only needed once a league has ended
     if (ids.length) {
       const { data: bd } = await c.from('seat_board').select('league_id,seat_no,club_name').in('league_id', ids);
       (bd || []).forEach(r => { if (!board.has(r.league_id)) board.set(r.league_id, []); board.get(r.league_id).push(r); });
     }
-    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data]);
+    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data, [...S.signed]]);
     if (sig === S.sig) return;
     S.sig = sig; S.leagues = leagues; S.board = board; S.seats = ms.data || []; S.reqs = rq.data || []; render();
   }
 
+  function aiNote(r) {
+    const a = r.ai_review;
+    if (!a || a.status !== 'ok') return '<p class="note ai">AI screening: not available for this request yet. The decision is yours either way.</p>';
+    const label = { approve: 'Looks fine', review: 'Take a closer look', decline: 'Flagged' }[a.recommendation] || 'Reviewed';
+    return `<p class="note ai ${esc(a.recommendation)}"><b>AI screening: ${label}.</b> ${(a.reasons || []).map(esc).join(' ')} <i>It only advises. You decide.</i></p>`;
+  }
+  function supportCard(l) {
+    if (l.status !== 'complete' || !S.support || store.get('cc-support-off-' + l.id)) return '';
+    return `<div class="support"><b>Thanks for playing.</b> If you enjoyed ${esc(l.name)}, you can help keep Cooperstown Cash running with an optional contribution. It's completely voluntary, it isn't linked to any result or prize, and it doesn't change anything about your league.<div class="row"><a class="btn btn-main" href="${esc(S.support)}" target="_blank" rel="noopener noreferrer">Support Cooperstown Cash</a><button class="btn btn-alt" data-nosupport="${l.id}">No thanks</button></div></div>`;
+  }
   function leagueCard(l) {
-    const me = window.CC.user.id, isC = l.commissioner_id === me;
+    const me = window.CC.user.id, isC = l.commissioner_id === me, live = l.status === 'open' || l.status === 'full';
     const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
     const pending = S.reqs.filter(r => r.league_id === l.id && r.status === 'pending' && r.user_id !== me);
     const mySeat = S.seats.find(s => s.league_id === l.id);
-    const status = l.status === 'full' ? "All ten seats are filled. Game days start here once live play launches." : `${n} of 10 seats filled.`;
+    const status = l.status === 'complete' ? 'This league has ended.' : l.status === 'full' ? 'All ten seats are filled. Game days start here once live play launches.' : `${n} of 10 seats filled.`;
     return `<article class="card lg" data-id="${l.id}"><header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
       <ul class="members">${members.map(m => `<li>${esc(m.club_name)}</li>`).join('')}</ul>
       ${isC && l.status === 'open' ? `<div class="invite"><b>Invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval.</span><code>${esc(inviteUrl(l.invite_code))}</code><button class="btn btn-alt" data-copy="${esc(inviteUrl(l.invite_code))}">Copy link</button></div>` : ''}
-      ${isC && pending.length ? `<h3 style="margin-top:16px;font-size:19px">Waiting for your approval</h3><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and know someone here</span><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></li>`).join('')}</ul>` : ''}
-      ${mySeat && !isC ? `<div class="row"><button class="btn btn-alt" data-leave="${l.id}">Leave this league</button></div>` : ''}
+      ${isC && pending.length ? `<h3 style="margin-top:16px;font-size:19px">Waiting for your approval</h3><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and were invited by someone they know</span><p class="note" style="margin:2px 0 0">How they know the league: ${esc(r.relationship || 'not given')}</p>${aiNote(r)}<div class="row"><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></div></li>`).join('')}</ul>` : ''}
+      ${isC && live ? `<div class="ls"><b>Playing for dues? Keep the money away from us.</b><p class="note" style="margin:4px 0">If your league plays for dues, use an independent escrow service so the money is held safely and separately from Cooperstown Cash. Many leagues use LeagueSafe, which locks funds until the season ends and lets members vote on payouts. Cooperstown Cash isn't affiliated with LeagueSafe, gets nothing from it, and can't see or verify payments.</p><ol class="note"><li>Create your league there and set the entry amount and payouts.</li><li>Have members pay through LeagueSafe, never through us.</li><li>Keep your own records. You're responsible for any tax reporting.</li></ol><a class="btn btn-alt" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Go to LeagueSafe</a></div>` : ''}
+      ${supportCard(l)}
+      <div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && live ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>
     </article>`;
   }
   function render() {
@@ -174,34 +291,44 @@ footer p { margin: 0 0 6px; }
     html += S.leagues.map(leagueCard).join('');
     $('mine').innerHTML = html;
     $('joinCard').hidden = !joinCode();
-    if (joinCode()) $('joinNote').textContent = signedIn() ? 'Name your club and confirm two things. The commissioner will review your request.' : 'Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there is no password.';
+    if (joinCode()) $('joinNote').textContent = signedIn() ? 'Name your club, tell the commissioner how you know the league, and confirm two things. You will sign the league agreement, then the commissioner will review your request.' : 'Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there is no password.';
     document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; } catch (e) { window.prompt('Copy this link:', b.dataset.copy); } });
     document.querySelectorAll('[data-review]').forEach(b => b.onclick = () => review(+b.dataset.review, b.dataset.yes === '1', b));
     document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => leave(b.dataset.leave));
+    document.querySelectorAll('[data-end]').forEach(b => b.onclick = () => endLeague(b.dataset.end));
+    document.querySelectorAll('[data-nosupport]').forEach(b => b.onclick = () => { store.set('cc-support-off-' + b.dataset.nosupport, '1'); render(); });
   }
 
   async function review(id, yes, btn) {
     btn.disabled = true;
-    const { error } = await window.CC.client.rpc('review_request', { p_request_id: id, p_approve: yes });
+    const { error } = await client().rpc('review_request', { p_request_id: id, p_approve: yes });
     if (error) alert(error.message);
     S.sig = ''; load();
   }
   async function leave(id) {
     if (!confirm('Leave this league?')) return;
-    const { error } = await window.CC.client.from('seats').delete().eq('league_id', id);
+    const { error } = await client().from('seats').delete().eq('league_id', id);
     if (error) alert('Could not leave that league. Please try again.');
+    S.sig = ''; load();
+  }
+  async function endLeague(id) {
+    if (!confirm('End this league? Members will no longer be able to join or leave, and this cannot be undone.')) return;
+    const { error } = await client().rpc('complete_league', { p_league_id: id });
+    if (error) alert(error.message);
     S.sig = ''; load();
   }
 
   $('startForm').onsubmit = async e => {
     e.preventDefault();
-    if (!window.CC || !window.CC.client) return say('startMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
+    if (!client()) return say('startMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
     if (!window.CC.requireSignIn('Create your free account to start a league')) return;
     const name = $('lgName').value.trim(), club = $('lgClub').value.trim();
     if (name.length < 3) return say('startMsg', 'League names are 3 to 40 characters.', 'err');
     if (club.length < 2) return say('startMsg', 'Club names are 2 to 24 characters.', 'err');
+    if (!S.agr) await loadAgreement();
+    if (!(await requireAgreement('commissioner'))) return say('startMsg', 'You need to sign the commissioner agreement to start a league.', 'err');
     $('startGo').disabled = true; say('startMsg', 'Starting your league…');
-    const { error } = await window.CC.client.rpc('create_private_league', { p_name: name, p_club: club });
+    const { error } = await client().rpc('create_private_league', { p_name: name, p_club: club });
     $('startGo').disabled = false;
     if (error) return say('startMsg', error.message, 'err');
     $('lgName').value = ''; $('lgClub').value = ''; say('startMsg', 'Your league is ready. Copy the invite link above and share it with people you know.', 'ok');
@@ -210,24 +337,30 @@ footer p { margin: 0 0 6px; }
 
   $('joinForm').onsubmit = async e => {
     e.preventDefault();
-    if (!window.CC || !window.CC.client) return say('joinMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
+    if (!client()) return say('joinMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
     if (!window.CC.requireSignIn('Create your free account to join this league')) return;
-    const club = $('joinClub').value.trim();
+    const club = $('joinClub').value.trim(), rel = $('joinRel').value.trim();
     if (club.length < 2) return say('joinMsg', 'Club names are 2 to 24 characters.', 'err');
+    if (rel.length < 10) return say('joinMsg', 'Tell the commissioner how you know the people in this league (at least 10 characters).', 'err');
+    if (!($('att1').checked && $('att2').checked)) return say('joinMsg', 'Please confirm you are 18 or older and were invited by someone you know.', 'err');
+    if (!S.agr) await loadAgreement();
+    if (!(await requireAgreement('member'))) return say('joinMsg', 'You need to sign the league agreement to send your request.', 'err');
     $('joinGo').disabled = true; say('joinMsg', 'Sending your request…');
-    const { data, error } = await window.CC.client.rpc('request_to_join', { p_code: joinCode(), p_club: club, p_attest: $('att1').checked && $('att2').checked });
+    const { data, error } = await client().rpc('request_to_join', { p_code: joinCode(), p_club: club, p_attest: true, p_relationship: rel });
     $('joinGo').disabled = false;
     if (error) return say('joinMsg', error.message, 'err');
     store.del('cc-join');
+    // ask the server to screen the request with AI; the commissioner sees the result as advice
+    if (data && data.request_id && client().functions) { try { client().functions.invoke('vet-request', { body: { request_id: data.request_id } }).catch(() => {}); } catch (e) {} }
     say('joinMsg', `Request sent. The commissioner of ${data && data.league_name ? data.league_name : 'the league'} will review it, and you'll see the league here once you're approved.`, 'ok');
-    $('joinForm').querySelectorAll('input,button').forEach(x => x.disabled = true);
+    $('joinForm').querySelectorAll('input,button,textarea').forEach(x => x.disabled = true);
     S.sig = ''; load();
   };
   $('joinCancel').onclick = () => { store.del('cc-join'); $('joinCard').hidden = true; };
 
   window.addEventListener('cc-auth', () => { S.sig = ''; load(); });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
-  setInterval(() => { if (!document.hidden) load(); }, 8000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('agrDlg').open) load(); });
+  setInterval(() => { if (!document.hidden && !$('agrDlg').open) load(); }, 8000);
   render();
   (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
 })();

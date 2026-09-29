@@ -119,7 +119,7 @@ footer p { margin: 0 0 6px; }
   <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a></nav>
 
   <header class="board">
-    <h1>Find a table</h1>
+    <h1>Find a free table</h1>
     <p>Sit down at an open table with nine other managers. You'll build a roster under a salary cap, and when all ten seats fill, the league starts. Pick your seat, name your club, and you're in.</p>
     <p class="stats" id="stats" aria-live="polite"></p>
     <p style="margin-top:10px">Would you rather play with people you know? <a href="private.html" style="color:var(--wb-ink);font-weight:600">Start a private league</a>.</p>
@@ -130,10 +130,6 @@ footer p { margin: 0 0 6px; }
   </header>
 
   <div class="controls">
-    <div class="tabs" role="group" aria-label="Stakes">
-      <button class="tab" id="tabFree" aria-pressed="true">Free tables</button>
-      <button class="tab" id="tabCash" aria-pressed="false">Cash tables<small>Opening soon</small></button>
-    </div>
   </div>
 
   <p class="toast" id="toast" role="status" aria-live="polite"></p>
@@ -141,19 +137,6 @@ footer p { margin: 0 0 6px; }
   <section class="mine" id="mine" aria-label="Your seats"></section>
   <section class="tables" id="floor" aria-label="Open tables"></section>
 
-  <section class="cash" id="cash" hidden aria-label="Cash tables">
-    <div class="panel">
-      <h2>Cash tables are opening soon</h2>
-      <p>The same ten-manager league with real money on the line:</p>
-      <ul>
-        <li><b>$100 buy-in</b> per manager, held in LeagueSafe escrow, not by us and not by any one person</li>
-        <li><b>$1,000 pot</b> paying $600 to the champion, $300 to the runner-up and $100 to third</li>
-        <li>A flat <b>$10 platform fee</b> per club, separate from the pot</li>
-        <li>Cash tables will be for adults only, and may not be available in every state</li>
-      </ul>
-      <p>Free tables run exactly the same way, for bragging rights. Sit at one now and learn the ropes.</p>
-    </div>
-  </section>
 
   <section class="how" aria-label="How tables work">
     <h2>How a table works</h2>
@@ -251,9 +234,6 @@ footer p { margin: 0 0 6px; }
     const freeOpen = S.leagues.filter(l => l.stakes === 'free' && l.status === 'open');
     const seatsLeft = freeOpen.reduce((n, l) => n + 10 - seatsOf(l.id).length, 0);
     $('stats').textContent = S.state === 'ready' ? `${freeOpen.length} free tables open, ${seatsLeft} seats available` : '';
-    const cash = S.stakes === 'cash';
-    $('tabFree').setAttribute('aria-pressed', String(!cash)); $('tabCash').setAttribute('aria-pressed', String(cash));
-    $('cash').hidden = !cash; $('floor').hidden = cash;
     $('wallet').hidden = !S.wallet;
     if (S.wallet) {
       const when = d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -264,7 +244,6 @@ footer p { margin: 0 0 6px; }
     const mineLeagues = S.mine.map(m => ({ m, l: S.leagues.find(l => l.id === m.league_id) })).filter(x => x.l);
     $('mine').innerHTML = mineLeagues.length ? `<div class="pad"><h2>Your seats</h2>${mineLeagues.map(({ m, l }) => { const n = seatsOf(l.id).length;
       return `<div class="row"><p><b>${esc(l.name)}</b>, seat ${m.seat_no} as ${esc(m.club_name)}: ${l.status === 'full' ? 'the table is full. Your league is set; game days start here once live play launches.' : `${n} of 10 seated.`}</p><button class="btn btn-alt" data-leave="${l.id}">Leave seat</button></div>`; }).join('')}</div>` : '';
-    if (cash) { bindAll(); return; }
     if (S.state === 'loading') $('floor').innerHTML = '<div class="msg">Finding tables…</div>';
     else if (S.state === 'offline') $('floor').innerHTML = "<div class=\"msg\"><b>We couldn't reach the lobby.</b> Check your connection and refresh the page.</div>";
     else if (S.state === 'error') $('floor').innerHTML = '<div class="msg"><b>Something went wrong loading the tables.</b> We\'ll keep trying. You can also refresh the page.</div>';
@@ -330,8 +309,6 @@ footer p { margin: 0 0 6px; }
   }
 
   // ---------- filters and wiring ----------
-  $('tabFree').onclick = () => { S.stakes = 'free'; S.sig = ''; render(); };
-  $('tabCash').onclick = () => { S.stakes = 'cash'; S.sig = ''; render(); };
   window.addEventListener('cc-auth', () => { S.sig = ''; load(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
   setInterval(() => { if (!document.hidden && !$('sitDlg').open) load(); }, 5000);
