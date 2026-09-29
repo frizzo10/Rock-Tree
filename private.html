@@ -66,6 +66,8 @@ textarea { min-height: 70px; resize: vertical; }
 .reqs .row { margin-top: 6px; } .reqs .btn { padding: 4px 12px; }
 .ai { margin: 4px 0 0; }
 .ai.approve b { color: var(--wb-green); } .ai.review b { color: #9A6A00; } .ai.decline b { color: var(--wb-red); }
+.start { background: #FFF3A0; color: #2A2A2A; border-radius: 4px; padding: 12px 16px; margin-top: 12px; max-width: 70ch; }
+.start fieldset { border: 0; padding: 0; margin: 6px 0 0; } .start legend { padding: 0; }
 .fee { background: #FFF3A0; color: #2A2A2A; border-radius: 4px; padding: 12px 16px; margin-top: 12px; max-width: 70ch; }
 .fee .row { margin-top: 8px; }
 .ok { color: var(--wb-green); font-weight: 700; }
@@ -247,7 +249,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (!signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.signed = new Set(); S.sig = ''; return render(); }
     const [lg, ms, rq, sg, rst] = await Promise.all([
       // (rosters: only your own row matters here)
-      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,created_at').eq('is_public', false).order('created_at', { ascending: true }),
+      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,created_at').eq('is_public', false).order('created_at', { ascending: true }),
       c.from('seats').select('league_id,seat_no,club_name'),
       c.from('league_requests').select('id,league_id,user_id,club_name,relationship,ai_review,status,created_at').order('created_at', { ascending: true }),
       S.agr ? c.from('agreement_signatures').select('role,version') : Promise.resolve({ data: [] }),
@@ -276,6 +278,20 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (l.status !== 'complete' || !S.support || store.get('cc-support-off-' + l.id)) return '';
     return `<div class="support"><b>Thanks for playing.</b> If you enjoyed ${esc(l.name)}, you can help keep Cooperstown Cash running with an optional contribution. It's completely voluntary, it isn't linked to any result or prize, and it doesn't change anything about your league.<div class="row"><a class="btn btn-main" href="${esc(S.support)}" target="_blank" rel="noopener noreferrer">Support Cooperstown Cash</a><button class="btn btn-alt" data-nosupport="${l.id}">No thanks</button></div></div>`;
   }
+  const dayNow = l => { if (!l.season_start_at) return 1; const h = l.game_day_hours || 24; return Math.max(1, Math.min(27, Math.floor((Date.now() - new Date(l.season_start_at)) / (h * 3600000)) + 1)); };
+  function seasonBar(l) {
+    return `<div class="rosterbar"><span>Rosters are locked and the schedule is set. It's game day ${dayNow(l)} of 27.</span><a class="btn btn-main" href="season.html?league=${l.id}">Open the season</a></div>`;
+  }
+  function startPanel(l, members) {
+    const waiting = members.filter(m => !m.ready), all = members.length === 10 && !waiting.length;
+    return `<div class="start"><b>Start the season</b>
+      <p class="note" style="margin:4px 0">${all ? 'All ten clubs are in and every roster is submitted. Starting locks every roster and builds the 27-game schedule. It can\'t be undone.' : `Waiting on ${waiting.length} roster${waiting.length === 1 ? '' : 's'}: ${waiting.map(m => esc(m.club_name)).join(', ')}.`}</p>
+      <fieldset class="pace" ${all ? '' : 'disabled'}><legend class="note">How fast should the season go?</legend>
+        <label class="check"><input type="radio" name="pace-${l.id}" value="24" checked> One game day a day <span class="note">(about 4 weeks)</span></label>
+        <label class="check"><input type="radio" name="pace-${l.id}" value="12"> Two a day <span class="note">(about 2 weeks)</span></label>
+        <label class="check"><input type="radio" name="pace-${l.id}" value="8"> Three a day <span class="note">(about 9 days)</span></label></fieldset>
+      <div class="row"><button class="btn btn-main" data-start="${l.id}" ${all ? '' : 'disabled'}>Lock rosters and start the season</button></div></div>`;
+  }
   function rosterBar(l, members) {
     const mine = S.rosters.find(r => r.league_id === l.id), n = members.filter(m => m.ready).length;
     const state = mine && mine.ready ? '<span class="ok">Your roster is submitted &#10003;</span>' : mine ? 'Your roster is a draft' : 'You haven\'t started your roster';
@@ -294,21 +310,23 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     return `<div class="fee"><b>Activate your league: flat hosting fee, ${money(S.fee.cents)}</b><p class="note" style="margin:4px 0">Your invite link switches on once the fee is received. It pays for the software only, is the same however many members join, and isn't a share of any dues or prizes. Pay it from your own funds, never from league money. Members pay us nothing.</p><div class="row">${url ? `<a class="btn btn-main" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Pay the hosting fee</a>` : '<span class="note">Payment isn\'t available yet. Please check back soon.</span>'}<button class="btn btn-alt" data-recheck="1">I've paid: check again</button></div></div>`;
   }
   function leagueCard(l) {
-    const me = window.CC.user.id, isC = l.commissioner_id === me, live = l.status === 'open' || l.status === 'full';
+    const me = window.CC.user.id, isC = l.commissioner_id === me, live = l.status === 'open' || l.status === 'full', started = l.status === 'started';
     const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
     const pending = S.reqs.filter(r => r.league_id === l.id && r.status === 'pending' && r.user_id !== me);
     const mySeat = S.seats.find(s => s.league_id === l.id);
-    const status = l.status === 'complete' ? 'This league has ended.' : l.status === 'full' ? 'All ten seats are filled. Game days start here once live play launches.' : `${n} of 10 seats filled.`;
+    const status = l.status === 'complete' ? 'This league has ended.' : l.status === 'started' ? `Season underway: game day ${dayNow(l)} of 27.` : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
     return `<article class="card lg" data-id="${l.id}"><header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
       <ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>
       ${mySeat && live ? rosterBar(l, members) : ''}
+      ${isC && l.status === 'full' ? startPanel(l, members) : ''}
+      ${started ? seasonBar(l) : ''}
       ${isC && feeBlock(l)}
       ${isC && l.status === 'open' && active(l) ? `<div class="invite"><b>Invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval.</span><code>${esc(inviteUrl(l.invite_code))}</code><button class="btn btn-alt" data-copy="${esc(inviteUrl(l.invite_code))}">Copy link</button></div>` : ''}
       ${isC && pending.length ? `<h3 style="margin-top:16px;font-size:19px">Waiting for your approval</h3><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and were invited by someone they know</span><p class="note" style="margin:2px 0 0">How they know the league: ${esc(r.relationship || 'not given')}</p>${aiNote(r)}<div class="row"><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></div></li>`).join('')}</ul>` : ''}
       ${isC && live ? `<div class="ls"><b>Playing for dues? Keep the money away from us.</b><p class="note" style="margin:4px 0">If your league plays for dues, use an independent dues service so the money is held separately from Cooperstown Cash. Many leagues use LeagueSafe, which says it holds funds until the season ends and lets members vote on payouts. Cooperstown Cash isn't affiliated with LeagueSafe, gets nothing from it, and can't see or verify payments.</p><ol class="note"><li>Create your league there and set the entry amount and payouts.</li><li>Have members pay through LeagueSafe, never through us.</li><li>Keep your own records. You're responsible for any tax reporting.</li></ol><a class="btn btn-alt" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Go to LeagueSafe</a></div>` : ''}
       ${supportCard(l)}
-      <div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && live ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>
+      <div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && (live || started) ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>
     </article>`;
   }
   function render() {
@@ -327,6 +345,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     document.querySelectorAll('[data-review]').forEach(b => b.onclick = () => review(+b.dataset.review, b.dataset.yes === '1', b));
     document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => leave(b.dataset.leave));
     document.querySelectorAll('[data-end]').forEach(b => b.onclick = () => endLeague(b.dataset.end));
+    document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startSeason(b.dataset.start));
     document.querySelectorAll('[data-nosupport]').forEach(b => b.onclick = () => { store.set('cc-support-off-' + b.dataset.nosupport, '1'); render(); });
   }
 
@@ -340,6 +359,13 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (!confirm('Leave this league?')) return;
     const { error } = await client().from('seats').delete().eq('league_id', id);
     if (error) alert('Could not leave that league. Please try again.');
+    S.sig = ''; load();
+  }
+  async function startSeason(id) {
+    const pick = document.querySelector(`input[name="pace-${id}"]:checked`), hrs = pick ? +pick.value : 24;
+    if (!confirm('Lock every roster and start the season? This can\'t be undone.')) return;
+    const { error } = await client().rpc('start_season', { p_league_id: id, p_hours: hrs });
+    if (error) alert(error.message);
     S.sig = ''; load();
   }
   async function endLeague(id) {

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Season</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+button, select { font: inherit; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 18px 16px 60px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; } .crumbs .badge img { width: 100%; height: 100%; }
+.wb { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 20px 28px; }
+.wb h1 { font: 400 clamp(28px, 5vw, 42px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 4px; }
+.wb p { margin: 0 0 6px; color: #3A434D; max-width: 74ch; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0 0; }
+.tab { border: 1.5px solid #8C959E; background: transparent; color: #20262D; border-radius: 16px; padding: 6px 16px; cursor: pointer; font-weight: 600; min-height: 42px; }
+.tab[aria-pressed="true"] { background: var(--wb-ink); border-color: var(--wb-ink); color: #fff; }
+.card { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 18px 22px; margin-top: 18px; }
+.card h2 { font: 400 24px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.daybar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.daybar .title { font: 400 26px/1 var(--marker); color: var(--wb-ink); }
+.nav { border: 1.5px solid #8C959E; background: transparent; border-radius: 4px; width: 44px; height: 44px; font-size: 22px; cursor: pointer; color: #20262D; } .nav:hover { background: #E9ECEA; } .nav[disabled] { opacity: .4; cursor: default; }
+select { padding: 8px 10px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: #1B1F24; min-height: 42px; }
+.chip { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 2px 10px; border-radius: 10px; background: #E3E6E4; color: #3A434D; }
+.chip.now { background: #D8E8DC; color: #17603A; } .chip.done { background: #E6E3EE; color: #453A6B; } .chip.soon { background: #FBEFC6; color: #6B5312; }
+.when { font-size: 14px; color: #4A5560; margin: 6px 0 0; }
+.games { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.game { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; padding: 10px 14px; border: 1px solid #DDE1E4; border-radius: 4px; background: #fff; }
+.game.mine { border: 2px solid var(--wb-ink); background: #F3F6FD; }
+.teams { font-size: 17px; } .teams b { font-weight: 600; } .teams i { font-style: normal; color: #8A939C; margin: 0 8px; }
+.game .you { font-size: 12px; font-weight: 700; color: #fff; background: var(--wb-ink); border-radius: 8px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; }
+.game .side { text-align: right; font-size: 14px; color: #4A5560; }
+.game .score { font: 400 22px/1 var(--marker); color: var(--wb-ink); }
+.btn { border: 0; border-radius: 4px; padding: 8px 16px; font-weight: 600; cursor: pointer; min-height: 40px; background: var(--wb-ink); color: #fff; }
+.btn[disabled] { opacity: .5; cursor: default; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; padding: 8px 10px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: #4A5560; border-bottom: 2px solid #DDE1E4; }
+td { padding: 8px 10px; border-top: 1px solid #ECEEF0; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+tr.me td { background: #F3F6FD; font-weight: 600; } tr.cur td { background: #FFF8D6; }
+.slots { list-style: none; margin: 0; padding: 0; }
+.slot { display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; padding: 6px 4px; border-bottom: 1px solid #E3E6E4; align-items: center; }
+.slot .lab { font-weight: 600; color: #4A5560; font-size: 14px; } .slot b { display: block; font-weight: 600; } .slot small { color: #5A6470; font-size: 12.5px; } .slot .cost { font-weight: 600; font-size: 14px; }
+.grp { font: 400 16px var(--marker); color: var(--wb-red); margin: 14px 0 4px; }
+.note { font-size: 13.5px; color: #4A5560; }
+footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
+@media (max-width: 640px) { .wb { padding: 16px 18px; } .card { padding: 14px 14px; } .game { grid-template-columns: 1fr; } .game .side { text-align: left; } .hide-sm { display: none; } td, th { padding: 7px 5px; } }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a> <span aria-hidden="true">/</span> <a href="private.html">Private leagues</a></nav>
+  <header class="wb">
+    <h1 id="title">The season</h1>
+    <p id="sub">Sign in to see the season.</p>
+    <div class="tabs" id="tabs" role="group" aria-label="Season views" hidden>
+      <button class="tab" type="button" data-tab="sched" aria-pressed="true">Schedule</button>
+      <button class="tab" type="button" data-tab="stand" aria-pressed="false">Standings</button>
+      <button class="tab" type="button" data-tab="ros" aria-pressed="false">Rosters</button>
+    </div>
+  </header>
+  <main id="main"></main>
+  <footer><p>Prototype for testing. Playing your games opens in the next update. Until then the schedule, standings and rosters are all here.</p></footer>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const money = n => { const v = Math.round(n * 10) / 10; return Number.isInteger(v) ? String(v) : v.toFixed(1); };
+  const S = { id: new URLSearchParams(location.search).get('league'), league: null, mySeat: null, myName: '', board: [], games: [], rosters: [], byKey: new Map(), tab: 'sched', day: 1, club: null, sig: '' };
+  const fmt = t => new Date(t).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const name = seat => (S.board.find(b => b.seat_no === seat) || {}).club_name || 'Club ' + seat;
+  const hours = () => S.league.game_day_hours || 24;
+  const currentDay = () => { const d = Math.floor((Date.now() - new Date(S.league.season_start_at)) / (hours() * 3600000)) + 1; return Math.max(1, Math.min(27, d)); };
+  const mine = g => g.away_seat === S.mySeat || g.home_seat === S.mySeat;
+  const POS = { c: 'C', '1b': '1B', '2b': '2B', '3b': '3B', ss: 'SS', lf: 'LF', cf: 'CF', rf: 'RF', dh: 'DH' };
+  const SLOTS = [['Lineup', ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']], ['Bench', ['bn1', 'bn2', 'bn3', 'bn4']], ['Rotation', ['sp1', 'sp2', 'sp3', 'sp4', 'sp5']], ['Bullpen', ['rp1', 'rp2', 'rp3', 'rp4', 'rp5', 'rp6', 'rp7']]];
+  const label = id => POS[id] || (id.startsWith('bn') ? 'Bench' : id.toUpperCase());
+
+  async function load() {
+    const c = window.CC && window.CC.client;
+    if (!S.id) { $('sub').innerHTML = 'No league was chosen. <a href="private.html">Go to your private leagues</a>.'; return; }
+    if (!c || !window.CC.user) { $('sub').textContent = 'Sign in to see the season.'; if (c) window.CC.requireSignIn('Sign in to see your season'); return; }
+    try {
+      const [lg, seat, board, games, ros, pool] = await Promise.all([
+        c.from('leagues').select('id,name,status,season_start_at,game_day_hours,commissioner_id').eq('id', S.id),
+        c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
+        c.from('seat_board').select('seat_no,club_name').eq('league_id', S.id),
+        c.from('games').select('id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs').eq('league_id', S.id),
+        c.from('league_rosters').select('seat_no,user_id,slots,payroll,ready').eq('league_id', S.id),
+        S.byKey.size ? Promise.resolve(null) : fetch('roster-pool.json').then(r => r.json())]);
+      S.league = lg.data && lg.data[0]; const seatRow = seat.data && seat.data[0];
+      if (!S.league || !seatRow) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
+      S.mySeat = seatRow.seat_no; S.myName = seatRow.club_name; S.board = board.data || []; S.games = games.data || []; S.rosters = ros.data || [];
+      if (pool) S.byKey = new Map(pool.map(p => [p.k, p]));
+      $('title').textContent = S.league.name;
+      if (!S.league.season_start_at || !S.games.length) { $('sub').innerHTML = 'The season hasn\'t started yet. Once the commissioner locks rosters and starts it, the schedule appears here. <a href="private.html">Back to your leagues</a>.'; $('tabs').hidden = true; $('main').innerHTML = ''; return; }
+      const sig = JSON.stringify([S.games.map(g => [g.id, g.status, g.away_runs, g.home_runs]), S.rosters.length]);
+      const first = !S.sig; if (sig === S.sig) return; S.sig = sig;
+      if (first) { S.day = currentDay(); S.club = S.mySeat; }
+      const day = currentDay(), ended = S.league.status === 'complete';
+      $('sub').textContent = `You're ${S.myName}. ` + (ended ? 'This league has ended.' : `Game day ${day} of 27, with a new one every ${hours() === 24 ? 'day' : hours() + ' hours'}.`);
+      $('tabs').hidden = false; render();
+    } catch (e) { $('sub').textContent = 'We couldn\'t load the season. Please refresh the page.'; }
+  }
+
+  function render() {
+    document.querySelectorAll('#tabs [data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === S.tab)));
+    $('main').innerHTML = S.tab === 'sched' ? schedule() : S.tab === 'stand' ? standings() : rosters();
+    bind();
+  }
+
+  function stateOf(g) {
+    const now = Date.now();
+    if (g.status === 'final') return ['done', 'Final'];
+    if (now < new Date(g.opens_at)) return ['soon', 'Opens ' + fmt(g.opens_at)];
+    if (now < new Date(g.deadline_at)) return ['now', 'Open now'];
+    return ['soon', 'Past the deadline'];
+  }
+  function schedule() {
+    const day = S.day, games = S.games.filter(g => g.day === day).sort((a, b) => a.seq - b.seq), cur = currentDay(), first = games[0];
+    const chip = day < cur ? ['done', 'Played'] : day === cur ? ['now', 'Today'] : ['soon', 'Coming up'];
+    const list = games.map(g => {
+      const [cls, txt] = stateOf(g), fin = g.status === 'final';
+      return `<li class="game${mine(g) ? ' mine' : ''}"><div class="teams"><b>${esc(name(g.away_seat))}</b><i>at</i><b>${esc(name(g.home_seat))}</b>${mine(g) ? '<span class="you">Your game</span>' : ''}</div>
+        <div class="side">${fin ? `<span class="score">${g.away_runs} to ${g.home_runs}</span>` : mine(g) && cls === 'now' ? '<button class="btn" type="button" disabled title="Playing your games opens in the next update">Play (soon)</button>' : `<span class="chip ${cls}">${esc(txt)}</span>`}</div></li>`;
+    }).join('');
+    const opts = Array.from({ length: 27 }, (_, i) => `<option value="${i + 1}"${i + 1 === day ? ' selected' : ''}>Game day ${i + 1}${i + 1 === cur ? ' (today)' : ''}</option>`).join('');
+    const rows = S.games.filter(mine).sort((a, b) => a.day - b.day).map(g => {
+      const home = g.home_seat === S.mySeat, opp = home ? g.away_seat : g.home_seat, [cls, txt] = stateOf(g);
+      const res = g.status === 'final' ? ((home ? g.home_runs > g.away_runs : g.away_runs > g.home_runs) ? 'W ' : 'L ') + (home ? g.home_runs : g.away_runs) + '-' + (home ? g.away_runs : g.home_runs) : txt;
+      return `<tr class="${g.day === cur ? 'cur' : ''}"><td>${g.day}</td><td>${home ? 'vs' : 'at'} ${esc(name(opp))}</td><td class="hide-sm">${fmt(g.opens_at)}</td><td class="num">${esc(res)}</td></tr>`;
+    }).join('');
+    return `<section class="card" aria-label="Game day"><div class="daybar"><button class="nav" type="button" data-day="${day - 1}" ${day <= 1 ? 'disabled' : ''} aria-label="Previous game day">&#8249;</button><span class="title">Game day ${day} of 27</span><button class="nav" type="button" data-day="${day + 1}" ${day >= 27 ? 'disabled' : ''} aria-label="Next game day">&#8250;</button>
+      <select id="daySel" aria-label="Jump to a game day">${opts}</select>${day !== cur ? '<button class="nav" type="button" data-day="' + cur + '" title="Jump to today" style="width:auto;padding:0 12px;font-size:15px">Today</button>' : ''}<span class="chip ${chip[0]}">${chip[1]}</span></div>
+      ${first ? `<p class="when">Opens ${fmt(first.opens_at)}. Closes ${fmt(first.deadline_at)}.</p>` : ''}<ul class="games">${list}</ul></section>
+      <section class="card" aria-label="Your schedule"><h2>Your schedule</h2><table><thead><tr><th>Day</th><th>Opponent</th><th class="hide-sm">Opens</th><th class="num">Result</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+  }
+
+  function standings() {
+    const t = new Map(S.board.map(b => [b.seat_no, { seat: b.seat_no, w: 0, l: 0, rs: 0, ra: 0 }]));
+    S.games.filter(g => g.status === 'final').forEach(g => {
+      const a = t.get(g.away_seat), h = t.get(g.home_seat); if (!a || !h) return;
+      a.rs += g.away_runs; a.ra += g.home_runs; h.rs += g.home_runs; h.ra += g.away_runs;
+      if (g.away_runs > g.home_runs) { a.w++; h.l++; } else { h.w++; a.l++; }
+    });
+    const rows = [...t.values()].sort((x, y) => (y.w / Math.max(1, y.w + y.l)) - (x.w / Math.max(1, x.w + x.l)) || (y.rs - y.ra) - (x.rs - x.ra) || name(x.seat).localeCompare(name(y.seat)));
+    const played = S.games.some(g => g.status === 'final');
+    return `<section class="card" aria-label="Standings"><h2>Standings</h2>${played ? '' : '<p class="note">No games have been played yet, so everyone is 0 and 0.</p>'}<table><thead><tr><th>Club</th><th class="num">W</th><th class="num">L</th><th class="num">Pct</th><th class="num hide-sm">RS</th><th class="num hide-sm">RA</th><th class="num">Diff</th></tr></thead><tbody>${rows.map(r => {
+      const n = r.w + r.l, pct = n ? (r.w / n).toFixed(3).replace(/^0/, '') : '.000', diff = r.rs - r.ra;
+      return `<tr class="${r.seat === S.mySeat ? 'me' : ''}"><td>${esc(name(r.seat))}</td><td class="num">${r.w}</td><td class="num">${r.l}</td><td class="num">${pct}</td><td class="num hide-sm">${r.rs}</td><td class="num hide-sm">${r.ra}</td><td class="num">${diff > 0 ? '+' : ''}${diff}</td></tr>`;
+    }).join('')}</tbody></table></section>`;
+  }
+
+  function rosters() {
+    const opts = [...S.board].sort((a, b) => a.seat_no - b.seat_no).map(b => `<option value="${b.seat_no}"${b.seat_no === S.club ? ' selected' : ''}>${esc(b.club_name)}${b.seat_no === S.mySeat ? ' (you)' : ''}</option>`).join('');
+    const r = S.rosters.find(x => x.seat_no === S.club);
+    let body = '<p class="note">That roster isn\'t available.</p>';
+    if (r) body = SLOTS.map(([grp, ids]) => `<p class="grp">${grp}</p><ul class="slots">${ids.map(id => {
+      const p = S.byKey.get((r.slots || {})[id]);
+      return p ? `<li class="slot"><span class="lab">${label(id)}</span><span><b>${esc(p.n)}</b><small>${p.y} ${esc(p.t)} · ${esc(p.l)}</small></span><span class="cost">$${money(p.s)}M</span></li>` : `<li class="slot"><span class="lab">${label(id)}</span><span class="note">Empty</span><span></span></li>`;
+    }).join('')}</ul>`).join('');
+    return `<section class="card" aria-label="Rosters"><h2>Rosters</h2><p class="note">Rosters were revealed when the season started.</p><p><select id="clubSel" aria-label="Choose a club">${opts}</select>${r ? ` <span class="note">Payroll $${money(r.payroll)}M</span>` : ''}</p>${body}</section>`;
+  }
+
+  function bind() {
+    document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { S.day = Math.max(1, Math.min(27, +b.dataset.day)); render(); });
+    const ds = $('daySel'); if (ds) ds.onchange = () => { S.day = +ds.value; render(); };
+    const cs = $('clubSel'); if (cs) cs.onchange = () => { S.club = +cs.value; render(); };
+  }
+  $('tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) { S.tab = b.dataset.tab; render(); } };
+  window.addEventListener('cc-auth', () => { S.sig = ''; load(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && S.league) load(); });
+  setInterval(() => { if (!document.hidden && S.league) load(); }, 60000);
+  (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
+})();
+</script>
+</body>
+</html>
