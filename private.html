@@ -66,6 +66,8 @@ textarea { min-height: 70px; resize: vertical; }
 .reqs .row { margin-top: 6px; } .reqs .btn { padding: 4px 12px; }
 .ai { margin: 4px 0 0; }
 .ai.approve b { color: var(--wb-green); } .ai.review b { color: #9A6A00; } .ai.decline b { color: var(--wb-red); }
+.fee { background: #FFF3A0; color: #2A2A2A; border-radius: 4px; padding: 12px 16px; margin-top: 12px; max-width: 70ch; }
+.fee .row { margin-top: 8px; }
 .support { background: #FFF3A0; border-radius: 4px; padding: 12px 16px; margin-top: 12px; color: #2A2A2A; max-width: 70ch; }
 .note { font-size: 13.5px; color: #4A5560; }
 footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
@@ -98,7 +100,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     <p>Play with people you know. You're the commissioner: you invite your friends, and you approve everyone who joins. Each league has ten clubs and a salary cap.</p>
     <div class="pad">
       <h2>About money</h2>
-      <p>Cooperstown Cash doesn't collect, hold, take or pay out any money in private leagues. If your league plays for dues, that's a matter between you and your league. <button class="linkbtn" id="readAgr" type="button">Read the full league agreement</button></p>
+      <p>Cooperstown Cash never touches, holds or takes a share of your league's money. If your league plays for dues, that's between you and your league. The only thing we may charge is a flat hosting fee, paid by the commissioner from their own funds, never by members and never from dues. <button class="linkbtn" id="readAgr" type="button">Read the full league agreement</button></p>
     </div>
   </header>
 
@@ -122,7 +124,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
 
   <section class="card" id="startCard" aria-label="Start a private league">
     <h2>Start a private league</h2>
-    <p class="note">You'll be the commissioner and take the first seat. You'll read and sign a commissioner agreement first. Then share your invite link with people you know.</p>
+    <p class="note">You'll be the commissioner and take the first seat. You'll read and sign a commissioner agreement first. Then share your invite link with people you know.<span id="feeNote"></span></p>
     <form id="startForm" novalidate>
       <label for="lgName">League name</label>
       <input type="text" id="lgName" maxlength="40" autocomplete="off" placeholder="The Sandlot League">
@@ -161,7 +163,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
-  const S = { leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '' };
+  const S = { leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' } };
   const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
   const signedIn = () => !!(window.CC && window.CC.user);
   const client = () => window.CC && window.CC.client;
@@ -186,9 +188,13 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   }
   async function loadConfig() {
     const c = client(); if (!c) return;
-    const cfg = await c.from('site_config').select('key,value').eq('key', 'support_url');
-    S.support = cfg.data && cfg.data[0] && /^https:\/\//i.test(cfg.data[0].value) ? cfg.data[0].value : '';
+    const cfg = await c.from('site_config').select('key,value').in('key', ['support_url', 'hosting_fee_cents', 'hosting_fee_pay_url']);
+    const kv = Object.fromEntries((cfg.data || []).map(r => [r.key, r.value]));
+    S.support = /^https:\/\//i.test(kv.support_url || '') ? kv.support_url : '';
+    S.fee = { cents: /^[0-9]+$/.test(kv.hosting_fee_cents || '') ? +kv.hosting_fee_cents : 0, url: /^https:\/\//i.test(kv.hosting_fee_pay_url || '') ? kv.hosting_fee_pay_url : '' };
+    const fn = $('feeNote'); if (fn) fn.textContent = S.fee.cents ? ` A flat hosting fee of ${money(S.fee.cents)} applies to each league. You pay it from your own funds, never from dues, and members pay us nothing.` : '';
   }
+  const money = c => '$' + (c % 100 ? (c / 100).toFixed(2) : (c / 100));
   const hasSigned = role => role === 'member' ? (S.signed.has('member') || S.signed.has('commissioner')) : S.signed.has('commissioner');
 
   // Shows the agreement. Resolves true once signed. In read-only mode it just shows the text.
@@ -238,7 +244,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (!S.agr) await loadAgreement();
     if (!signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.signed = new Set(); S.sig = ''; return render(); }
     const [lg, ms, rq, sg] = await Promise.all([
-      c.from('leagues').select('id,name,status,commissioner_id,invite_code,created_at').eq('is_public', false).order('created_at', { ascending: true }),
+      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,created_at').eq('is_public', false).order('created_at', { ascending: true }),
       c.from('seats').select('league_id,seat_no,club_name'),
       c.from('league_requests').select('id,league_id,user_id,club_name,relationship,ai_review,status,created_at').order('created_at', { ascending: true }),
       S.agr ? c.from('agreement_signatures').select('role,version') : Promise.resolve({ data: [] })]);
@@ -265,6 +271,18 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (l.status !== 'complete' || !S.support || store.get('cc-support-off-' + l.id)) return '';
     return `<div class="support"><b>Thanks for playing.</b> If you enjoyed ${esc(l.name)}, you can help keep Cooperstown Cash running with an optional contribution. It's completely voluntary, it isn't linked to any result or prize, and it doesn't change anything about your league.<div class="row"><a class="btn btn-main" href="${esc(S.support)}" target="_blank" rel="noopener noreferrer">Support Cooperstown Cash</a><button class="btn btn-alt" data-nosupport="${l.id}">No thanks</button></div></div>`;
   }
+  const feeOn = () => S.fee.cents > 0;
+  const active = l => !feeOn() || l.hosting_fee_status === 'paid' || l.hosting_fee_status === 'waived';
+  function payUrl(l) {
+    try { const u = new URL(S.fee.url); u.searchParams.set('client_reference_id', l.id); if (window.CC.user.email) u.searchParams.set('prefilled_email', window.CC.user.email); return u.toString(); } catch (e) { return ''; }
+  }
+  function feeBlock(l) {
+    if (!feeOn() || !(l.status === 'open' || l.status === 'full')) return '';
+    if (l.hosting_fee_status === 'paid') return '<p class="note" style="margin:10px 0 0">Hosting fee paid. Thank you.</p>';
+    if (l.hosting_fee_status === 'waived') return '<p class="note" style="margin:10px 0 0">Hosting fee waived for this league.</p>';
+    const url = S.fee.url ? payUrl(l) : '';
+    return `<div class="fee"><b>Activate your league: flat hosting fee, ${money(S.fee.cents)}</b><p class="note" style="margin:4px 0">Your invite link switches on once the fee is received. It pays for the software only, is the same however many members join, and isn't a share of any dues or prizes. Pay it from your own funds, never from league money. Members pay us nothing.</p><div class="row">${url ? `<a class="btn btn-main" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Pay the hosting fee</a>` : '<span class="note">Payment isn\'t available yet. Please check back soon.</span>'}<button class="btn btn-alt" data-recheck="1">I've paid: check again</button></div></div>`;
+  }
   function leagueCard(l) {
     const me = window.CC.user.id, isC = l.commissioner_id === me, live = l.status === 'open' || l.status === 'full';
     const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
@@ -274,9 +292,10 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     return `<article class="card lg" data-id="${l.id}"><header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
       <ul class="members">${members.map(m => `<li>${esc(m.club_name)}</li>`).join('')}</ul>
-      ${isC && l.status === 'open' ? `<div class="invite"><b>Invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval.</span><code>${esc(inviteUrl(l.invite_code))}</code><button class="btn btn-alt" data-copy="${esc(inviteUrl(l.invite_code))}">Copy link</button></div>` : ''}
+      ${isC && feeBlock(l)}
+      ${isC && l.status === 'open' && active(l) ? `<div class="invite"><b>Invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval.</span><code>${esc(inviteUrl(l.invite_code))}</code><button class="btn btn-alt" data-copy="${esc(inviteUrl(l.invite_code))}">Copy link</button></div>` : ''}
       ${isC && pending.length ? `<h3 style="margin-top:16px;font-size:19px">Waiting for your approval</h3><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and were invited by someone they know</span><p class="note" style="margin:2px 0 0">How they know the league: ${esc(r.relationship || 'not given')}</p>${aiNote(r)}<div class="row"><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></div></li>`).join('')}</ul>` : ''}
-      ${isC && live ? `<div class="ls"><b>Playing for dues? Keep the money away from us.</b><p class="note" style="margin:4px 0">If your league plays for dues, use an independent escrow service so the money is held safely and separately from Cooperstown Cash. Many leagues use LeagueSafe, which locks funds until the season ends and lets members vote on payouts. Cooperstown Cash isn't affiliated with LeagueSafe, gets nothing from it, and can't see or verify payments.</p><ol class="note"><li>Create your league there and set the entry amount and payouts.</li><li>Have members pay through LeagueSafe, never through us.</li><li>Keep your own records. You're responsible for any tax reporting.</li></ol><a class="btn btn-alt" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Go to LeagueSafe</a></div>` : ''}
+      ${isC && live ? `<div class="ls"><b>Playing for dues? Keep the money away from us.</b><p class="note" style="margin:4px 0">If your league plays for dues, use an independent dues service so the money is held separately from Cooperstown Cash. Many leagues use LeagueSafe, which says it holds funds until the season ends and lets members vote on payouts. Cooperstown Cash isn't affiliated with LeagueSafe, gets nothing from it, and can't see or verify payments.</p><ol class="note"><li>Create your league there and set the entry amount and payouts.</li><li>Have members pay through LeagueSafe, never through us.</li><li>Keep your own records. You're responsible for any tax reporting.</li></ol><a class="btn btn-alt" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Go to LeagueSafe</a></div>` : ''}
       ${supportCard(l)}
       <div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && live ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>
     </article>`;
@@ -292,6 +311,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     $('mine').innerHTML = html;
     $('joinCard').hidden = !joinCode();
     if (joinCode()) $('joinNote').textContent = signedIn() ? 'Name your club, tell the commissioner how you know the league, and confirm two things. You will sign the league agreement, then the commissioner will review your request.' : 'Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there is no password.';
+    document.querySelectorAll('[data-recheck]').forEach(b => b.onclick = () => { S.sig = ''; load(); });
     document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; } catch (e) { window.prompt('Copy this link:', b.dataset.copy); } });
     document.querySelectorAll('[data-review]').forEach(b => b.onclick = () => review(+b.dataset.review, b.dataset.yes === '1', b));
     document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => leave(b.dataset.leave));
