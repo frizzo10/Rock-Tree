@@ -7,7 +7,13 @@ const { Diamond, DuelDice } = G;
 const LINEUP = ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh'];
 
 // A roster (slot -> player key) becomes a team the engine can play, with its dice cards built from real stats.
-export function buildClub(name, slots, data) {
+const SP_SLOTS = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'];
+const isPerm = (arr, of) => Array.isArray(arr) && arr.length === of.length && new Set(arr).size === of.length && of.every(x => arr.includes(x));
+const LEASH = { short: 0.8, normal: 1, long: 1.25 };
+
+// Manager settings, all optional and all checked: a batting order (the nine lineup spots), a rotation (the five starter spots), and a leash on starters.
+// Anything that isn't valid is ignored, so a bad setting can never break a game.
+export function buildClub(name, slots, data, opts = {}) {
   const rec = k => {
     const p = data.players[k]; if (!p) throw new Error('Unknown player ' + k);
     return { ...p, lgRates: data.leagues[p.lg] };
@@ -16,14 +22,28 @@ export function buildClub(name, slots, data) {
   const rotation = [1, 2, 3, 4, 5].map(i => rec(slots['sp' + i]));
   const bullpen = [1, 2, 3, 4, 5, 6, 7].map(i => rec(slots['rp' + i]));
   const team = Diamond.prepTeam({ nick: name, league: data.neutral, lineup, rotation, bullpen }, data.neutral);
-  return DuelDice.buildCards(team, data.neutral);
+  const club = DuelDice.buildCards(team, data.neutral);
+  if (isPerm(opts.order, LINEUP)) {                                     // the manager's batting order
+    const by = new Map(club.order.map(b => [b.fpos, b])), ordered = opts.order.map(pos => by.get(pos));
+    if (ordered.every(Boolean)) club.order = ordered;
+  }
+  const leash = LEASH[opts.leash];                                        // a shorter leash pulls a tiring starter sooner
+  if (leash && leash !== 1) club.rotation.forEach(p => { p.stamina = p.stamina * leash; });
+  return club;
+}
+
+// Which starter goes: this game's choice if there is one, otherwise the manager's rotation, otherwise SP1 to SP5 in turn.
+function starterIndex(opts, day) {
+  const rotation = isPerm(opts.rotation, SP_SLOTS) ? opts.rotation : SP_SLOTS;
+  const slot = SP_SLOTS.includes(opts.starterSlot) ? opts.starterSlot : rotation[(day - 1) % 5];
+  return SP_SLOTS.indexOf(slot);                                          // the club's rotation is kept in SP1 to SP5 order
 }
 
 const ip = outs => Math.floor(outs / 3) + '.' + (outs % 3);
 // Both clubs' starters follow their rotation: game day 1 is SP1, day 2 is SP2, and so on around.
 export function playGame({ away, home, day, data }) {
-  const A = buildClub(away.name, away.slots, data), H = buildClub(home.name, home.slots, data);
-  const s = (day - 1) % 5, g = new DuelDice.Game(A, H, { starters: [s, s] });
+  const A = buildClub(away.name, away.slots, data, away), H = buildClub(home.name, home.slots, data, home);
+  const g = new DuelDice.Game(A, H, { starters: [starterIndex(away, day), starterIndex(home, day)] });
   const starters = [g.teams[0].pitcher.name, g.teams[1].pitcher.name], log = [];
   while (!g.over && log.length < 600) {
     const batter = g.batter(), pitcher = g.pitcher(), [bat, pit] = DuelDice.duel(), roll = DuelDice.d(100);
@@ -36,6 +56,6 @@ export function playGame({ away, home, day, data }) {
   const [a, h] = g.teams;
   const bats = t => [...t.bat.values()].map(r => ({ name: r.b.name, pos: r.b.fpos, AB: r.AB, R: r.R, H: r.H, RBI: r.RBI, BB: r.BB, SO: r.SO, HR: r.HR }));
   const pits = t => t.pit.map(r => ({ name: r.p.name, IP: ip(r.outs), H: r.H, R: r.R, ER: r.ER, BB: r.BB, SO: r.SO, HR: r.HR, dec: r.dec || null }));
-  return { log, result: { away_runs: a.runs, home_runs: h.runs, winner: g.winner, names: [away.name, home.name], starters, line: [a.line, h.line], hits: [a.hits, h.hits], errors: [a.errors, h.errors],
+  return { log, result: { away_runs: a.runs, home_runs: h.runs, winner: g.winner, names: [away.name, home.name], starters, lineups: [A.order.map(b => b.name), H.order.map(b => b.name)], line: [a.line, h.line], hits: [a.hits, h.hits], errors: [a.errors, h.errors],
     batting: [bats(a), bats(h)], pitching: [pits(a), pits(h)] } };
 }
