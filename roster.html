@@ -164,7 +164,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     $('sub').textContent = 'Loading…';
     try {
       const [lg, seat, ros, board, pool] = await Promise.all([
-        c.from('leagues').select('id,name,status,salary_cap,rosters_locked_at').eq('id', S.id),
+        c.from('leagues').select('id,name,status,salary_cap,rosters_locked_at,roster_deadline_at,is_public').eq('id', S.id),
         c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
         c.from('league_rosters').select('user_id,slots,ready,payroll').eq('league_id', S.id),
         c.from('seat_board').select('seat_no,club_name,ready').eq('league_id', S.id),
@@ -209,7 +209,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     $('leftTxt').textContent = left >= 0 ? '$' + money(left) + 'M left' : '$' + money(-left) + 'M over'; $('leftTxt').className = 'left' + (left < 0 ? ' over' : '');
     const f = $('fill'); f.style.width = pct + '%'; f.className = left < 0 ? 'over' : pct > 92 ? 'warn' : '';
     const ready = S.board.filter(b => b.ready).length;
-    $('sub').textContent = `${S.league.name}. ${ready} of ${S.board.length || 10} rosters submitted so far.` + (S.locked ? ' Rosters are locked, so this one can no longer be changed.' : '');
+    $('sub').textContent = `${S.league.name}. ${ready} of ${S.board.length || 10} rosters submitted so far.` + (S.locked ? ' Rosters are locked, so this one can no longer be changed.' : S.league.is_public && S.league.roster_deadline_at ? ` Rosters lock automatically at ${new Date(S.league.roster_deadline_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Anyone without a finished roster gets one built from their picks, and the season starts.` : '');
     $('submit').disabled = S.locked || n < 25 || left < -1e-9; $('submit').textContent = S.ready && !S.dirty ? 'Submitted. Resubmit after changes' : 'Submit my roster';
     ['auto', 'clear', 'scoutBtn'].forEach(id => { $(id).disabled = S.locked; });
     $('saved').textContent = S.saving ? 'Saving…' : S.dirty ? 'Unsaved changes' : S.ready ? 'Roster submitted' : n ? 'Draft saved' : '';

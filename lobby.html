@@ -63,6 +63,8 @@ button, input { font: inherit; }
 .mine .pad { margin: 0; }
 .mine .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 2px 0; }
 .mine .pad .btn { padding: 4px 12px; }
+a.btn { text-decoration: none; display: inline-block; line-height: 1.4; }
+.mine .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 .tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 20px; }
 .tbl { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 22px 18px; display: flex; flex-direction: column; }
@@ -125,7 +127,7 @@ footer p { margin: 0 0 6px; }
     <p style="margin-top:10px">Would you rather play with people you know? <a href="private.html" style="color:var(--wb-ink);font-weight:600">Start a private league</a>.</p>
     <div class="pad">
       <h2>Early access</h2>
-      <p>Seats are real and fill in real time. The live game days for a full table are the next piece being built, so for now sitting down holds your place.</p>
+      <p>Seats are real and fill in real time. When a table fills, everyone has 48 hours to build a roster, and then the 27-game season starts on its own at two game days a day. Not full after three days? With four or more managers seated, computer clubs fill the empty seats and it starts anyway.</p>
     </div>
   </header>
 
@@ -143,8 +145,9 @@ footer p { margin: 0 0 6px; }
     <div class="panel">
       <ol>
         <li><b>Sit down.</b> Choose an open seat and name your club. You need a free account, just your email.</li>
-        <li><b>Wait for the table to fill.</b> Ten seats, ten managers, and no draft to schedule. You can leave your seat any time before the league starts.</li>
-        <li><b>Play the season.</b> Build a roster under the salary cap, then play 27 games, make roster moves, and chase the playoffs.</li>
+        <li><b>Wait for the table to fill.</b> Ten seats, ten managers, and no draft to schedule. You can leave your seat any time before the season starts.</li>
+        <li><b>Build your roster.</b> When the table fills you have 48 hours to build a roster under the salary cap. Anyone who hasn't finished gets one built from their picks.</li>
+        <li><b>Play the season.</b> Play 27 games at two game days a day, yourself or simmed, and the server finishes any you miss. The top four go to the playoffs.</li>
       </ol>
     </div>
   </section>
@@ -184,24 +187,25 @@ footer p { margin: 0 0 6px; }
   async function load() {
     const c = window.CC && window.CC.client;
     if (!c) { S.state = 'offline'; return render(); }
-    const { data: ls, error } = await c.from('leagues').select('id,name,format,stakes,status,created_at,entry_tokens').in('status', ['open', 'full']).order('created_at', { ascending: true }).limit(80);
+    const { data: ls, error } = await c.from('leagues').select('id,name,format,stakes,status,created_at,entry_tokens,roster_deadline_at,cpu_seats,phase').in('status', ['open', 'full']).order('created_at', { ascending: true }).limit(80);
     if (error) { S.state = 'error'; return render(); }
     const ids = ls.map(l => l.id), board = new Map();
     if (ids.length) {
       const { data: bd } = await c.from('seat_board').select('league_id,seat_no,club_name').in('league_id', ids);
       (bd || []).forEach(r => { if (!board.has(r.league_id)) board.set(r.league_id, []); board.get(r.league_id).push(r); });
     }
-    let mine = [], wallet = null;
+    let mine = [], wallet = null, mineL = [];
     if (window.CC.user) {
       const [ms, acc, hist] = await Promise.all([
         c.from('seats').select('league_id,seat_no,club_name'),
         c.from('token_accounts').select('balance'),
         c.from('token_ledger').select('delta,kind,reason,balance_after,created_at').order('created_at', { ascending: false }).limit(15)]);
       mine = ms.data || [];
+      if (mine.length) { const { data: ml } = await c.from('leagues').select('id,name,format,stakes,status,created_at,entry_tokens,roster_deadline_at,cpu_seats,phase').in('id', mine.map(m => m.league_id)); mineL = ml || []; }   // a table keeps showing here after its season starts
       wallet = { balance: acc.data && acc.data[0] ? acc.data[0].balance : 0, history: hist.data || [] };
     }
-    const sig = JSON.stringify([ls, [...board], mine, wallet, !!window.CC.user, S.stakes, S.fmt]);
-    S.state = 'ready'; S.leagues = ls; S.board = board; S.mine = mine; S.wallet = wallet;
+    const sig = JSON.stringify([ls, mineL, [...board], mine, wallet, !!window.CC.user, S.stakes, S.fmt]);
+    const have = new Set(ls.map(l => l.id)); S.state = 'ready'; S.leagues = ls.concat(mineL.filter(l => !have.has(l.id))); S.board = board; S.mine = mine; S.wallet = wallet;
     if (sig !== S.sig) { S.sig = sig; render(); }
   }
 
@@ -230,6 +234,14 @@ footer p { margin: 0 0 6px; }
         : full ? '<span class="fmt">This table just filled.</span>' : `<button class="btn btn-main" data-sit="${l.id}">Sit down</button>`}</div>
     </article>`;
   }
+  const when = d => new Date(d).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  function seatLine(l) {
+    const n = seatsOf(l.id).length, cpu = (l.cpu_seats || []).length, leave = `<button class="btn btn-alt" data-leave="${l.id}">Leave seat</button>`;
+    if (l.status === 'open') return [`${n} of 10 seated. If it isn't full after three days and at least four managers are seated, computer clubs fill the empty seats and it starts anyway.`, leave];
+    if (l.status === 'full') return [`The table is full${cpu ? `, with ${cpu} computer-run club${cpu === 1 ? '' : 's'} in the empty seats` : ''}. Build your roster by ${l.roster_deadline_at ? when(l.roster_deadline_at) : 'the deadline'}. Anyone who hasn't finished gets one built from their picks, and then the season starts on its own.`, `<a class="btn btn-main" href="roster.html?league=${l.id}">Build your roster</a>${leave}`];
+    if (l.status === 'started') return [l.phase === 'playoffs' ? 'The playoffs are on.' : 'The season is on.', `<a class="btn btn-main" href="season.html?league=${l.id}">Open the season</a><a class="btn btn-alt" href="manager.html?league=${l.id}">Manager settings</a>`];
+    return ['The season is over.', `<a class="btn btn-main" href="season.html?league=${l.id}">See the final standings</a>`];
+  }
   function render() {
     const freeOpen = S.leagues.filter(l => l.stakes === 'free' && l.status === 'open');
     const seatsLeft = freeOpen.reduce((n, l) => n + 10 - seatsOf(l.id).length, 0);
@@ -241,9 +253,9 @@ footer p { margin: 0 0 6px; }
         (S.wallet.history.length ? `<details><summary>Token history</summary><ul>${S.wallet.history.map(h => `<li>${when(h.created_at)}: ${esc(h.reason)}, ${h.delta > 0 ? '+' : ''}${h.delta} (balance ${h.balance_after})</li>`).join('')}</ul></details>` : '');
     }
     // your seats, including tables that just filled
-    const mineLeagues = S.mine.map(m => ({ m, l: S.leagues.find(l => l.id === m.league_id) })).filter(x => x.l);
-    $('mine').innerHTML = mineLeagues.length ? `<div class="pad"><h2>Your seats</h2>${mineLeagues.map(({ m, l }) => { const n = seatsOf(l.id).length;
-      return `<div class="row"><p><b>${esc(l.name)}</b>, seat ${m.seat_no} as ${esc(m.club_name)}: ${l.status === 'full' ? 'the table is full. Your league is set; game days start here once live play launches.' : `${n} of 10 seated.`}</p><button class="btn btn-alt" data-leave="${l.id}">Leave seat</button></div>`; }).join('')}</div>` : '';
+    const mineLeagues = S.mine.map(m => ({ m, l: S.leagues.find(l => l.id === m.league_id) })).filter(x => x.l && x.l.status !== 'canceled');
+    $('mine').innerHTML = mineLeagues.length ? `<div class="pad"><h2>Your seats</h2>${mineLeagues.map(({ m, l }) => { const [text, acts] = seatLine(l);
+      return `<div class="row"><p><b>${esc(l.name)}</b>, seat ${m.seat_no} as ${esc(m.club_name)}: ${text}</p><div class="acts">${acts}</div></div>`; }).join('')}</div>` : '';
     if (S.state === 'loading') $('floor').innerHTML = '<div class="msg">Finding tables…</div>';
     else if (S.state === 'offline') $('floor').innerHTML = "<div class=\"msg\"><b>We couldn't reach the lobby.</b> Check your connection and refresh the page.</div>";
     else if (S.state === 'error') $('floor').innerHTML = '<div class="msg"><b>Something went wrong loading the tables.</b> We\'ll keep trying. You can also refresh the page.</div>';
