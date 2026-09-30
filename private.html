@@ -280,7 +280,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   }
   const dayNow = l => { if (!l.season_start_at) return 1; const h = l.game_day_hours || 24; return Math.max(1, Math.min(27, Math.floor((Date.now() - new Date(l.season_start_at)) / (h * 3600000)) + 1)); };
   function seasonBar(l) {
-    return `<div class="rosterbar"><span>Rosters are locked and the schedule is set. It's game day ${dayNow(l)} of 27.</span><a class="btn btn-main" href="season.html?league=${l.id}">Open the season</a></div>`;
+    return `<div class="rosterbar"><span>Rosters are locked and the schedule is set. It's game day ${dayNow(l)} of 27.</span><a class="btn btn-main" href="season.html?league=${l.id}">Open the season</a><a class="btn btn-alt" href="manager.html?league=${l.id}">Manager settings</a></div>`;
   }
   function startPanel(l, members) {
     const waiting = members.filter(m => !m.ready), all = members.length === 10 && !waiting.length;

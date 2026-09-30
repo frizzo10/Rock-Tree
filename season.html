@@ -29,6 +29,7 @@ button, select { font: inherit; }
 .wb { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 20px 28px; }
 .wb h1 { font: 400 clamp(28px, 5vw, 42px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 4px; }
 .wb p { margin: 0 0 6px; color: #3A434D; max-width: 74ch; }
+.wb a { color: var(--wb-ink); font-weight: 600; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0 0; }
 .tab { border: 1.5px solid #8C959E; background: transparent; color: #20262D; border-radius: 16px; padding: 6px 16px; cursor: pointer; font-weight: 600; min-height: 42px; }
 .tab[aria-pressed="true"] { background: var(--wb-ink); border-color: var(--wb-ink); color: #fff; }
@@ -82,6 +83,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   <header class="wb">
     <h1 id="title">The season</h1>
     <p id="sub">Sign in to see the season.</p>
+    <p><a id="mgrLink" href="manager.html" hidden>Manager settings: batting order, rotation and starter leash</a></p>
     <div class="tabs" id="tabs" role="group" aria-label="Season views" hidden>
       <button class="tab" type="button" data-tab="sched" aria-pressed="true">Schedule</button>
       <button class="tab" type="button" data-tab="stand" aria-pressed="false">Standings</button>
@@ -136,7 +138,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
       if (first) { S.day = currentDay(); S.club = S.mySeat; }
       const day = currentDay(), ended = S.league.status === 'complete';
       $('sub').textContent = `You're ${S.myName}. ` + (ended ? (S.league.champion_seat ? `The season is over. Champions: ${name(S.league.champion_seat)}.` : 'This league has ended.') : S.league.phase === 'playoffs' ? `The playoffs are on. ${dayLabel(day)}, with a new game day every ${hours() === 24 ? 'day' : hours() + ' hours'}.` : `${dayLabel(day)}, with a new one every ${hours() === 24 ? 'day' : hours() + ' hours'}.`);
-      $('tabs').hidden = false; render(); maybeFinishOverdue();
+      $('tabs').hidden = false; const ml = $('mgrLink'); ml.href = 'manager.html?league=' + S.id; ml.hidden = S.league.status === 'complete'; render(); maybeFinishOverdue();
     } catch (e) { $('sub').textContent = 'We couldn\'t load the season. Please refresh the page.'; }
   }
 

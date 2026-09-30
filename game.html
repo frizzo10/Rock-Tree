@@ -72,6 +72,7 @@ table.box { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 6
 table.box th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #4A5560; padding: 6px 6px; border-bottom: 2px solid #DDE1E4; }
 table.box td { padding: 5px 6px; border-top: 1px solid #ECEEF0; } table.box td.n, table.box th.n { text-align: right; white-space: nowrap; } table.box tr.tot td { font-weight: 700; border-top: 2px solid #DDE1E4; }
 h3.tm { font: 400 19px var(--marker); color: var(--wb-ink); margin: 14px 0 0; }
+.card select { padding: 10px 12px; border: 1.5px solid #8C959E; border-radius: 4px; min-height: 46px; max-width: 100%; background: #fff; color: #1B1F24; font: inherit; }
 footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
 @media (max-width: 640px) { .wb { padding: 16px 18px; } .card { padding: 14px 14px; } .die b { font-size: 34px; } .die small { font-size: 11.5px; } .sit { grid-template-columns: 1fr; } .hide-sm { display: none; } }
 </style>
@@ -96,7 +97,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   const fmt = t => new Date(t).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
   const HIT = new Set(['S', '2B', '3B', 'HR']);
-  const S = { id: Number(new URLSearchParams(location.search).get('g')), game: null, mySeat: null, board: [], log: null, result: null, idx: 0, mode: 'loading', starter: false, busy: false, animating: false, dice: null, msg: '', finishing: false, finishErr: '', triedOverdue: false, reduce: !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) };
+  const S = { pitch: null, byKey: null, id: Number(new URLSearchParams(location.search).get('g')), game: null, mySeat: null, board: [], log: null, result: null, idx: 0, mode: 'loading', starter: false, busy: false, animating: false, dice: null, msg: '', finishing: false, finishErr: '', triedOverdue: false, reduce: !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) };
   const client = () => window.CC && window.CC.client;
   const name = seat => (S.board.find(b => b.seat_no === seat) || {}).club_name || 'Club ' + seat;
   const key = () => 'cc-rv-' + S.id + '-' + ((window.CC && window.CC.user && window.CC.user.id) || 'x');
@@ -134,11 +135,38 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
       } else if (!isMine) { S.mode = 'msg'; S.msg = 'This game hasn\'t been played yet. Only the two managers in it can play it.'; }
       else if (now < new Date(g.opens_at)) { S.mode = 'msg'; S.msg = 'This game day opens ' + fmt(g.opens_at) + '.'; }
       else S.mode = 'ready';
+      S.pitch = null;
+      if (g.status === 'scheduled' && isMine && now <= new Date(g.deadline_at)) {
+        try {
+          const [ros, set, gs, pool] = await Promise.all([c.from('league_rosters').select('user_id,slots').eq('league_id', g.league_id), c.from('manager_settings').select('rotation').eq('league_id', g.league_id), c.from('game_starters').select('slot').eq('game_id', S.id), S.byKey ? Promise.resolve(null) : fetch('roster-pool.json').then(r => r.json())]);
+          if (pool) S.byKey = new Map(pool.map(p => [p.k, p]));
+          const mineRos = (ros.data || []).find(r => r.user_id === window.CC.user.id);
+          if (mineRos && S.byKey) S.pitch = { slots: mineRos.slots || {}, rotation: set.data && set.data[0] && set.data[0].rotation, chosen: gs.data && gs.data[0] ? gs.data[0].slot : '' };
+        } catch (e) { S.pitch = null; }
+      }
       render();
       if (S.mode === 'playing' && S.idx >= S.log.length) finish();
     } catch (e) { setMsg('We couldn\'t load this game. Please refresh the page.'); }
   }
   function setMsg(t) { S.mode = 'msg'; S.msg = t; render(); }
+  // Your starter for this one game: the rotation decides unless you pick someone.
+  function starterCard() {
+    const P = S.pitch; if (!P) return '';
+    const SP = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'], rot = P.rotation || SP, def = rot[(S.game.day - 1) % 5];
+    const nm = s => { const p = S.byKey.get(P.slots[s]); return p ? `${p.n} (${p.y} ${p.t})` : 'nobody'; };
+    const opt = (v, label) => `<option value="${v}"${(P.chosen || '') === v ? ' selected' : ''}>${esc(label)}</option>`;
+    return `<section class="card" id="starterCard"><h2>Your starting pitcher</h2><p class="note">By default your rotation decides. Choose someone else for this game if you like. It applies when the game is played.</p>
+      <select id="stSel" aria-label="Starting pitcher for this game">${opt('', 'Follow my rotation: ' + nm(def))}${SP.filter(s => P.slots[s]).map(s => opt(s, s.toUpperCase() + ': ' + nm(s))).join('')}</select><p class="msg" id="stMsg" role="status"></p></section>`;
+  }
+  function bindStarter() {
+    const sel = $('stSel'); if (!sel) return;
+    sel.onchange = async () => {
+      const m = $('stMsg'); m.className = 'msg'; m.textContent = 'Saving…';
+      const { error } = await client().rpc('set_game_starter', { p_game_id: S.id, p_slot: sel.value || null });
+      if (error) { m.className = 'msg err'; m.textContent = error.message || 'We couldn\'t save that.'; sel.value = S.pitch.chosen || ''; return; }
+      S.pitch.chosen = sel.value; m.className = 'msg ok'; m.textContent = sel.value ? 'Saved. He starts this game.' : 'Saved. Your rotation decides this game.';
+    };
+  }
 
   // ---------- starting ----------
   async function start(action) {
@@ -191,10 +219,11 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (g) sub.textContent = (g.round && g.round !== 'regular' ? `${g.round === 'final' ? 'The final' : 'Semifinal'}, game ${g.game_no}.` : `Game day ${g.day} of 27.`) + (S.mode === 'ready' ? ` Open until ${fmt(g.deadline_at)}.` : '');
     else if (S.mode === 'msg') sub.textContent = '';
     const m = $('main');
-    if (S.mode === 'msg') { m.innerHTML = `<section class="card"><p>${esc(S.msg)}</p><div class="row"><a class="btn alt" href="${g ? 'season.html?league=' + g.league_id : 'private.html'}">Back to the season</a></div></section>`; return; }
+    if (S.mode === 'msg') { m.innerHTML = `<section class="card"><p>${esc(S.msg)}</p><div class="row"><a class="btn alt" href="${g ? 'season.html?league=' + g.league_id : 'private.html'}">Back to the season</a></div></section>` + starterCard(); bindStarter(); return; }
     if (S.mode === 'ready') {
       m.innerHTML = `<section class="card"><h2>Ready to play?</h2><p>You and your opponent are playing the same game, and the server rolls every die. Play it yourself and roll each at-bat, or sim it now. Either way the result is final, and if you don't finish by ${esc(fmt(g.deadline_at))} the server plays it out for you.</p>
         <div class="row"><button class="btn big" id="goPlay" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Setting up…' : 'Play it: roll every at-bat'}</button><button class="btn alt" id="goSim" ${S.busy ? 'disabled' : ''}>Sim it now</button></div><p class="msg err" id="startMsg" role="alert">${esc(S.msg)}</p></section>`;
+      m.insertAdjacentHTML('beforeend', starterCard()); bindStarter();
       $('goPlay').onclick = () => start('play'); $('goSim').onclick = () => { if (confirm('Sim this game now? The server rolls every at-bat and the result is final.')) start('sim'); };
       return;
     }

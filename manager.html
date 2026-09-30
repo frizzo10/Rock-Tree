@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Manager settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+button { font: inherit; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 18px 16px 60px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; } .crumbs .badge img { width: 100%; height: 100%; }
+.wb { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 20px 28px; }
+.wb h1 { font: 400 clamp(26px, 5vw, 40px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 4px; }
+.wb p { margin: 0 0 6px; color: #3A434D; max-width: 74ch; }
+.card { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 18px 22px; margin-top: 18px; }
+.card h2 { font: 400 24px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.note { font-size: 14px; color: #4A5560; }
+.choice { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; max-width: 66ch; }
+.choice input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--wb-ink); flex: none; }
+.choice b { display: block; font-weight: 600; } .choice small { display: block; color: #4A5560; font-size: 13.5px; }
+.order { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: n; }
+.order li { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; padding: 6px 4px; border-bottom: 1px solid #E3E6E4; min-height: 52px; }
+.order li .n { font: 400 22px var(--marker); color: var(--wb-red); text-align: center; }
+.order li b { display: block; font-weight: 600; } .order li small { color: #5A6470; font-size: 13px; }
+.mv { display: flex; gap: 6px; }
+.mv button { width: 44px; height: 44px; border: 1.5px solid #8C959E; background: transparent; border-radius: 4px; font-size: 18px; cursor: pointer; color: #20262D; }
+.mv button:hover:not([disabled]) { background: #E9ECEA; } .mv button[disabled] { opacity: .3; cursor: default; }
+.btn { border: 0; border-radius: 4px; padding: 10px 22px; font-weight: 600; cursor: pointer; min-height: 46px; text-decoration: none; display: inline-block; background: var(--wb-ink); color: #fff; }
+.btn:hover { background: #17306E; } .btn.alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; } .btn.alt:hover { background: #E9ECEA; } .btn[disabled] { opacity: .5; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+.msg { font-weight: 600; margin: 10px 0 0; min-height: 1.4em; } .msg.ok { color: var(--wb-green); } .msg.err { color: var(--wb-red); }
+.pad { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border-radius: 2px; padding: 8px 14px 10px 40px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); margin: 12px 0 0; }
+.pad::before { content: ''; position: absolute; left: 28px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; } .pad p { line-height: 26px; margin: 0; color: #2A2A2A; }
+.dirty { color: var(--wb-red); font-weight: 600; font-size: 14px; }
+footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
+@media (max-width: 640px) { .wb { padding: 16px 18px; } .card { padding: 14px 14px; } .order li { grid-template-columns: 28px 1fr auto; } }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a> <span aria-hidden="true">/</span> <a href="private.html">Private leagues</a> <span aria-hidden="true">/</span> <a href="private.html" id="backSeason">Season</a></nav>
+  <header class="wb"><h1 id="title">Manager settings</h1><p id="sub">Loading…</p></header>
+  <main id="main"></main>
+  <footer><p>Prototype for testing. Your settings apply to every game from now on, and the server uses whatever they are at the moment a game is played. Nobody else can see them.</p></footer>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const LINEUP = ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh'], SPS = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'];
+  const POS = { c: 'Catcher', '1b': 'First base', '2b': 'Second base', '3b': 'Third base', ss: 'Shortstop', lf: 'Left field', cf: 'Center field', rf: 'Right field', dh: 'Designated hitter' };
+  const S = { id: new URLSearchParams(location.search).get('league'), league: null, seat: null, slots: {}, byKey: new Map(), auto: true, order: LINEUP.slice(), rotation: SPS.slice(), leash: 'normal', saved: null, dirty: false, ended: false, msg: '', msgKind: '' };
+  const client = () => window.CC && window.CC.client;
+  const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+  const player = slot => S.byKey.get(S.slots[slot]);
+
+  async function load() {
+    const c = client();
+    if (!S.id) { $('sub').innerHTML = 'No league was chosen. <a href="private.html">Go to your private leagues</a>.'; return; }
+    if (!c || !window.CC.user) { $('sub').textContent = 'Sign in to set your manager settings.'; if (c) window.CC.requireSignIn('Sign in to manage your club'); return; }
+    try {
+      const [lg, seat, ros, set, pool] = await Promise.all([
+        c.from('leagues').select('id,name,status').eq('id', S.id), c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
+        c.from('league_rosters').select('user_id,slots').eq('league_id', S.id), c.from('manager_settings').select('batting_order,rotation,leash').eq('league_id', S.id),
+        S.byKey.size ? Promise.resolve(null) : fetch('roster-pool.json').then(r => r.json())]);
+      S.league = lg.data && lg.data[0]; S.seat = seat.data && seat.data[0];
+      if (!S.league || !S.seat) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
+      if (pool) S.byKey = new Map(pool.map(p => [p.k, p]));
+      const mine = (ros.data || []).find(r => r.user_id === window.CC.user.id); S.slots = (mine && mine.slots) || {};
+      const row = set.data && set.data[0]; S.auto = !(row && row.batting_order); S.order = row && row.batting_order ? row.batting_order.slice() : LINEUP.slice();
+      S.rotation = row && row.rotation ? row.rotation.slice() : SPS.slice(); S.leash = (row && row.leash) || 'normal'; S.ended = ['complete', 'canceled'].includes(S.league.status);
+      S.saved = JSON.stringify(snapshot()); S.dirty = false;
+      $('backSeason').href = S.league.status === 'started' || S.league.status === 'complete' ? 'season.html?league=' + S.id : 'private.html';
+      $('title').textContent = 'Manager settings: ' + S.seat.club_name; $('sub').textContent = S.league.name + '. How your club plays when you\'re not in the dugout.';
+      render();
+    } catch (e) { $('sub').textContent = 'We couldn\'t load your settings. Please refresh the page.'; }
+  }
+  const snapshot = () => ({ auto: S.auto, order: S.auto ? null : S.order, rotation: same(S.rotation, SPS) ? null : S.rotation, leash: S.leash });
+  function line(p) { return p ? `${p.y} ${esc(p.t)} · ${esc(p.l)}` : ''; }
+
+  function render() {
+    const full = LINEUP.every(s => player(s)) && SPS.every(s => player(s));
+    if (!full) { $('main').innerHTML = `<section class="card"><p>Your roster isn't complete yet, so there's nothing to arrange. Finish it first.</p><div class="row"><a class="btn" href="roster.html?league=${esc(S.id)}">Go to your roster</a></div></section>`; return; }
+    const off = S.ended ? 'disabled' : '', mv = (i, n, kind) => `<div class="mv"><button type="button" data-mv="${kind}" data-i="${i}" data-d="-1" aria-label="Move up" ${off || i === 0 ? 'disabled' : ''}>&#9650;</button><button type="button" data-mv="${kind}" data-i="${i}" data-d="1" aria-label="Move down" ${off || i === n - 1 ? 'disabled' : ''}>&#9660;</button></div>`;
+    const orderList = S.order.map((s, i) => { const p = player(s); return `<li><span class="n">${i + 1}</span><span><b>${esc(p.n)}</b><small>${POS[s]} · ${line(p)}</small></span>${mv(i, 9, 'order')}</li>`; }).join('');
+    const rotList = S.rotation.map((s, i) => { const p = player(s); return `<li><span class="n">${i + 1}</span><span><b>${esc(p.n)}</b><small>${line(p)}</small></span>${mv(i, 5, 'rot')}</li>`; }).join('');
+    const nextFive = S.rotation.map((s, i) => `day ${i + 1}: ${esc(player(s).n)}`).join(', ');
+    const leashes = [['short', 'Short leash', 'Pulls a tiring starter sooner. Fresher arms, but more innings from your bullpen.'], ['normal', 'Normal', 'The game decides, the way it always has.'], ['long', 'Long leash', 'Lets a starter go deeper before the bullpen gets a call.']];
+    $('main').innerHTML = `<section class="card"><h2>Batting order</h2>
+        <label class="choice"><input type="radio" name="bo" value="auto" ${S.auto ? 'checked' : ''} ${off}><span><b>Let the scout set it</b><small>He builds the order from each player's season, and it's a good one.</small></span></label>
+        <label class="choice"><input type="radio" name="bo" value="mine" ${S.auto ? '' : 'checked'} ${off}><span><b>I'll set it</b><small>Put your best hitters where you want them. Every spot still plays the position it's listed at.</small></span></label>
+        ${S.auto ? '' : `<ol class="order" aria-label="Batting order">${orderList}</ol>`}</section>
+      <section class="card"><h2>Starting rotation</h2><p class="note">A new game day sends the next starter to the mound, in this order, then it starts over. Move a pitcher up to pitch sooner.</p>
+        <ol class="order" aria-label="Starting rotation">${rotList}</ol><div class="pad"><p>The next five game days: ${nextFive}.</p></div>
+        <div class="row"><button class="btn alt" type="button" id="resetRot" ${off}>Back to SP1 through SP5</button></div>
+        <p class="note" style="margin-top:8px">Need a different starter for one particular game? Open that game and choose him there.</p></section>
+      <section class="card"><h2>Starter leash</h2>${leashes.map(([v, t, d]) => `<label class="choice"><input type="radio" name="leash" value="${v}" ${S.leash === v ? 'checked' : ''} ${off}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}</section>
+      <section class="card"><div class="row" style="margin-top:0"><button class="btn" type="button" id="save" ${off || !S.dirty ? 'disabled' : ''}>Save my settings</button>${S.dirty ? '<span class="dirty">You have unsaved changes.</span>' : ''}${S.ended ? '<span class="note">This league has ended, so the settings are locked.</span>' : ''}</div><p class="msg ${S.msgKind}" id="msg" role="status">${esc(S.msg)}</p></section>`;
+    bind();
+  }
+  function touch() { S.dirty = JSON.stringify(snapshot()) !== S.saved; S.msg = ''; S.msgKind = ''; render(); }
+  function bind() {
+    document.querySelectorAll('input[name=bo]').forEach(r => r.onchange = () => { S.auto = r.value === 'auto'; touch(); });
+    document.querySelectorAll('input[name=leash]').forEach(r => r.onchange = () => { S.leash = r.value; touch(); });
+    document.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { const list = b.dataset.mv === 'order' ? S.order : S.rotation, i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; touch(); });
+    const rr = $('resetRot'); if (rr) rr.onclick = () => { S.rotation = SPS.slice(); touch(); };
+    const sv = $('save'); if (sv) sv.onclick = save;
+  }
+  async function save() {
+    const snap = snapshot(); $('save').disabled = true; S.msg = 'Saving…'; S.msgKind = ''; $('msg').textContent = S.msg;
+    const { error } = await client().rpc('save_manager_settings', { p_league_id: S.id, p_batting_order: snap.order, p_rotation: snap.rotation, p_leash: snap.leash });
+    if (error) { S.msg = error.message || 'We couldn\'t save that. Please try again.'; S.msgKind = 'err'; render(); return; }
+    S.saved = JSON.stringify(snap); S.dirty = false; S.msg = 'Saved. Your next game uses these settings.'; S.msgKind = 'ok'; render();
+  }
+  window.addEventListener('cc-auth', () => load());
+  window.addEventListener('beforeunload', e => { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
+  (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
+})();
+</script>
+</body>
+</html>
