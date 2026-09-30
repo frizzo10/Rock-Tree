@@ -104,6 +104,41 @@ footer p { margin: 0 0 6px; }
   .choices { grid-template-columns: 1fr; gap: 30px; }
   .live .go { margin-left: 0; }
 }
+
+/* ---------- the header sits straight on the blueprint ---------- */
+.board { background: transparent; backdrop-filter: none; box-shadow: none; border-radius: 0; padding: 14px 6px 4px; }
+.board h1, .board .tag, .board p, .board .rec { text-shadow: 0 0 2px #F3ECD8, 0 0 4px #F3ECD8, 0 0 8px #F3ECD8, 0 0 14px rgba(243,236,216,.97), 0 0 24px rgba(243,236,216,.92); }
+.board p { color: #27303A; font-weight: 500; }
+.board .rec { color: #27303A; }
+.board .btn-alt { background: rgba(247,242,228,.94); text-shadow: none; }
+.board .btn-main { text-shadow: none; }
+
+/* ---------- the path: a funnel that narrows toward your own league ---------- */
+.path-h { font: 400 clamp(28px, 5vw, 42px)/1.1 var(--marker); color: var(--ink); text-align: center; margin: 44px 0 6px; text-shadow: 0 0 2px #F3ECD8, 0 0 4px #F3ECD8, 0 0 8px #F3ECD8, 0 0 14px rgba(243,236,216,.97), 0 0 24px rgba(243,236,216,.92); }
+.path-sub { text-align: center; margin: 0 auto 34px; max-width: 64ch; color: #27303A; font-size: 17px; font-weight: 500; text-shadow: 0 0 2px #F3ECD8, 0 0 4px #F3ECD8, 0 0 8px #F3ECD8, 0 0 14px rgba(243,236,216,.97), 0 0 24px rgba(243,236,216,.92); }
+.steps { list-style: none; margin: 0; padding: 0; }
+.steps > li { position: relative; margin: 0 auto; }
+.steps > li + li { margin-top: 44px; }
+.steps > li + li::before { content: '\25BC'; content: '\25BC' / ''; position: absolute; top: -36px; left: 50%; transform: translateX(-50%); font-size: 22px; line-height: 1; color: var(--wb-red); text-shadow: 0 0 8px rgba(243,236,216,.98), 0 0 3px rgba(243,236,216,.98); }
+.steps > li:nth-child(1) { width: 100%; } .steps > li:nth-child(2) { width: 93%; } .steps > li:nth-child(3) { width: 86%; } .steps > li:nth-child(4) { width: 79%; }
+.step .folder { padding: 28px 30px 26px 100px; }
+.step .num { position: absolute; left: 24px; top: 26px; width: 58px; height: 58px; border-radius: 50%; background: var(--wb-ink); color: #fff; font: 400 32px/58px var(--marker); text-align: center; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.step.goal .folder { box-shadow: 0 3px 0 var(--folder-edge), 0 0 0 4px var(--lamp), 0 14px 30px rgba(0,0,0,.22); }
+.step.goal .num { background: var(--wb-red); }
+.step.goal .folder h2 { font-size: 36px; }
+.step .folder h2 { margin-top: 4px; }
+.chip { display: inline-block; font: 600 12.5px/1 var(--text); padding: 4px 10px 3px; border-radius: 10px; background: rgba(31,63,143,.13); color: var(--wb-ink); vertical-align: 6px; margin-left: 10px; letter-spacing: .02em; }
+.chip:empty { display: none; }
+.chip.done { background: #D3E6D9; color: #17603A; } .chip.now { background: #FBE9B0; color: #6B5312; } .chip.ready { background: var(--lamp); color: #3A2E12; }
+.step .sub { font-size: 14px; margin: -8px 0 14px; color: #6B5A2C; }
+.side-door { margin-top: 40px; }
+@media (max-width: 720px) {
+  .steps > li { width: 100% !important; }
+  .step .folder { padding: 78px 18px 22px; }
+  .step .num { left: 18px; top: 16px; width: 48px; height: 48px; font-size: 27px; line-height: 48px; }
+  .steps > li + li { margin-top: 40px; } .steps > li + li::before { top: -33px; }
+  .board { padding: 10px 2px 2px; }
+}
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -118,63 +153,83 @@ footer p { margin: 0 0 6px; }
     <div>
     <h1>Cooperstown Cash</h1>
     <p class="tag">Historical simulation leagues</p>
-    <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Create a free account (just your email, no password) to play for fun and learn strategy against the computer in quick games and mock drafts. When you're ready, start a private league with people you know.</p>
-    <div class="cta"><a class="btn btn-main" href="play.html">Play a quick game</a><a class="btn btn-alt" href="draft.html">Start a mock draft</a></div>
+    <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Here's the path: build a team with an AI scout, play it out and see how it plays, get graded, then take it to a league of your own. A free account is just your email, no password.</p>
+    <div class="cta"><a class="btn btn-main" id="heroMain" href="draft.html">Build your first team</a><a class="btn btn-alt" id="heroSkip" href="private.html">Already know the game? Start a private league</a></div>
     <p class="rec" id="rec" hidden></p>
     </div>
   </header>
 
-  <a class="live reveal" id="live" href="lobby.html" hidden>
+  <h2 class="path-h" id="pathH">Your path to a league of your own</h2>
+  <p class="path-sub">Four steps, and you can start at any of them. Practice is free, and every step teaches you something about how the game really plays.</p>
+
+  <ol class="steps" aria-labelledby="pathH">
+    <li class="step reveal" id="step1">
+      <section class="folder" aria-labelledby="draftH">
+        <span class="tab" aria-hidden="true">Front office</span><span class="num" aria-hidden="true">1</span>
+        <h2 id="draftH">Build a team with the AI scout <span class="chip" id="chip1">Start here</span></h2>
+        <p>Practice drafting against the computer from 1,400 all-time player-seasons. Sign in free and the scout puts his advice on every pick in his own words: who to take now, who the computer is about to grab, and what your budget can afford.</p>
+        <ul>
+          <li>Five challenges, from a classic draft to a $100M payroll crunch</li>
+          <li>A scout who advises your picks, and a 60-second clock you can pause</li>
+        </ul>
+        <div class="go">
+          <a class="btn btn-main" href="draft.html">Start a mock draft</a>
+          <a class="btn btn-alt" href="draft.html#resume" id="resume" hidden>Resume your mock draft</a>
+        </div>
+      </section>
+    </li>
+
+    <li class="step reveal" id="step2">
+      <section class="folder" aria-labelledby="quickH">
+        <span class="tab" aria-hidden="true">Learn and play</span><span class="num" aria-hidden="true">2</span>
+        <h2 id="quickH">Play it and see how it plays <span class="chip" id="chip2"></span></h2>
+        <p><b>Play for fun, or learn strategy.</b> Take the team you drafted, or any great club from the 1906 Cubs to the 2022 Dodgers, out on the field. It's the practice field: learn the game here before you start a league.</p>
+        <ul>
+          <li>Roll the dice yourself and watch how each player's card decides the play</li>
+          <li>Every play shows its roll and the card it came from, so you can see what wins</li>
+          <li>Full box score and play-by-play. Win 3 games to unlock the legends.</li>
+        </ul>
+        <div class="go"><a class="btn btn-main" href="play.html">Play a quick game</a><a class="btn btn-alt" href="draft.html" id="s2team" hidden>Play your drafted team</a></div>
+      </section>
+    </li>
+
+    <li class="step reveal" id="step3">
+      <section class="folder" aria-labelledby="gradeH">
+        <span class="tab" aria-hidden="true">Report card</span><span class="num" aria-hidden="true">3</span>
+        <h2 id="gradeH">Get graded <span class="chip" id="chip3"></span></h2>
+        <p>Every mock draft ends with a report card: a score, a letter grade from A+ to F, and your chance of beating the computer's team over 1,000 simulated games, with the scout's verdict on what you did.</p>
+        <ul>
+          <li>Your team's strength, position by position</li>
+          <li>Your odds in a best-of-7 against the computer's team</li>
+        </ul>
+        <div class="go"><a class="btn btn-main" href="draft.html" id="s3main">Start a mock draft</a></div>
+      </section>
+    </li>
+
+    <li class="step goal reveal" id="step4">
+      <section class="folder" aria-labelledby="leagueH">
+        <span class="tab" aria-hidden="true">People you know</span><span class="num" aria-hidden="true">4</span>
+        <h2 id="leagueH">Play a real league <span class="chip" id="chip4"></span></h2>
+        <p>Ready for the real thing? Start a private league with people you know, or join one you've been invited to. You're the commissioner: you invite and approve every member.</p>
+        <ul>
+          <li>Invite-only, and every member is approved by the commissioner</li>
+          <li>Ten clubs, a salary cap, a 27-game season and playoffs. Empty seats are filled with computer clubs, so two of you can start.</li>
+          <li>If your league plays for dues, you handle them yourselves through a service like LeagueSafe. We never touch or take a share of league money.</li>
+          <li>Or sit at a free public table with other managers</li>
+        </ul>
+        <div class="go">
+          <a class="btn btn-main" href="private.html">Start a private league</a>
+          <a class="btn btn-alt" href="lobby.html">Find a free table</a>
+          <a class="btn btn-alt" href="league.html" id="leagueGo">Practice league vs the computer</a>
+        </div>
+      </section>
+    </li>
+  </ol>
+
+  <a class="live side-door reveal" id="live" href="lobby.html" hidden>
     <span class="lamp" aria-hidden="true"></span><span class="k">Live at the tables</span>
     <span><b id="lt">0</b> free tables open</span><span><b id="ls">0</b> seats available</span><span class="go">Sit down &rarr;</span>
   </a>
-
-  <div class="choices">
-    <section class="folder reveal" aria-labelledby="draftH">
-      <span class="tab" aria-hidden="true">Front office</span>
-      <h2 id="draftH">Mock draft</h2>
-      <p>Practice drafting against the computer. Take turns picking from 1,400 all-time player-seasons, then get graded: a score, a letter grade and your chance of beating its team.</p>
-      <ul>
-        <li>Five challenges, from a classic draft to a $100M payroll crunch</li>
-        <li>A scout who advises your picks, and a 60-second clock you can pause</li>
-        <li>Play the team it drafted, and win games to unlock the legends</li>
-      </ul>
-      <div class="go">
-        <a class="btn btn-main" href="draft.html">Start a mock draft</a>
-        <a class="btn btn-alt" href="draft.html#resume" id="resume" hidden>Resume your mock draft</a>
-      </div>
-    </section>
-
-    <section class="folder reveal" aria-labelledby="quickH">
-      <span class="tab" aria-hidden="true">Learn and play</span>
-      <h2 id="quickH">Quick game</h2>
-      <p><b>Play for fun, or learn strategy.</b> Pick a great club, from the 1906 Cubs to the 2022 Dodgers, and take on another. It's the practice field: learn the game here before money is ever involved.</p>
-      <ul>
-        <li>Roll the dice yourself and watch how each player's card decides the play</li>
-        <li>Every play shows its roll and the card it came from, so you can see what wins</li>
-        <li>Full box score and play-by-play</li>
-        <li>Free with an account</li>
-      </ul>
-      <div class="go"><a class="btn btn-main" href="play.html">Play a quick game</a></div>
-    </section>
-
-    <section class="folder reveal" aria-labelledby="leagueH">
-      <span class="tab" aria-hidden="true">People you know</span>
-      <h2 id="leagueH">Private leagues</h2>
-      <p>Start a league with people you know, or join one you've been invited to. You're the commissioner: you invite and approve every member.</p>
-      <ul>
-        <li>Invite-only, and every member is approved by the commissioner</li>
-        <li>Ten clubs, a salary cap, a 27-game season and playoffs</li>
-        <li>If your league plays for dues, you handle them yourselves through a service like LeagueSafe. We never touch or take a share of league money.</li>
-        <li>Or sit at a free public table with other managers</li>
-      </ul>
-      <div class="go">
-        <a class="btn btn-main" href="private.html">Start a private league</a>
-        <a class="btn btn-alt" href="lobby.html">Find a free table</a>
-        <a class="btn btn-alt" href="league.html" id="leagueGo">Practice league vs the computer</a>
-      </div>
-    </section>
-  </div>
 
   <section class="vault reveal" aria-labelledby="vaultH">
     <div class="vault-head">
@@ -212,6 +267,21 @@ footer p { margin: 0 0 6px; }
     rec.innerHTML = `<b>${pr.wins}-${pr.games - pr.wins}</b> your record with drafted teams. ${pr.wins >= 3 ? 'Every legend is unlocked.' : `Win ${3 - pr.wins} more to unlock the legends.`}`;
   }
   const unlocked = !!(pr && pr.wins >= 3);
+
+  // ----- the path: where you are, from what you've already done (nothing here changes any saved data) -----
+  (() => {
+    const games = (pr && pr.games) || 0, drafted = !!(d && d.done) || games > 0, inDraft = !!(d && !d.done && d.pick > 0), finished = games >= 3;
+    const chip = (n, kind, text) => { const c = $('chip' + n); c.textContent = text; c.className = 'chip' + (kind ? ' ' + kind : ''); };
+    chip(1, drafted ? 'done' : inDraft ? 'now' : '', drafted ? 'Done' : inDraft ? 'In progress' : 'Start here');
+    chip(2, finished ? 'done' : games > 0 ? 'now' : drafted ? 'ready' : '', finished ? 'Done' : games > 0 ? `${games} of 3 played` : drafted ? 'Ready' : '');
+    chip(3, finished ? 'done' : d && d.done ? 'ready' : '', finished ? 'Done' : d && d.done ? 'Ready' : '');
+    chip(4, finished ? 'ready' : '', finished ? "You're ready" : '');
+    if (d && d.done) { $('s2team').hidden = false; $('s3main').textContent = 'See your report card'; }
+    const main = $('heroMain'), skip = $('heroSkip');
+    if (finished) { main.textContent = 'Start a private league'; main.href = 'private.html'; skip.hidden = true; }
+    else if (d && d.done) { main.textContent = 'See your report card and play your team'; main.href = 'draft.html'; }
+    else if (inDraft) { main.textContent = 'Resume your mock draft'; main.href = 'draft.html#resume'; }
+  })();
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
