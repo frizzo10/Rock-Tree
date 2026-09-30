@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Terms of Service</title>
+<meta name="description" content="The rules for using Cooperstown Cash, the historical baseball simulation game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.6 var(--text); }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 18px 16px 60px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; } .crumbs .badge img { width: 100%; height: 100%; }
+.wb { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 22px 30px; }
+.wb h1 { font: 400 clamp(30px, 6vw, 46px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 4px; }
+.wb p { margin: 0 0 6px; color: #3A434D; max-width: 74ch; }
+.draft { background: #FFF3A0; color: #2A2A2A; border-radius: 4px; padding: 10px 16px; margin-top: 14px; font-weight: 600; max-width: 74ch; }
+.card { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 26px; margin-top: 18px; }
+.card h2 { font: 400 25px/1.15 var(--marker); color: var(--wb-ink); margin: 26px 0 6px; scroll-margin-top: 12px; }
+.card h2:first-child { margin-top: 0; }
+.card h3 { font-size: 17px; margin: 16px 0 2px; }
+.card p, .card li { max-width: 74ch; } .card p { margin: 8px 0; } .card ul { padding-left: 22px; margin: 8px 0; } .card li { margin: 4px 0; }
+.card a { color: var(--wb-ink); font-weight: 600; }
+.sum { background: #F3F6FD; border-left: 5px solid var(--wb-ink); padding: 10px 16px; border-radius: 3px; margin: 12px 0; } .sum ul { margin: 6px 0 4px; }
+.toc { columns: 2; column-gap: 28px; padding-left: 20px; margin: 8px 0 0; } .toc li { break-inside: avoid; margin: 3px 0; }
+dl.data { margin: 10px 0; } dl.data > div { border: 1px solid #DDE1E4; border-radius: 4px; background: #fff; padding: 10px 14px; margin: 8px 0; }
+dl.data dt { font-weight: 700; } dl.data dd { margin: 3px 0 0; } dl.data dd b { color: #4A5560; font-weight: 600; }
+mark.todo { background: #FFE27A; color: #2A2A2A; padding: 0 5px; border-radius: 3px; font-weight: 600; }
+.small { font-size: 14px; color: #4A5560; }
+footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; } footer a { color: inherit; font-weight: 600; }
+@media (max-width: 640px) { .wb { padding: 16px 18px; } .card { padding: 16px 16px; } .toc { columns: 1; } }
+@media print { body { background: #fff; } .wb, .card { box-shadow: none; } .crumbs, .draft { display: none; } }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="wrap" id="top">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a> <span aria-hidden="true">/</span> <span>Terms of Service</span></nav>
+  <header class="wb"><h1>Terms of Service</h1><p>Last updated <span data-legal="updated">September 30, 2026</span>. Please read them. They are short enough to read and they matter.</p>
+    <p class="draft" id="draft" hidden>This is a draft. It is being reviewed by our attorney and may change before launch.</p></header>
+  <main>
+  <section class="card"><h2 style="margin-top:0">In this document</h2><ol class="toc"><li><a href="#agree">Agreeing to these terms</a></li><li><a href="#what">What Cooperstown Cash is, and what it is not</a></li><li><a href="#money">Money, the hosting fee, and optional support</a></li><li><a href="#who">Who can use it</a></li><li><a href="#tables">Free tables, private leagues, and computer clubs</a></li><li><a href="#results">Results are simulated and not guaranteed</a></li><li><a href="#ai">Automated tools and AI</a></li><li><a href="#use">Playing fair</a></li><li><a href="#content">What you give us</a></li><li><a href="#ours">What belongs to us, and what does not</a></li><li><a href="#changes">Changing or ending things</a></li><li><a href="#warranty">No warranty</a></li><li><a href="#liability">Limits on what we owe you, and what you owe us</a></li><li><a href="#disputes">How disputes are decided (please read carefully)</a></li><li><a href="#general">The rest</a></li></ol></section>
+  <section class="card" id="doc"><div class="sum"><b>The short version</b><ul>
+<li>Cooperstown Cash is software for playing simulated baseball leagues with historical players and dice. That is all it is.</li>
+<li>We do not run contests for money, offer or pay prizes, or hold, collect or pay out anyone's money. Anything your league does with money is between you and your league.</li>
+<li>The only money we may charge is a flat hosting fee paid by the commissioner of a private league, from their own funds. Members never pay it.</li>
+<li>You must be 18 or older to create an account or play at a table or in a league. Play fair, pick a decent club name, and do not try to break the game.</li>
+<li>Results come from a simulation with random dice. They can contain errors, and our records are final.</li>
+<li>This is an early-access game. Things will change, and data may be reset.</li></ul></div><h2 id="agree">Agreeing to these terms</h2><p>These Terms of Service are an agreement between you and <mark class="todo" data-legal="operator">operator name to be confirmed</mark> (&ldquo;Cooperstown Cash,&rdquo; &ldquo;we,&rdquo; &ldquo;us&rdquo;). By using the Cooperstown Cash website or creating an account, you agree to them and to our <a href="privacy.html">Privacy Policy</a>. If you do not agree, do not use the service.</p>
+<p>If you join or run a private league you will also sign the <b>League Agreement</b>. It covers league matters in more detail. If the League Agreement and these terms disagree about a private league, the League Agreement controls.</p><h2 id="what">What Cooperstown Cash is, and what it is not</h2><p>Cooperstown Cash is software for playing simulated baseball leagues that use historical player statistics and dice-based results. You draft or build rosters, set your lineup, and play a season against other managers and, where seats are empty, computer-run clubs.</p>
+<p>Cooperstown Cash <b>does not</b> organize, conduct or take part in any contest for money. It does not set, offer, award or guarantee any prize. It does not accept bets or wagers, and it does not collect, hold, transmit or pay out anyone's money. It provides software and nothing more.</p><h2 id="money">Money, the hosting fee, and optional support</h2><p><b>League money is between you and your league.</b> Any dues, prizes, bets or side arrangements connected to a league are solely between the people in it. We are not a party to them, we do not verify, enforce or arbitrate them, and we owe no duty to anyone about them. If a league uses a third-party service such as LeagueSafe to collect or hold money, that service's own terms apply. We are not affiliated with it, we do not endorse it, and we are not responsible for it. Links to it are a convenience only.</p>
+<p><b>The hosting fee.</b> We may charge the commissioner of a private league a flat fee for hosting the league and using the software. The amount is shown before it is paid. It is the same no matter how many members join or how much money a league uses, and it is not a share of any dues, prizes or results. A commissioner pays it from their own funds and never from league money. Members owe us nothing. The fee pays for the software service only, does not affect any result and gives no advantage. It is non-refundable except where the law requires it or we agree otherwise in writing. We may not be charging it yet.</p>
+<p><b>Optional support.</b> We may invite league members to make a voluntary contribution to help keep the platform running. It is never required to join, play or win, it is not linked to any result, and it gives no advantage.</p><h2 id="who">Who can use it</h2><p>You must be at least 18 years old, or older if the age of majority where you live is higher, to create an account or take part in any table or league. The free quick game and mock draft are not directed to children under 13. One person may keep one account, and you are responsible for everything done through it. Give us an email address you control, because your sign-in link goes there.</p>
+<p>You are responsible for knowing and following every law that applies to you, including any that restrict games, contests or prizes where you live. Do not take part in any league for money if the law where you live prohibits it. Nothing on Cooperstown Cash is legal, tax, financial or gambling advice. You are responsible for your own taxes. We may limit or block access from any place at any time.</p><h2 id="tables">Free tables, private leagues, and computer clubs</h2><p><b>Free public tables.</b> A table seats ten managers. Your club name is visible to everyone at the table. When a table fills, everyone has 48 hours to build a roster. If you have not finished by then, we build one for you from whatever you had picked, and the season starts. A table that is not full after three days, with at least four managers seated, is filled out with computer-run clubs in the empty seats and moves on to the same roster step.</p>
+<p><b>Private leagues.</b> A private league is a group of people who know each other. The commissioner decides whom to invite and approves only people they personally know, and members join because they personally know others in the league. A league may not be advertised to the public, have its seats sold, or be run as a business. Commissioners and members agree to the League Agreement, and we may close any league that appears to be public or commercial.</p>
+<p><b>Computer clubs and missed games.</b> Empty seats are filled with clubs run by the computer, marked &ldquo;CPU.&rdquo; If you do not play a game before its deadline, the server plays it for you using your current settings. Once a game is played, its result is final.</p><h2 id="results">Results are simulated and not guaranteed</h2><p>League results come from a simulation that uses random dice rolled on our server, and player statistics may contain errors. The software may have bugs, outages or downtime, and results, standings and rosters may be corrected, changed or reset. We make no promise about accuracy, availability or outcomes, and our records of results are final for purposes of the platform.</p>
+<p>Cooperstown Cash is in early access. We may change how it works, reset data, or remove features as we build it.</p><h2 id="ai">Automated tools and AI</h2><p>We use automated tools, including artificial intelligence, to help screen requests to join private leagues, to write the scout's advice, and to detect misuse such as fake or duplicate accounts, abusive names or spam. These tools are imperfect and can be wrong. Their output is only a recommendation or a suggestion: a commissioner decides who joins, and the scout's advice is not a guarantee of anything. What you submit may be processed by these tools and by our service providers, as described in the Privacy Policy. We may deny, remove or suspend any person or league at our discretion.</p><h2 id="use">Playing fair</h2><p>Do not:</p>
+<ul>
+<li>cheat, exploit a bug, or use scripts, bots or other automation to play or to gain an advantage;</li>
+<li>create more than one account to get an edge, or sit at a table under several names;</li>
+<li>choose a club, league or other name that is abusive, hateful, sexually explicit, or that impersonates a person, a company or a league;</li>
+<li>harass other players, or misuse the service to spam or to deceive;</li>
+<li>try to access another person's account or private information, or to interfere with how the service works;</li>
+<li>copy, scrape or reverse engineer the service beyond what the law allows, or use it for anything unlawful.</li></ul>
+<p>We may remove names and content, end games or leagues, and suspend or close accounts that break these rules.</p><h2 id="content">What you give us</h2><p>You keep ownership of the club names, league names and other text you provide. You give us permission to store, display and use them as needed to run the service, for example to show your club name to the other managers at your table or in your league. We may remove anything that breaks these terms.</p><h2 id="ours">What belongs to us, and what does not</h2><p>The software, the design, the game engine, the scouting notes and the look and feel of Cooperstown Cash belong to us or our licensors. You may use them to play, and nothing more.</p>
+<p>Player statistics come from the Lahman Baseball Database by Sean Lahman, used under the Creative Commons CC BY-SA 3.0 license. Player names and statistics are historical facts.</p>
+<p><b>No affiliation.</b> Cooperstown Cash is an independent game. It is not affiliated with, sponsored or endorsed by Major League Baseball, the players' association, any club or league, or any other baseball game. Names of teams and other marks belong to their owners and appear only to identify the historical seasons being simulated.</p><h2 id="changes">Changing or ending things</h2><p>We may change, suspend or end the service, a league, or your access at any time. If these terms change, we will post the new version with a new date, and using the service after that means you accept it. If the League Agreement changes, you will be asked to agree to the new version before you create or join another league. You can stop using Cooperstown Cash at any time, and you can ask us to delete your account as described in the Privacy Policy.</p><h2 id="warranty">No warranty</h2><p>The service is provided &ldquo;as is&rdquo; and &ldquo;as available.&rdquo; To the fullest extent the law allows, we make no promises that it will be uninterrupted, error-free or fit for any particular purpose.</p><h2 id="liability">Limits on what we owe you, and what you owe us</h2><p>To the fullest extent the law allows, our total liability to you for anything connected with the service is limited to the greater of $100 or the amount you paid us in the previous 12 months. We are not liable for indirect, incidental, special, consequential or punitive damages.</p>
+<p>To the fullest extent the law allows, you release and hold harmless Cooperstown Cash and its owners, operators, officers, employees, contractors and affiliates from every claim, loss or dispute arising from your participation in any league. That includes disputes with other members or commissioners, money that is lost, withheld or not paid, and any error or outage. This does not cover anything the law says cannot be released, or harm caused by our gross negligence or willful misconduct.</p>
+<p>If your breach of these terms, or your violation of any law in connection with the service, leads to a claim against us, you will defend us and reimburse the resulting losses and reasonable costs, to the fullest extent the law allows.</p>
+<p>Some places do not allow these limits, so some of them may not apply to you.</p><h2 id="disputes">How disputes are decided (please read carefully)</h2><p>If you have a dispute with us, please contact us first and we will try to resolve it informally. If we cannot, the dispute will be decided by binding arbitration on an individual basis, not in court and not by a jury, before a neutral arbitrator under the rules of a recognized arbitration provider. You give up the right to bring or join a class action. Either side may use small claims court. If any part of this section is found unenforceable, the rest of these terms still applies.</p>
+<p>These terms are governed by the laws of the state where the operator of Cooperstown Cash is organized, without regard to conflict-of-law rules.</p><h2 id="general">The rest</h2><p>If any part of these terms is unenforceable, the rest stays in effect. If we do not enforce something, we have not given it up. You may not transfer your rights under these terms, but we may transfer ours as part of a sale or reorganization of the business. These terms, the Privacy Policy and the League Agreement are the whole agreement between us about the service.</p>
+<h3>Contact</h3><p>Questions about these terms: email <a data-legal="email" href="#"><mark class="todo" data-legal="email">contact email to be confirmed</mark></a>, or write to us at <mark class="todo" data-legal="address">mailing address to be confirmed</mark>.</p></section>
+  </main>
+  <footer><p><a href="terms.html">Terms of Service</a> &middot; <a href="privacy.html">Privacy Policy</a> &middot; <a href="#top">Back to top</a></p>
+    <p>Statistics from the Lahman Baseball Database by Sean Lahman, used under CC BY-SA 3.0.</p></footer>
+</div>
+<script>
+(() => {
+  // The operator's details live here, in one place. Until they are filled in and the documents are reviewed, the draft notice shows.
+  const LEGAL = { operator: '', email: '', address: '', reviewed: false };
+  const fill = (key, text) => document.querySelectorAll('[data-legal="' + key + '"]').forEach(el => { if (text) { el.textContent = text; el.classList.remove('todo'); } });
+  fill('operator', LEGAL.operator); fill('email', LEGAL.email); fill('address', LEGAL.address);
+  document.querySelectorAll('a[data-legal="email"]').forEach(a => { if (LEGAL.email) a.href = 'mailto:' + LEGAL.email; });
+  document.getElementById('draft').hidden = !!(LEGAL.reviewed && LEGAL.operator && LEGAL.email);
+})();
+</script>
+</body>
+</html>

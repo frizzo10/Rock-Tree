@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Privacy Policy</title>
+<meta name="description" content="How Cooperstown Cash collects, uses and protects your information.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.6 var(--text); }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 18px 16px 60px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; } .crumbs .badge img { width: 100%; height: 100%; }
+.wb { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 22px 30px; }
+.wb h1 { font: 400 clamp(30px, 6vw, 46px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 4px; }
+.wb p { margin: 0 0 6px; color: #3A434D; max-width: 74ch; }
+.draft { background: #FFF3A0; color: #2A2A2A; border-radius: 4px; padding: 10px 16px; margin-top: 14px; font-weight: 600; max-width: 74ch; }
+.card { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 26px; margin-top: 18px; }
+.card h2 { font: 400 25px/1.15 var(--marker); color: var(--wb-ink); margin: 26px 0 6px; scroll-margin-top: 12px; }
+.card h2:first-child { margin-top: 0; }
+.card h3 { font-size: 17px; margin: 16px 0 2px; }
+.card p, .card li { max-width: 74ch; } .card p { margin: 8px 0; } .card ul { padding-left: 22px; margin: 8px 0; } .card li { margin: 4px 0; }
+.card a { color: var(--wb-ink); font-weight: 600; }
+.sum { background: #F3F6FD; border-left: 5px solid var(--wb-ink); padding: 10px 16px; border-radius: 3px; margin: 12px 0; } .sum ul { margin: 6px 0 4px; }
+.toc { columns: 2; column-gap: 28px; padding-left: 20px; margin: 8px 0 0; } .toc li { break-inside: avoid; margin: 3px 0; }
+dl.data { margin: 10px 0; } dl.data > div { border: 1px solid #DDE1E4; border-radius: 4px; background: #fff; padding: 10px 14px; margin: 8px 0; }
+dl.data dt { font-weight: 700; } dl.data dd { margin: 3px 0 0; } dl.data dd b { color: #4A5560; font-weight: 600; }
+mark.todo { background: #FFE27A; color: #2A2A2A; padding: 0 5px; border-radius: 3px; font-weight: 600; }
+.small { font-size: 14px; color: #4A5560; }
+footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; } footer a { color: inherit; font-weight: 600; }
+@media (max-width: 640px) { .wb { padding: 16px 18px; } .card { padding: 16px 16px; } .toc { columns: 1; } }
+@media print { body { background: #fff; } .wb, .card { box-shadow: none; } .crumbs, .draft { display: none; } }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="wrap" id="top">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a> <span aria-hidden="true">/</span> <span>Privacy Policy</span></nav>
+  <header class="wb"><h1>Privacy Policy</h1><p>Last updated <span data-legal="updated">September 30, 2026</span>. Plain language, no surprises.</p>
+    <p class="draft" id="draft" hidden>This is a draft. It is being reviewed by our attorney and may change before launch.</p></header>
+  <main>
+  <section class="card"><h2 style="margin-top:0">In this document</h2><ol class="toc"><li><a href="#who">Who we are</a></li><li><a href="#collect">What we collect, and why</a></li><li><a href="#visible">What other people can see</a></li><li><a href="#use">How we use your information</a></li><li><a href="#ai">Artificial intelligence features</a></li><li><a href="#share">Who we share it with</a></li><li><a href="#storage">Cookies and storage on your device</a></li><li><a href="#rights">Your choices and rights</a></li><li><a href="#keep">How long we keep it</a></li><li><a href="#security">How we protect it</a></li><li><a href="#kids">Children</a></li><li><a href="#changes">Changes to this policy</a></li><li><a href="#contact">Contact us</a></li></ol></section>
+  <section class="card" id="doc"><div class="sum"><b>The short version</b><ul>
+<li>We collect your email address to sign you in, plus the baseball data you create: saved teams, rosters, lineups, game results and club names.</li>
+<li>Your club name is visible to the other managers at your table or in your league. Your email address is never shown to other players.</li>
+<li>We do not sell your information, we do not run ads, and we do not use analytics or tracking tools.</li>
+<li>Two features use artificial intelligence: screening requests to join private leagues, and the scout's written advice. Below we say exactly what each one receives.</li>
+<li>You can ask us to delete your account and your data at any time.</li>
+<li>Cooperstown Cash is for adults. Accounts are for people 18 and older.</li></ul></div><h2 id="who">Who we are</h2><p>Cooperstown Cash (&ldquo;we,&rdquo; &ldquo;us&rdquo;) is a game where you manage historical baseball teams in simulated leagues. It is operated by <mark class="todo" data-legal="operator">operator name to be confirmed</mark>. You can reach us about anything in this policy at <a data-legal="email" href="#"><mark class="todo" data-legal="email">contact email to be confirmed</mark></a>. Our mailing address is <mark class="todo" data-legal="address">mailing address to be confirmed</mark>.</p>
+<p>This policy covers the Cooperstown Cash website and everything you do on it. It is not a contract, but our <a href="terms.html">Terms of Service</a> and the League Agreement you sign to join a private league explain the rules of using the service.</p><h2 id="collect">What we collect, and why</h2><p>We collect only what we need to run the game. Here is all of it.</p>
+<dl class="data">
+<div><dt>Your email address and profile</dt><dd><b>What:</b> your email address and the display name on your profile. <b>Why:</b> to send you a sign-in link and to identify your account. We use links, not passwords, so we never ask for or store a password. <b>Who can see your email:</b> only us and our service providers. Other players never see it.</dd></div>
+<div><dt>Your saved games</dt><dd><b>What:</b> your mock drafts, quick games, practice league, saved teams and unlocked cards, in up to five save slots that sync to your account. <b>Why:</b> so your progress follows you from device to device.</dd></div>
+<div><dt>Your club and league activity</dt><dd><b>What:</b> the club names you choose, which tables and leagues you sit in, your roster, batting order, rotation and other manager settings, your results, a play-by-play record of every game, and who started each game. <b>Why:</b> to run leagues, play your games, and show standings and box scores.</dd></div>
+<div><dt>Requests to join a private league</dt><dd><b>What:</b> your club name, your answer to &ldquo;how do you know this league,&rdquo; the time you confirmed you are 18 or older, and the screening note described in the AI section below. <b>Who can see it:</b> the commissioner of that league.</dd></div>
+<div><dt>Your signed League Agreement</dt><dd><b>What:</b> the name you typed, your initials on each section, the date and time, the Internet address (IP address) and browser details you signed from, and a fingerprint of the exact text you agreed to. <b>Why:</b> so we can show that you agreed. We keep this record even if you later delete your account, as explained under &ldquo;How long we keep it.&rdquo;</dd></div>
+<div><dt>Commissioner details</dt><dd><b>What:</b> the league you run, its invite code, and whether the hosting fee has been paid. If we charge a hosting fee, a payment processor handles the payment, and we keep the amount and the processor's payment reference. We do not receive or store your card number.</dd></div>
+<div><dt>Game tokens</dt><dd><b>What:</b> a ledger of any game tokens in your account. <b>Why:</b> to keep an accurate, permanent record of tokens.</dd></div>
+<div><dt>Usage counts for limits</dt><dd><b>What:</b> how many times you use the AI scout in a day. <b>Why:</b> to apply a daily limit.</dd></div>
+<div><dt>Technical information</dt><dd><b>What:</b> when you visit our website, our hosting and database providers record routine details such as your Internet address, browser type and the pages requested. <b>Why:</b> to keep the service running and secure.</dd></div>
+</dl>
+<h3>What we do not collect</h3>
+<p>We do not collect your precise location, your contacts, your payment card numbers, government ID numbers, or sensitive personal information such as health or political views. We do not use analytics or advertising trackers.</p><h2 id="visible">What other people can see</h2><ul>
+<li><b>At a free public table:</b> every manager at the table sees your club name. Choose one you are happy to have seen by strangers.</li>
+<li><b>In a league:</b> members see your club name, the standings, results, box scores and play-by-play. Rosters are revealed to the whole league once the season starts.</li>
+<li><b>Private league commissioners</b> see the club name and the answer you gave when you asked to join, and any screening note.</li>
+<li><b>Your plans stay private.</b> Other managers cannot see your batting order, rotation, leash setting or the starter you pick for a game until that game has been played.</li>
+<li><b>Your email address is never shown</b> to other players or to a commissioner.</li></ul><h2 id="use">How we use your information</h2><ul>
+<li>To run the game: sign you in, sync your saves, schedule and play games, and keep standings.</li>
+<li>To screen join requests and detect misuse such as fake or duplicate accounts, abusive names or spam.</li>
+<li>To enforce our Terms and the League Agreement, and to keep the service secure.</li>
+<li>To answer your questions and send messages about your account or your league, such as sign-in links.</li>
+<li>To meet legal obligations.</li></ul>
+<p><b>We do not sell or rent your personal information, and we do not share it for advertising.</b> No decision that significantly affects you is made by a computer alone. The screening described below only advises a commissioner, and a person decides.</p><h2 id="ai">Artificial intelligence features</h2><p>Two features use an AI service. We send each one only what it needs.</p>
+<h3>1. Screening requests to join a private league</h3>
+<p>When you ask to join a private league, the club name you chose, your answer to &ldquo;how do you know this league,&rdquo; and the league's name are sent to an AI service (currently Groq). It writes a short recommendation for the commissioner, such as whether the name looks abusive or the answer looks like spam. We store that note with your request. It is only a recommendation, and the commissioner decides. We do not send your email address.</p>
+<h3>2. The scout's written advice</h3>
+<p>When a signed-in player asks the scout for advice, the game works out the facts itself: player names, seasons, statistics and your budget. Only those baseball facts are sent to an AI service (currently Groq) so it can put them into a sentence or two. We do not send your name or email address. We check the answer and discard it if it contains numbers the game did not supply.</p>
+<p>AI services process what they receive under their own terms and privacy policies. You can read Groq's at groq.com. We may change AI providers, and if we do we will update this policy.</p><h2 id="share">Who we share it with</h2><p>We use a small number of service providers to run Cooperstown Cash. They may handle your information only to provide their service to us.</p>
+<ul>
+<li><b>Supabase</b> provides our database, sign-in and server functions. Our data is stored in the United States (US East).</li>
+<li><b>Netlify</b> hosts and delivers our website.</li>
+<li><b>Groq</b> provides the AI features described above.</li>
+<li><b>GitHub</b> hosts the website's code and its public baseball data files. Those files contain no personal information.</li>
+<li><b>Google Fonts</b> supplies the typefaces on our pages. When a page loads, your browser asks Google for the fonts, which means Google sees your Internet address.</li>
+<li><b>An email service</b> delivers sign-in links and league messages.</li>
+<li><b>A payment processor</b> (for example Stripe) handles payment of the commissioner's hosting fee, if and when we charge one.</li></ul>
+<p><b>LeagueSafe and other money services.</b> Some private leagues use a third-party service to handle dues. We link to it as a convenience. We are not affiliated with it, we do not send it your information, and we do not see what you share with it. Its own privacy policy applies.</p>
+<p>We may also disclose information if the law requires it, to respond to valid legal requests, to protect the rights, safety or property of our users or us, or as part of a sale or transfer of the business. We will not sell your information otherwise.</p><h2 id="storage">Cookies and storage on your device</h2><p>We do not set advertising or tracking cookies. To work, the website stores small pieces of information in your browser's local storage: your sign-in session, your saved games and draft progress, your preferences (such as sound on or off), which support prompts you have dismissed, and how far you have gotten through a game you are playing. This stays on your device. Clearing your browser's site data removes it, though it will also sign you out, and any saves that were not yet synced to your account would be lost.</p><h2 id="rights">Your choices and rights</h2><ul>
+<li><b>Access and correction.</b> You can ask us for a copy of the information we hold about you, or ask us to correct it.</li>
+<li><b>Deletion.</b> You can ask us to delete your account and your data. Email us from the address you sign in with. We aim to complete a deletion within 30 days. Some records are kept as described below.</li>
+<li><b>Sign-in.</b> You can sign out at any time.</li>
+<li><b>Marketing.</b> We do not send marketing email.</li></ul>
+<p><b>If you live in California or another state with a privacy law,</b> you may have additional rights, including the right to know what we collect, to delete it, to correct it, and to opt out of the sale or sharing of personal information. We do not sell personal information or share it for advertising. We will not treat you differently for using these rights. To use them, email us. We will confirm your identity through your sign-in email before acting.</p>
+<p>We operate in the United States. If you use Cooperstown Cash from elsewhere, you understand your information will be processed in the United States.</p><h2 id="keep">How long we keep it</h2><p>We keep your account and game data while your account is active. If you ask us to delete your account, we delete your personal information and your saves. Copies in our providers' backups age out on their normal schedule.</p>
+<p>Some records may be kept, disconnected from your identity where we can, for as long as we need them to resolve a dispute, enforce an agreement or meet a legal obligation. These include the record of your signed League Agreement and any game-token ledger entries. Results and box scores from finished leagues may remain so that other members' histories stay complete, and we will replace your club name in them on request where practical.</p><h2 id="security">How we protect it</h2><p>We use reasonable safeguards. Connections to the website are encrypted. The database is set up so a player can read only their own private information and what their league is meant to see. Our AI service key is kept in an encrypted secret store, not in the website's code. The dice for league games are rolled on our server, not on your device. No system is perfectly secure, so we cannot promise absolute security. If a breach affects you, we will notify you as the law requires.</p><h2 id="kids">Children</h2><p>Cooperstown Cash is for adults. Accounts are for people 18 and older, and the League Agreement requires every private-league member to be at least 18. The quick game and mock draft are not meant for children under 13 either. We do not knowingly collect personal information from children under 13. If you believe a child has given us information, email us and we will delete it.</p><h2 id="changes">Changes to this policy</h2><p>We may update this policy as the game changes. We will post the new version here with a new &ldquo;last updated&rdquo; date. If a change is significant, we will also tell you by email or with a notice on the site before it takes effect.</p><h2 id="contact">Contact us</h2><p>Questions, requests, or concerns about your privacy: email <a data-legal="email" href="#"><mark class="todo" data-legal="email">contact email to be confirmed</mark></a>, or write to us at <mark class="todo" data-legal="address">mailing address to be confirmed</mark>.</p></section>
+  </main>
+  <footer><p><a href="terms.html">Terms of Service</a> &middot; <a href="privacy.html">Privacy Policy</a> &middot; <a href="#top">Back to top</a></p>
+    <p>Statistics from the Lahman Baseball Database by Sean Lahman, used under CC BY-SA 3.0.</p></footer>
+</div>
+<script>
+(() => {
+  // The operator's details live here, in one place. Until they are filled in and the documents are reviewed, the draft notice shows.
+  const LEGAL = { operator: '', email: '', address: '', reviewed: false };
+  const fill = (key, text) => document.querySelectorAll('[data-legal="' + key + '"]').forEach(el => { if (text) { el.textContent = text; el.classList.remove('todo'); } });
+  fill('operator', LEGAL.operator); fill('email', LEGAL.email); fill('address', LEGAL.address);
+  document.querySelectorAll('a[data-legal="email"]').forEach(a => { if (LEGAL.email) a.href = 'mailto:' + LEGAL.email; });
+  document.getElementById('draft').hidden = !!(LEGAL.reviewed && LEGAL.operator && LEGAL.email);
+})();
+</script>
+</body>
+</html>
