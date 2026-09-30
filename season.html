@@ -118,18 +118,19 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (!S.id) { $('sub').innerHTML = 'No league was chosen. <a href="private.html">Go to your private leagues</a>.'; return; }
     if (!c || !window.CC.user) { $('sub').textContent = 'Sign in to see the season.'; if (c) window.CC.requireSignIn('Sign in to see your season'); return; }
     try {
-      const [lg, seat, board, games, ros, logs, ps, pool] = await Promise.all([
-        c.from('leagues').select('id,name,status,season_start_at,game_day_hours,commissioner_id,phase,champion_seat,playoff_seeds').eq('id', S.id),
+      const [lg, seat, board, games, ros, logs, cpu, ps, pool] = await Promise.all([
+        c.from('leagues').select('id,name,status,season_start_at,game_day_hours,commissioner_id,phase,champion_seat,playoff_seeds,cpu_seats').eq('id', S.id),
         c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
         c.from('seat_board').select('seat_no,club_name').eq('league_id', S.id),
         c.from('games').select('id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs,round,series,game_no').eq('league_id', S.id),
         c.from('league_rosters').select('seat_no,user_id,slots,payroll,ready').eq('league_id', S.id),
         c.from('game_logs').select('game_id,final').eq('league_id', S.id),
+        c.from('cpu_rosters').select('seat_no,slots,payroll').eq('league_id', S.id),
         c.from('playoff_series').select('series,round,best_of,high_seat,low_seat,high_wins,low_wins,winner_seat').eq('league_id', S.id),
         S.byKey.size ? Promise.resolve(null) : fetch('roster-pool.json').then(r => r.json())]);
       S.league = lg.data && lg.data[0]; const seatRow = seat.data && seat.data[0];
       if (!S.league || !seatRow) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
-      S.mySeat = seatRow.seat_no; S.myName = seatRow.club_name; S.board = board.data || []; S.games = games.data || []; S.rosters = ros.data || []; S.myLogs = new Set((logs.data || []).filter(r => !r.final).map(r => r.game_id)); S.series = ps.data || [];
+      S.mySeat = seatRow.seat_no; S.myName = seatRow.club_name; S.board = board.data || []; S.games = games.data || []; S.rosters = (ros.data || []).concat((cpu.data || []).map(r => ({ ...r, ready: true }))); S.myLogs = new Set((logs.data || []).filter(r => !r.final).map(r => r.game_id)); S.series = ps.data || [];
       if (pool) S.byKey = new Map(pool.map(p => [p.k, p]));
       $('title').textContent = S.league.name;
       if (!S.league.season_start_at || !S.games.length) { $('sub').innerHTML = 'The season hasn\'t started yet. Once the commissioner locks rosters and starts it, the schedule appears here. <a href="private.html">Back to your leagues</a>.'; $('tabs').hidden = true; $('main').innerHTML = ''; return; }
@@ -137,7 +138,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
       const first = !S.sig; if (sig === S.sig) return; S.sig = sig;
       if (first) { S.day = currentDay(); S.club = S.mySeat; }
       const day = currentDay(), ended = S.league.status === 'complete';
-      $('sub').textContent = `You're ${S.myName}. ` + (ended ? (S.league.champion_seat ? `The season is over. Champions: ${name(S.league.champion_seat)}.` : 'This league has ended.') : S.league.phase === 'playoffs' ? `The playoffs are on. ${dayLabel(day)}, with a new game day every ${hours() === 24 ? 'day' : hours() + ' hours'}.` : `${dayLabel(day)}, with a new one every ${hours() === 24 ? 'day' : hours() + ' hours'}.`);
+      $('sub').textContent = `You're ${S.myName}. ` + ((S.league.cpu_seats || []).length ? `${S.league.cpu_seats.length} club${S.league.cpu_seats.length === 1 ? ' is' : 's are'} run by the computer (marked CPU). ` : '') + (ended ? (S.league.champion_seat ? `The season is over. Champions: ${name(S.league.champion_seat)}.` : 'This league has ended.') : S.league.phase === 'playoffs' ? `The playoffs are on. ${dayLabel(day)}, with a new game day every ${hours() === 24 ? 'day' : hours() + ' hours'}.` : `${dayLabel(day)}, with a new one every ${hours() === 24 ? 'day' : hours() + ' hours'}.`);
       $('tabs').hidden = false; const ml = $('mgrLink'); ml.href = 'manager.html?league=' + S.id; ml.hidden = S.league.status === 'complete'; render(); maybeFinishOverdue();
     } catch (e) { $('sub').textContent = 'We couldn\'t load the season. Please refresh the page.'; }
   }
@@ -173,7 +174,8 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   // Games past their deadline are finished by the server. Ask it to catch up whenever we notice one, at most once a minute.
   function maybeFinishOverdue() {
     const c = window.CC && window.CC.client; if (!c || !c.functions || Date.now() - S.lastFinish < 60000) return;
-    if (!S.games.some(g => g.status !== 'final' && Date.now() > new Date(g.deadline_at))) return;
+    const cpu = S.league.cpu_seats || [], due = g => g.status === 'scheduled' && new Date(g.opens_at) <= Date.now() && cpu.includes(g.away_seat) && cpu.includes(g.home_seat);
+    if (!S.games.some(g => (g.status !== 'final' && Date.now() > new Date(g.deadline_at)) || due(g))) return;
     S.lastFinish = Date.now();
     c.functions.invoke('game-sim', { body: { action: 'finish-overdue', league_id: S.id } }).then(r => { if (r && r.data && r.data.finished > 0) { S.sig = ''; load(); } }).catch(() => {});
   }
