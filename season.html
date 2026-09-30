@@ -48,7 +48,9 @@ select { padding: 8px 10px; border: 1.5px solid #8C959E; border-radius: 4px; bac
 .game .you { font-size: 12px; font-weight: 700; color: #fff; background: var(--wb-ink); border-radius: 8px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; }
 .game .side { text-align: right; font-size: 14px; color: #4A5560; }
 .game .score { font: 400 22px/1 var(--marker); color: var(--wb-ink); }
-.btn { border: 0; border-radius: 4px; padding: 8px 16px; font-weight: 600; cursor: pointer; min-height: 40px; background: var(--wb-ink); color: #fff; }
+.btn { border: 0; border-radius: 4px; padding: 8px 16px; font-weight: 600; cursor: pointer; min-height: 40px; background: var(--wb-ink); color: #fff; text-decoration: none; display: inline-block; line-height: 24px; }
+.btn:hover { background: #17306E; } .btn.ghost { background: transparent; color: #20262D; border: 1.5px solid #8C959E; line-height: 21px; } .btn.ghost:hover { background: #E9ECEA; }
+td a { color: var(--wb-ink); font-weight: 600; }
 .btn[disabled] { opacity: .5; cursor: default; }
 table { width: 100%; border-collapse: collapse; font-size: 15px; }
 th { text-align: left; padding: 8px 10px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: #4A5560; border-bottom: 2px solid #DDE1E4; }
@@ -81,14 +83,14 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     </div>
   </header>
   <main id="main"></main>
-  <footer><p>Prototype for testing. Playing your games opens in the next update. Until then the schedule, standings and rosters are all here.</p></footer>
+  <footer><p>Prototype for testing. Play your game whenever you're free before its deadline, or sim it. The server rolls every die, and any game left unplayed is finished for you at the deadline.</p></footer>
 </div>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const money = n => { const v = Math.round(n * 10) / 10; return Number.isInteger(v) ? String(v) : v.toFixed(1); };
-  const S = { id: new URLSearchParams(location.search).get('league'), league: null, mySeat: null, myName: '', board: [], games: [], rosters: [], byKey: new Map(), tab: 'sched', day: 1, club: null, sig: '' };
+  const S = { myLogs: new Set(), lastFinish: 0, id: new URLSearchParams(location.search).get('league'), league: null, mySeat: null, myName: '', board: [], games: [], rosters: [], byKey: new Map(), tab: 'sched', day: 1, club: null, sig: '' };
   const fmt = t => new Date(t).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const name = seat => (S.board.find(b => b.seat_no === seat) || {}).club_name || 'Club ' + seat;
   const hours = () => S.league.game_day_hours || 24;
@@ -103,25 +105,26 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (!S.id) { $('sub').innerHTML = 'No league was chosen. <a href="private.html">Go to your private leagues</a>.'; return; }
     if (!c || !window.CC.user) { $('sub').textContent = 'Sign in to see the season.'; if (c) window.CC.requireSignIn('Sign in to see your season'); return; }
     try {
-      const [lg, seat, board, games, ros, pool] = await Promise.all([
+      const [lg, seat, board, games, ros, logs, pool] = await Promise.all([
         c.from('leagues').select('id,name,status,season_start_at,game_day_hours,commissioner_id').eq('id', S.id),
         c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
         c.from('seat_board').select('seat_no,club_name').eq('league_id', S.id),
         c.from('games').select('id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs').eq('league_id', S.id),
         c.from('league_rosters').select('seat_no,user_id,slots,payroll,ready').eq('league_id', S.id),
+        c.from('game_logs').select('game_id,final').eq('league_id', S.id),
         S.byKey.size ? Promise.resolve(null) : fetch('roster-pool.json').then(r => r.json())]);
       S.league = lg.data && lg.data[0]; const seatRow = seat.data && seat.data[0];
       if (!S.league || !seatRow) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
-      S.mySeat = seatRow.seat_no; S.myName = seatRow.club_name; S.board = board.data || []; S.games = games.data || []; S.rosters = ros.data || [];
+      S.mySeat = seatRow.seat_no; S.myName = seatRow.club_name; S.board = board.data || []; S.games = games.data || []; S.rosters = ros.data || []; S.myLogs = new Set((logs.data || []).filter(r => !r.final).map(r => r.game_id));
       if (pool) S.byKey = new Map(pool.map(p => [p.k, p]));
       $('title').textContent = S.league.name;
       if (!S.league.season_start_at || !S.games.length) { $('sub').innerHTML = 'The season hasn\'t started yet. Once the commissioner locks rosters and starts it, the schedule appears here. <a href="private.html">Back to your leagues</a>.'; $('tabs').hidden = true; $('main').innerHTML = ''; return; }
-      const sig = JSON.stringify([S.games.map(g => [g.id, g.status, g.away_runs, g.home_runs]), S.rosters.length]);
+      const sig = JSON.stringify([S.games.map(g => [g.id, g.status, g.away_runs, g.home_runs]), S.rosters.length, [...S.myLogs]]);
       const first = !S.sig; if (sig === S.sig) return; S.sig = sig;
       if (first) { S.day = currentDay(); S.club = S.mySeat; }
       const day = currentDay(), ended = S.league.status === 'complete';
       $('sub').textContent = `You're ${S.myName}. ` + (ended ? 'This league has ended.' : `Game day ${day} of 27, with a new one every ${hours() === 24 ? 'day' : hours() + ' hours'}.`);
-      $('tabs').hidden = false; render();
+      $('tabs').hidden = false; render(); maybeFinishOverdue();
     } catch (e) { $('sub').textContent = 'We couldn\'t load the season. Please refresh the page.'; }
   }
 
@@ -138,19 +141,41 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (now < new Date(g.deadline_at)) return ['now', 'Open now'];
     return ['soon', 'Past the deadline'];
   }
+  function gameSide(g) {
+    const [cls, txt] = stateOf(g), open = Date.now() >= new Date(g.opens_at);
+    if (g.status === 'final') return `<span class="score">${g.away_runs} to ${g.home_runs}</span> <a class="btn ghost" href="game.html?g=${g.id}">Box score</a>`;
+    if (g.status === 'in_progress') return mine(g) && S.myLogs.has(g.id) ? `<a class="btn" href="game.html?g=${g.id}">Continue</a>` : '<span class="chip soon">Being played</span>';
+    if (mine(g) && open) return `<a class="btn" href="game.html?g=${g.id}">Play</a> <button class="btn ghost" type="button" data-sim="${g.id}">Sim it</button>`;
+    return `<span class="chip ${cls}">${esc(txt)}</span>`;
+  }
+  const resCell = (g, res) => g.status === 'final' ? `<a href="game.html?g=${g.id}">${esc(res)}</a>` : g.status === 'in_progress' && mine(g) && S.myLogs.has(g.id) ? `<a href="game.html?g=${g.id}">Continue</a>` : g.status === 'scheduled' && mine(g) && Date.now() >= new Date(g.opens_at) ? `<a href="game.html?g=${g.id}">Play</a>` : esc(res);
+  async function simGame(id, btn) {
+    if (!confirm('Sim your game now? The server rolls every at-bat, and the result is final.')) return;
+    btn.disabled = true; btn.textContent = 'Simming…';
+    const { data, error } = await window.CC.client.functions.invoke('game-sim', { body: { action: 'sim', game_id: id } });
+    if (error || !data || data.error) { let m = 'Something went wrong. Please try again.'; try { if (data && data.error) m = data.error; else if (error && error.context && error.context.json) m = (await error.context.json()).error || m; } catch (e) {} alert(m); }
+    S.sig = ''; load();
+  }
+  // Games past their deadline are finished by the server. Ask it to catch up whenever we notice one, at most once a minute.
+  function maybeFinishOverdue() {
+    const c = window.CC && window.CC.client; if (!c || !c.functions || Date.now() - S.lastFinish < 60000) return;
+    if (!S.games.some(g => g.status !== 'final' && Date.now() > new Date(g.deadline_at))) return;
+    S.lastFinish = Date.now();
+    c.functions.invoke('game-sim', { body: { action: 'finish-overdue', league_id: S.id } }).then(r => { if (r && r.data && r.data.finished > 0) { S.sig = ''; load(); } }).catch(() => {});
+  }
   function schedule() {
     const day = S.day, games = S.games.filter(g => g.day === day).sort((a, b) => a.seq - b.seq), cur = currentDay(), first = games[0];
     const chip = day < cur ? ['done', 'Played'] : day === cur ? ['now', 'Today'] : ['soon', 'Coming up'];
     const list = games.map(g => {
       const [cls, txt] = stateOf(g), fin = g.status === 'final';
       return `<li class="game${mine(g) ? ' mine' : ''}"><div class="teams"><b>${esc(name(g.away_seat))}</b><i>at</i><b>${esc(name(g.home_seat))}</b>${mine(g) ? '<span class="you">Your game</span>' : ''}</div>
-        <div class="side">${fin ? `<span class="score">${g.away_runs} to ${g.home_runs}</span>` : mine(g) && cls === 'now' ? '<button class="btn" type="button" disabled title="Playing your games opens in the next update">Play (soon)</button>' : `<span class="chip ${cls}">${esc(txt)}</span>`}</div></li>`;
+        <div class="side">${gameSide(g)}</div></li>`;
     }).join('');
     const opts = Array.from({ length: 27 }, (_, i) => `<option value="${i + 1}"${i + 1 === day ? ' selected' : ''}>Game day ${i + 1}${i + 1 === cur ? ' (today)' : ''}</option>`).join('');
     const rows = S.games.filter(mine).sort((a, b) => a.day - b.day).map(g => {
       const home = g.home_seat === S.mySeat, opp = home ? g.away_seat : g.home_seat, [cls, txt] = stateOf(g);
       const res = g.status === 'final' ? ((home ? g.home_runs > g.away_runs : g.away_runs > g.home_runs) ? 'W ' : 'L ') + (home ? g.home_runs : g.away_runs) + '-' + (home ? g.away_runs : g.home_runs) : txt;
-      return `<tr class="${g.day === cur ? 'cur' : ''}"><td>${g.day}</td><td>${home ? 'vs' : 'at'} ${esc(name(opp))}</td><td class="hide-sm">${fmt(g.opens_at)}</td><td class="num">${esc(res)}</td></tr>`;
+      return `<tr class="${g.day === cur ? 'cur' : ''}"><td>${g.day}</td><td>${home ? 'vs' : 'at'} ${esc(name(opp))}</td><td class="hide-sm">${fmt(g.opens_at)}</td><td class="num">${resCell(g, res)}</td></tr>`;
     }).join('');
     return `<section class="card" aria-label="Game day"><div class="daybar"><button class="nav" type="button" data-day="${day - 1}" ${day <= 1 ? 'disabled' : ''} aria-label="Previous game day">&#8249;</button><span class="title">Game day ${day} of 27</span><button class="nav" type="button" data-day="${day + 1}" ${day >= 27 ? 'disabled' : ''} aria-label="Next game day">&#8250;</button>
       <select id="daySel" aria-label="Jump to a game day">${opts}</select>${day !== cur ? '<button class="nav" type="button" data-day="' + cur + '" title="Jump to today" style="width:auto;padding:0 12px;font-size:15px">Today</button>' : ''}<span class="chip ${chip[0]}">${chip[1]}</span></div>
@@ -187,6 +212,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   function bind() {
     document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { S.day = Math.max(1, Math.min(27, +b.dataset.day)); render(); });
     const ds = $('daySel'); if (ds) ds.onchange = () => { S.day = +ds.value; render(); };
+    document.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => simGame(+b.dataset.sim, b));
     const cs = $('clubSel'); if (cs) cs.onchange = () => { S.club = +cs.value; render(); };
   }
   $('tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) { S.tab = b.dataset.tab; render(); } };
