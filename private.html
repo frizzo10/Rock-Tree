@@ -249,7 +249,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (!signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.signed = new Set(); S.sig = ''; return render(); }
     const [lg, ms, rq, sg, rst] = await Promise.all([
       // (rosters: only your own row matters here)
-      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,created_at').eq('is_public', false).order('created_at', { ascending: true }),
+      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at').eq('is_public', false).order('created_at', { ascending: true }),
       c.from('seats').select('league_id,seat_no,club_name'),
       c.from('league_requests').select('id,league_id,user_id,club_name,relationship,ai_review,status,created_at').order('created_at', { ascending: true }),
       S.agr ? c.from('agreement_signatures').select('role,version') : Promise.resolve({ data: [] }),
@@ -314,7 +314,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
     const pending = S.reqs.filter(r => r.league_id === l.id && r.status === 'pending' && r.user_id !== me);
     const mySeat = S.seats.find(s => s.league_id === l.id);
-    const status = l.status === 'complete' ? 'This league has ended.' : l.status === 'started' ? `Season underway: game day ${dayNow(l)} of 27.` : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
+    const champ = (S.board.get(l.id) || []).find(m => m.seat_no === l.champion_seat), status = l.status === 'complete' ? (champ ? `The season is over. Champions: ${champ.club_name}.` : 'This league has ended.') : l.status === 'started' ? (l.phase === 'playoffs' ? 'The playoffs are on.' : `Season underway: game day ${dayNow(l)} of 27.`) : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
     return `<article class="card lg" data-id="${l.id}"><header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
       <ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>

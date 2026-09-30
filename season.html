@@ -51,6 +51,12 @@ select { padding: 8px 10px; border: 1.5px solid #8C959E; border-radius: 4px; bac
 .btn { border: 0; border-radius: 4px; padding: 8px 16px; font-weight: 600; cursor: pointer; min-height: 40px; background: var(--wb-ink); color: #fff; text-decoration: none; display: inline-block; line-height: 24px; }
 .btn:hover { background: #17306E; } .btn.ghost { background: transparent; color: #20262D; border: 1.5px solid #8C959E; line-height: 21px; } .btn.ghost:hover { background: #E9ECEA; }
 td a { color: var(--wb-ink); font-weight: 600; }
+.rd { font-size: 12px; font-weight: 700; color: #6B5312; background: #FBEFC6; border-radius: 8px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; }
+tr.po td:first-child { box-shadow: inset 4px 0 0 var(--wb-green); }
+.champ { font: 400 30px/1.15 var(--marker); color: var(--wb-red); margin: 4px 0 10px; }
+.ser { border: 1px solid #DDE1E4; border-radius: 4px; background: #fff; padding: 12px 14px; margin-top: 12px; }
+.ser.done { background: #F1F9F3; border-color: #BFE0C9; } .ser h3 { font: 400 20px var(--marker); color: var(--wb-ink); margin: 0 0 2px; }
+.ser .matchup { font-size: 17px; } .ser .rec { font-weight: 600; margin: 2px 0 8px; } .ser ul { list-style: none; margin: 0; padding: 0; } .ser li { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid #ECEEF0; flex-wrap: wrap; }
 .btn[disabled] { opacity: .5; cursor: default; }
 table { width: 100%; border-collapse: collapse; font-size: 15px; }
 th { text-align: left; padding: 8px 10px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: #4A5560; border-bottom: 2px solid #DDE1E4; }
@@ -79,6 +85,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     <div class="tabs" id="tabs" role="group" aria-label="Season views" hidden>
       <button class="tab" type="button" data-tab="sched" aria-pressed="true">Schedule</button>
       <button class="tab" type="button" data-tab="stand" aria-pressed="false">Standings</button>
+      <button class="tab" type="button" data-tab="po" aria-pressed="false">Playoffs</button>
       <button class="tab" type="button" data-tab="ros" aria-pressed="false">Rosters</button>
     </div>
   </header>
@@ -90,11 +97,15 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const money = n => { const v = Math.round(n * 10) / 10; return Number.isInteger(v) ? String(v) : v.toFixed(1); };
-  const S = { myLogs: new Set(), lastFinish: 0, id: new URLSearchParams(location.search).get('league'), league: null, mySeat: null, myName: '', board: [], games: [], rosters: [], byKey: new Map(), tab: 'sched', day: 1, club: null, sig: '' };
+  const S = { series: [], myLogs: new Set(), lastFinish: 0, id: new URLSearchParams(location.search).get('league'), league: null, mySeat: null, myName: '', board: [], games: [], rosters: [], byKey: new Map(), tab: 'sched', day: 1, club: null, sig: '' };
   const fmt = t => new Date(t).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const name = seat => (S.board.find(b => b.seat_no === seat) || {}).club_name || 'Club ' + seat;
   const hours = () => S.league.game_day_hours || 24;
-  const currentDay = () => { const d = Math.floor((Date.now() - new Date(S.league.season_start_at)) / (hours() * 3600000)) + 1; return Math.max(1, Math.min(27, d)); };
+  const maxDay = () => Math.max(27, ...S.games.map(g => g.day));
+  const currentDay = () => { const opened = S.games.filter(g => new Date(g.opens_at) <= Date.now()).map(g => g.day); return opened.length ? Math.max(...opened) : 1; };
+  const dayLabel = d => d <= 27 ? `Game day ${d} of 27` : `Playoff game day ${d - 27}`;
+  const roundLabel = g => (g.round === 'semi' ? 'Semifinal' : g.round === 'final' ? 'Final' : '') + (g.game_no ? `, game ${g.game_no}` : '');
+  const regular = g => !g.round || g.round === 'regular';
   const mine = g => g.away_seat === S.mySeat || g.home_seat === S.mySeat;
   const POS = { c: 'C', '1b': '1B', '2b': '2B', '3b': '3B', ss: 'SS', lf: 'LF', cf: 'CF', rf: 'RF', dh: 'DH' };
   const SLOTS = [['Lineup', ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']], ['Bench', ['bn1', 'bn2', 'bn3', 'bn4']], ['Rotation', ['sp1', 'sp2', 'sp3', 'sp4', 'sp5']], ['Bullpen', ['rp1', 'rp2', 'rp3', 'rp4', 'rp5', 'rp6', 'rp7']]];
@@ -105,32 +116,33 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (!S.id) { $('sub').innerHTML = 'No league was chosen. <a href="private.html">Go to your private leagues</a>.'; return; }
     if (!c || !window.CC.user) { $('sub').textContent = 'Sign in to see the season.'; if (c) window.CC.requireSignIn('Sign in to see your season'); return; }
     try {
-      const [lg, seat, board, games, ros, logs, pool] = await Promise.all([
-        c.from('leagues').select('id,name,status,season_start_at,game_day_hours,commissioner_id').eq('id', S.id),
+      const [lg, seat, board, games, ros, logs, ps, pool] = await Promise.all([
+        c.from('leagues').select('id,name,status,season_start_at,game_day_hours,commissioner_id,phase,champion_seat,playoff_seeds').eq('id', S.id),
         c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
         c.from('seat_board').select('seat_no,club_name').eq('league_id', S.id),
-        c.from('games').select('id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs').eq('league_id', S.id),
+        c.from('games').select('id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs,round,series,game_no').eq('league_id', S.id),
         c.from('league_rosters').select('seat_no,user_id,slots,payroll,ready').eq('league_id', S.id),
         c.from('game_logs').select('game_id,final').eq('league_id', S.id),
+        c.from('playoff_series').select('series,round,best_of,high_seat,low_seat,high_wins,low_wins,winner_seat').eq('league_id', S.id),
         S.byKey.size ? Promise.resolve(null) : fetch('roster-pool.json').then(r => r.json())]);
       S.league = lg.data && lg.data[0]; const seatRow = seat.data && seat.data[0];
       if (!S.league || !seatRow) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
-      S.mySeat = seatRow.seat_no; S.myName = seatRow.club_name; S.board = board.data || []; S.games = games.data || []; S.rosters = ros.data || []; S.myLogs = new Set((logs.data || []).filter(r => !r.final).map(r => r.game_id));
+      S.mySeat = seatRow.seat_no; S.myName = seatRow.club_name; S.board = board.data || []; S.games = games.data || []; S.rosters = ros.data || []; S.myLogs = new Set((logs.data || []).filter(r => !r.final).map(r => r.game_id)); S.series = ps.data || [];
       if (pool) S.byKey = new Map(pool.map(p => [p.k, p]));
       $('title').textContent = S.league.name;
       if (!S.league.season_start_at || !S.games.length) { $('sub').innerHTML = 'The season hasn\'t started yet. Once the commissioner locks rosters and starts it, the schedule appears here. <a href="private.html">Back to your leagues</a>.'; $('tabs').hidden = true; $('main').innerHTML = ''; return; }
-      const sig = JSON.stringify([S.games.map(g => [g.id, g.status, g.away_runs, g.home_runs]), S.rosters.length, [...S.myLogs]]);
+      const sig = JSON.stringify([S.games.map(g => [g.id, g.status, g.away_runs, g.home_runs]), S.rosters.length, [...S.myLogs], S.series, S.league.phase, S.league.champion_seat]);
       const first = !S.sig; if (sig === S.sig) return; S.sig = sig;
       if (first) { S.day = currentDay(); S.club = S.mySeat; }
       const day = currentDay(), ended = S.league.status === 'complete';
-      $('sub').textContent = `You're ${S.myName}. ` + (ended ? 'This league has ended.' : `Game day ${day} of 27, with a new one every ${hours() === 24 ? 'day' : hours() + ' hours'}.`);
+      $('sub').textContent = `You're ${S.myName}. ` + (ended ? (S.league.champion_seat ? `The season is over. Champions: ${name(S.league.champion_seat)}.` : 'This league has ended.') : S.league.phase === 'playoffs' ? `The playoffs are on. ${dayLabel(day)}, with a new game day every ${hours() === 24 ? 'day' : hours() + ' hours'}.` : `${dayLabel(day)}, with a new one every ${hours() === 24 ? 'day' : hours() + ' hours'}.`);
       $('tabs').hidden = false; render(); maybeFinishOverdue();
     } catch (e) { $('sub').textContent = 'We couldn\'t load the season. Please refresh the page.'; }
   }
 
   function render() {
     document.querySelectorAll('#tabs [data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === S.tab)));
-    $('main').innerHTML = S.tab === 'sched' ? schedule() : S.tab === 'stand' ? standings() : rosters();
+    $('main').innerHTML = S.tab === 'sched' ? schedule() : S.tab === 'stand' ? standings() : S.tab === 'po' ? playoffs() : rosters();
     bind();
   }
 
@@ -168,16 +180,16 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     const chip = day < cur ? ['done', 'Played'] : day === cur ? ['now', 'Today'] : ['soon', 'Coming up'];
     const list = games.map(g => {
       const [cls, txt] = stateOf(g), fin = g.status === 'final';
-      return `<li class="game${mine(g) ? ' mine' : ''}"><div class="teams"><b>${esc(name(g.away_seat))}</b><i>at</i><b>${esc(name(g.home_seat))}</b>${mine(g) ? '<span class="you">Your game</span>' : ''}</div>
+      return `<li class="game${mine(g) ? ' mine' : ''}"><div class="teams"><b>${esc(name(g.away_seat))}</b><i>at</i><b>${esc(name(g.home_seat))}</b>${mine(g) ? '<span class="you">Your game</span>' : ''}${g.round && g.round !== 'regular' ? `<span class="rd">${esc(roundLabel(g))}</span>` : ''}</div>
         <div class="side">${gameSide(g)}</div></li>`;
     }).join('');
-    const opts = Array.from({ length: 27 }, (_, i) => `<option value="${i + 1}"${i + 1 === day ? ' selected' : ''}>Game day ${i + 1}${i + 1 === cur ? ' (today)' : ''}</option>`).join('');
+    const opts = Array.from({ length: maxDay() }, (_, i) => `<option value="${i + 1}"${i + 1 === day ? ' selected' : ''}>${i + 1 > 27 ? 'Playoffs, day ' + (i + 1 - 27) : 'Game day ' + (i + 1)}${i + 1 === cur ? ' (today)' : ''}</option>`).join('');
     const rows = S.games.filter(mine).sort((a, b) => a.day - b.day).map(g => {
       const home = g.home_seat === S.mySeat, opp = home ? g.away_seat : g.home_seat, [cls, txt] = stateOf(g);
       const res = g.status === 'final' ? ((home ? g.home_runs > g.away_runs : g.away_runs > g.home_runs) ? 'W ' : 'L ') + (home ? g.home_runs : g.away_runs) + '-' + (home ? g.away_runs : g.home_runs) : txt;
-      return `<tr class="${g.day === cur ? 'cur' : ''}"><td>${g.day}</td><td>${home ? 'vs' : 'at'} ${esc(name(opp))}</td><td class="hide-sm">${fmt(g.opens_at)}</td><td class="num">${resCell(g, res)}</td></tr>`;
+      return `<tr class="${g.day === cur ? 'cur' : ''}"><td>${g.day}</td><td>${home ? 'vs' : 'at'} ${esc(name(opp))}${g.round && g.round !== 'regular' ? ` <span class="note">${esc(roundLabel(g))}</span>` : ''}</td><td class="hide-sm">${fmt(g.opens_at)}</td><td class="num">${resCell(g, res)}</td></tr>`;
     }).join('');
-    return `<section class="card" aria-label="Game day"><div class="daybar"><button class="nav" type="button" data-day="${day - 1}" ${day <= 1 ? 'disabled' : ''} aria-label="Previous game day">&#8249;</button><span class="title">Game day ${day} of 27</span><button class="nav" type="button" data-day="${day + 1}" ${day >= 27 ? 'disabled' : ''} aria-label="Next game day">&#8250;</button>
+    return `<section class="card" aria-label="Game day"><div class="daybar"><button class="nav" type="button" data-day="${day - 1}" ${day <= 1 ? 'disabled' : ''} aria-label="Previous game day">&#8249;</button><span class="title">${dayLabel(day)}</span><button class="nav" type="button" data-day="${day + 1}" ${day >= maxDay() ? 'disabled' : ''} aria-label="Next game day">&#8250;</button>
       <select id="daySel" aria-label="Jump to a game day">${opts}</select>${day !== cur ? '<button class="nav" type="button" data-day="' + cur + '" title="Jump to today" style="width:auto;padding:0 12px;font-size:15px">Today</button>' : ''}<span class="chip ${chip[0]}">${chip[1]}</span></div>
       ${first ? `<p class="when">Opens ${fmt(first.opens_at)}. Closes ${fmt(first.deadline_at)}.</p>` : ''}<ul class="games">${list}</ul></section>
       <section class="card" aria-label="Your schedule"><h2>Your schedule</h2><table><thead><tr><th>Day</th><th>Opponent</th><th class="hide-sm">Opens</th><th class="num">Result</th></tr></thead><tbody>${rows}</tbody></table></section>`;
@@ -185,17 +197,36 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
 
   function standings() {
     const t = new Map(S.board.map(b => [b.seat_no, { seat: b.seat_no, w: 0, l: 0, rs: 0, ra: 0 }]));
-    S.games.filter(g => g.status === 'final').forEach(g => {
+    S.games.filter(g => g.status === 'final' && regular(g)).forEach(g => {
       const a = t.get(g.away_seat), h = t.get(g.home_seat); if (!a || !h) return;
       a.rs += g.away_runs; a.ra += g.home_runs; h.rs += g.home_runs; h.ra += g.away_runs;
       if (g.away_runs > g.home_runs) { a.w++; h.l++; } else { h.w++; a.l++; }
     });
     const rows = [...t.values()].sort((x, y) => (y.w / Math.max(1, y.w + y.l)) - (x.w / Math.max(1, x.w + x.l)) || (y.rs - y.ra) - (x.rs - x.ra) || name(x.seat).localeCompare(name(y.seat)));
-    const played = S.games.some(g => g.status === 'final');
-    return `<section class="card" aria-label="Standings"><h2>Standings</h2>${played ? '' : '<p class="note">No games have been played yet, so everyone is 0 and 0.</p>'}<table><thead><tr><th>Club</th><th class="num">W</th><th class="num">L</th><th class="num">Pct</th><th class="num hide-sm">RS</th><th class="num hide-sm">RA</th><th class="num">Diff</th></tr></thead><tbody>${rows.map(r => {
+    const played = S.games.some(g => g.status === 'final' && regular(g)), inPO = S.league.playoff_seeds || rows.slice(0, 4).map(r => r.seat);
+    return `<section class="card" aria-label="Standings"><h2>Standings</h2>${played ? '' : '<p class="note">No games have been played yet, so everyone is 0 and 0.</p>'}<p class="note">The green bar marks the four clubs that ${S.league.playoff_seeds ? 'made' : 'would make'} the playoffs.</p><table><thead><tr><th>Club</th><th class="num">W</th><th class="num">L</th><th class="num">Pct</th><th class="num hide-sm">RS</th><th class="num hide-sm">RA</th><th class="num">Diff</th></tr></thead><tbody>${rows.map(r => {
       const n = r.w + r.l, pct = n ? (r.w / n).toFixed(3).replace(/^0/, '') : '.000', diff = r.rs - r.ra;
-      return `<tr class="${r.seat === S.mySeat ? 'me' : ''}"><td>${esc(name(r.seat))}</td><td class="num">${r.w}</td><td class="num">${r.l}</td><td class="num">${pct}</td><td class="num hide-sm">${r.rs}</td><td class="num hide-sm">${r.ra}</td><td class="num">${diff > 0 ? '+' : ''}${diff}</td></tr>`;
+      return `<tr class="${r.seat === S.mySeat ? 'me' : ''}${inPO.includes(r.seat) ? ' po' : ''}"><td>${esc(name(r.seat))}</td><td class="num">${r.w}</td><td class="num">${r.l}</td><td class="num">${pct}</td><td class="num hide-sm">${r.rs}</td><td class="num hide-sm">${r.ra}</td><td class="num">${diff > 0 ? '+' : ''}${diff}</td></tr>`;
     }).join('')}</tbody></table></section>`;
+  }
+
+  function playoffs() {
+    const L = S.league, seeds = L.playoff_seeds || [], seed = s => seeds.indexOf(s) + 1;
+    let html = `<section class="card" aria-label="Playoffs"><h2>Playoffs</h2>`;
+    if (L.champion_seat) html += `<p class="champ">Champions: ${esc(name(L.champion_seat))}</p>`;
+    html += `<p class="note">The top four clubs after 27 games make the playoffs. The semifinals are best of 3 (first seed against fourth, second against third), then the final is best of 5. The better seed hosts games 1, 3 and 5.</p>`;
+    if (!S.series.length) {
+      const left = S.games.filter(g => regular(g) && g.status !== 'final').length;
+      html += `<p>The playoffs begin when the regular season ends${left ? `, with ${left} game${left === 1 ? '' : 's'} still to play` : ''}. The standings page shows who is in the top four right now.</p>`;
+    }
+    html += [...S.series].sort((a, b) => a.series - b.series).map(sr => {
+      const games = S.games.filter(g => g.series === sr.series && g.round === sr.round).sort((a, b) => a.game_no - b.game_no), hi = name(sr.high_seat), lo = name(sr.low_seat);
+      const lead = sr.high_wins === sr.low_wins ? `Series tied ${sr.high_wins} to ${sr.low_wins}` : `${sr.high_wins > sr.low_wins ? hi : lo} leads ${Math.max(sr.high_wins, sr.low_wins)} to ${Math.min(sr.high_wins, sr.low_wins)}`;
+      const rec = sr.winner_seat ? `${name(sr.winner_seat)} won the series, ${Math.max(sr.high_wins, sr.low_wins)} to ${Math.min(sr.high_wins, sr.low_wins)}` : lead;
+      return `<div class="ser${sr.winner_seat ? ' done' : ''}"><h3>${sr.round === 'final' ? 'The final' : 'Semifinal'} <span class="note">(best of ${sr.best_of})</span></h3><div class="matchup"><b>${esc(hi)}</b> ${seed(sr.high_seat) ? `<span class="note">(seed ${seed(sr.high_seat)})</span>` : ''} against <b>${esc(lo)}</b> ${seed(sr.low_seat) ? `<span class="note">(seed ${seed(sr.low_seat)})</span>` : ''}</div><p class="rec">${esc(rec)}</p>
+        <ul>${games.map(g => `<li><span>Game ${g.game_no}: ${esc(name(g.away_seat))} at ${esc(name(g.home_seat))}</span><span>${gameSide(g)}</span></li>`).join('')}</ul></div>`;
+    }).join('');
+    return html + '</section>';
   }
 
   function rosters() {
@@ -210,7 +241,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   }
 
   function bind() {
-    document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { S.day = Math.max(1, Math.min(27, +b.dataset.day)); render(); });
+    document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { S.day = Math.max(1, Math.min(maxDay(), +b.dataset.day)); render(); });
     const ds = $('daySel'); if (ds) ds.onchange = () => { S.day = +ds.value; render(); };
     document.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => simGame(+b.dataset.sim, b));
     const cs = $('clubSel'); if (cs) cs.onchange = () => { S.club = +cs.value; render(); };

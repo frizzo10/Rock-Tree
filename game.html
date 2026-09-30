@@ -115,7 +115,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (!S.id) { setMsg('That game link isn\'t valid.'); return; }
     if (!c || !window.CC.user) { $('sub').textContent = 'Sign in to see this game.'; if (c) window.CC.requireSignIn('Sign in to see your game'); return; }
     try {
-      const gm = await c.from('games').select('id,league_id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs').eq('id', S.id);
+      const gm = await c.from('games').select('id,league_id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs,round,game_no').eq('id', S.id);
       S.game = gm.data && gm.data[0]; if (!S.game) { setMsg('We couldn\'t find that game, or you\'re not in that league.'); return; }
       const [seats, board, lg] = await Promise.all([c.from('seats').select('league_id,seat_no'), c.from('seat_board').select('seat_no,club_name').eq('league_id', S.game.league_id), c.from('game_logs').select('log,result,final').eq('game_id', S.id)]);
       const mine = (seats.data || []).find(s => s.league_id === S.game.league_id); S.mySeat = mine ? mine.seat_no : null; S.board = board.data || [];
@@ -188,7 +188,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   // ---------- drawing ----------
   function render() {
     const g = S.game; const sub = $('sub');
-    if (g) sub.textContent = `Game day ${g.day} of 27.` + (S.mode === 'ready' ? ` Open until ${fmt(g.deadline_at)}.` : '');
+    if (g) sub.textContent = (g.round && g.round !== 'regular' ? `${g.round === 'final' ? 'The final' : 'Semifinal'}, game ${g.game_no}.` : `Game day ${g.day} of 27.`) + (S.mode === 'ready' ? ` Open until ${fmt(g.deadline_at)}.` : '');
     else if (S.mode === 'msg') sub.textContent = '';
     const m = $('main');
     if (S.mode === 'msg') { m.innerHTML = `<section class="card"><p>${esc(S.msg)}</p><div class="row"><a class="btn alt" href="${g ? 'season.html?league=' + g.league_id : 'private.html'}">Back to the season</a></div></section>`; return; }
