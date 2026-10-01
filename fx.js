@@ -193,9 +193,17 @@
     for (const d of ds) for (let i = 0; i < d.length; i++) d[i] *= k;
     return buf;
   }
+  // The crowd is real overlapping voices (many different speakers saying ordinary fan chatter, mixed into a murmur, a roar and a few shouts).
+  function fetchBuf(a, url) { return fetch(url).then(r => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); }).then(b => new Promise((ok, no) => a.decodeAudioData(b, ok, no))); }
+  function loadCrowd() {
+    const a = audio(); if (!a) return Promise.reject(new Error('no audio'));
+    return Promise.all(['walla', 'roar', 'shout1', 'shout2', 'shout3', 'shout4', 'shout5'].map(n => fetchBuf(a, 'crowd/' + n + '.mp3')))
+      .then(([babble, roar, ...shouts]) => ({ babble: norm(babble, .1), roar: norm(roar, .1), shouts: shouts.map(s => norm(s, .08)) }));
+  }
   function prepCrowd() {
-    if (!crowdP) crowdP = Promise.all([renderBabble(), renderRoar(), renderShout(), renderShout(), renderShout(), renderShout()])
-      .then(([babble, roar, ...shouts]) => (crowd = { babble, roar, shouts })).catch(() => { crowdFailed = true; return null; });
+    if (!crowdP) crowdP = loadCrowd()
+      .catch(() => Promise.all([renderBabble(), renderRoar(), renderShout(), renderShout(), renderShout(), renderShout()]).then(([babble, roar, ...shouts]) => ({ babble, roar, shouts }))) // files missing: build synthetic voices instead
+      .then(c => (crowd = c)).catch(() => { crowdFailed = true; return null; });
     return crowdP;
   }
   function playBuf(buf, gain, delay, pan) {
@@ -232,6 +240,22 @@
     if (big) [.7, 1.6].forEach(d => playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], .45, d, rnd(-.8, .8)));
   }
 
+  // plays a buffer over and over, overlapping each pass with the next by a second or so (equal-power fade), so the loop point can't be heard
+  function startLoop(a, buf, dest) {
+    const dur = buf.duration, fade = Math.min(1.6, dur / 4), up = new Float32Array(32), down = new Float32Array(32);
+    for (let i = 0; i < 32; i++) { up[i] = Math.sin(i / 31 * Math.PI / 2); down[i] = Math.cos(i / 31 * Math.PI / 2); }
+    let live = [], timer = 0, stopped = false;
+    const spawn = at => {
+      const s = a.createBufferSource(), g = a.createGain(); s.buffer = buf; s.connect(g); g.connect(dest);
+      g.gain.setValueAtTime(0.0001, at); g.gain.setValueCurveAtTime(up, at, fade);
+      g.gain.setValueAtTime(1, at + dur - fade); g.gain.setValueCurveAtTime(down, at + dur - fade, fade);
+      s.start(at); live.push({ s, g }); s.onended = () => { live = live.filter(x => x.s !== s); };
+      const next = at + dur - fade; // start the next pass half a second before it is due
+      timer = setTimeout(() => { if (!stopped) spawn(next); }, Math.max(0, (next - a.currentTime - .5) * 1000));
+    };
+    spawn(a.currentTime + .05);
+    return { stop(t) { stopped = true; clearTimeout(timer); for (const x of live) { try { x.s.stop(t); } catch (e) {} } } };
+  }
   // ---------- ballpark ambience: a crowd murmur with the odd swell and shout (follows the Sound button) ----------
   let amb = null, ambWanted = false, ambTimer = 0;
   function startAmb() {
@@ -243,16 +267,15 @@
       const len = a.sampleRate * 8; buf = a.createBuffer(2, len, a.sampleRate);
       for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); let b0 = 0, b1 = 0, b2 = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; } }
     }
-    const level = crowd && crowd.babble ? .15 : .55;
-    const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
+    const level = crowd && crowd.babble ? .12 : .55;
     const bed = a.createGain(); bed.gain.value = 0.0001;
     const sway = a.createGain(); sway.gain.value = 1;
     const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .12; // slow breathing, like a crowd
     lfo.connect(lfoAmt); lfoAmt.connect(sway.gain);
-    src.connect(bed); bed.connect(sway); sway.connect(outNode || a.destination);
-    src.start(); lfo.start();
+    bed.connect(sway); sway.connect(outNode || a.destination);
+    const loop = startLoop(a, buf, bed); lfo.start();
     bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(level, a.currentTime + 2.5);
-    amb = { src, lfo, bed, level };
+    amb = { loop, lfo, bed, level };
     const swell = () => { // now and then the crowd rises: a murmur swell, sometimes a roar or a lone shout
       ambTimer = setTimeout(() => {
         if (!amb) return; const t = a.currentTime, big = Math.random() < .3;
@@ -272,7 +295,7 @@
   function stopAmb() {
     clearTimeout(ambTimer); clearTimeout(vendorTimer); if (!amb || !ac) { amb = null; return; }
     const m = amb, t = ac.currentTime; amb = null;
-    try { m.bed.gain.cancelScheduledValues(t); m.bed.gain.setValueAtTime(Math.max(.0001, m.bed.gain.value), t); m.bed.gain.linearRampToValueAtTime(.0001, t + .6); m.src.stop(t + .7); m.lfo.stop(t + .7); } catch (e) {}
+    try { m.bed.gain.cancelScheduledValues(t); m.bed.gain.setValueAtTime(Math.max(.0001, m.bed.gain.value), t); m.bed.gain.linearRampToValueAtTime(.0001, t + .6); m.loop.stop(t + .7); m.lfo.stop(t + .7); } catch (e) {}
   }
   document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else if (soundOn) ac.resume(); });
 
