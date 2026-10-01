@@ -1545,7 +1545,7 @@ body.war .dec { color: var(--wb-red); }
     const x = prep(p);
     const rows = x.card.map(r => `<li class="${GOOD.has(r.code) ? 'good' : ''}"><b>${r.lo === r.hi ? String(r.lo).padStart(2, '0') : `${String(r.lo).padStart(2, '0')}–${r.hi === 100 ? '00' : String(r.hi).padStart(2, '0')}`}</b><span>${r.label}</span></li>`).join('');
     const line = p.kind === 'H' ? `${f3(x.avg)} AVG, ${p.HR} HR, ${p.RBI} RBI, ${f3(x.obp)} OBP` : `${p.W}-${p.L}, ${x.era.toFixed(2)} ERA, ${p.SO} SO${p.SV >= 5 ? `, ${p.SV} SV` : ''}`;
-    return `<article class="vcard" style="--band:${band(p.fr)}"><div class="band"><small>${p.yr} ${esc(p.tm)}${p.legend ? ', legend' : ''}</small><h3>${esc(p.name)}</h3><p>${line}</p></div>
+    return `<article class="vcard" style="--band:${band(p.fr)}"><div class="band"><small>${p.yr} ${esc(p.tm)}${p.legend ? ', legend' : ''}</small><h3>${esc(p.name)}</h3><p>${line}</p>${D && D.cap ? `<p><b>${money(p.sal)}</b> salary &middot; <b>Runs+ ${Math.round(runs(p))}</b></p>` : ''}</div>
       <div class="body"><p class="note">${esc(p.note)}</p><ol class="rows">${rows}</ol></div></article>`;
   }
 
