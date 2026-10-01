@@ -1300,10 +1300,10 @@ body.war .dec { color: var(--wb-red); }
   // Glide down to the player pool when your clock starts, and back up to the roster once you've picked (phone and desktop).
   function glideTo(sel) { const el = document.querySelector(sel); if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); }
   const CLOCK_SECS = 60;
-  let clockEnd = 0, clockTimer = null, paused = false, clockLeftMs = 0;
+  let clockEnd = 0, clockTimer = null, paused = false, clockLeftMs = 0, scoutHold = false;
   const clockOn = () => D && D.clock !== false;
   const fmtClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  function stopClock() { clearInterval(clockTimer); clockTimer = null; clockEnd = 0; clockLeftMs = 0; }
+  function stopClock() { clearInterval(clockTimer); clockTimer = null; clockEnd = 0; clockLeftMs = 0; scoutHold = false; }
   function startClock() {
     stopClock();
     if (!clockOn() || D.done || whoPicks(D.pick) !== 'you' || busyCpu) return;
@@ -1314,18 +1314,29 @@ body.war .dec { color: var(--wb-red); }
   }
   function clockLeft() {
     if (clockEnd) return Math.max(0, Math.ceil((clockEnd - Date.now()) / 1000));
-    if (paused && clockLeftMs > 0) return Math.ceil(clockLeftMs / 1000);
+    if ((paused || scoutHold) && clockLeftMs > 0) return Math.ceil(clockLeftMs / 1000);
     return null;
   }
   // sleeps only count while the draft is running, so a pause freezes the computer's timers too
   function psleep(ms) { return new Promise(res => { let left = ms; const t = setInterval(() => { if (paused) return; left -= 100; if (left <= 0) { clearInterval(t); res(); } }, 100); }); }
+  // asking the scout freezes your pick clock; it runs again when you dismiss the advice, and your pick ends the turn
+  function freezeClock() {
+    if (!clockEnd || paused) return;
+    clockLeftMs = Math.max(0, clockEnd - Date.now()); clearInterval(clockTimer); clockTimer = null; clockEnd = 0; scoutHold = true;
+    tickClock();
+  }
+  function thawClock() {
+    if (!scoutHold) return;
+    scoutHold = false;
+    if (!paused && clockLeftMs > 0) { clockEnd = Date.now() + clockLeftMs; clockLeftMs = 0; clockTimer = setInterval(tickClock, 250); tickClock(); }
+  }
   function setPaused(v) {
     if (!D || D.done || v === paused) return;
     paused = v;
     if (paused) {
       if (clockEnd) { clockLeftMs = Math.max(0, clockEnd - Date.now()); clearInterval(clockTimer); clockTimer = null; clockEnd = 0; }
     } else if (clockLeftMs > 0) {
-      clockEnd = Date.now() + clockLeftMs; clockLeftMs = 0; clockTimer = setInterval(tickClock, 250);
+      scoutHold = false; clockEnd = Date.now() + clockLeftMs; clockLeftMs = 0; clockTimer = setInterval(tickClock, 250);
     }
     drawRoom();
     if (!paused) tickClock();
@@ -1484,12 +1495,12 @@ body.war .dec { color: var(--wb-red); }
 
   async function askScout() {
     if (D.done || whoPicks(D.pick) !== 'you' || busyCpu || scouting || paused) return;
-    scouting = true; $('scoutBtn').disabled = true;
+    scouting = true; $('scoutBtn').disabled = true; freezeClock();
     $('advice').innerHTML = '<div class="advice"><h3>Scouting the board…</h3><p>Checking who fits your open spots, who the computer needs, and what each pick does to your odds.</p></div>';
     await new Promise(r => setTimeout(r, 30));
     try { advice = scoutPick(); } catch (e) { advice = null; }
     scouting = false; $('scoutBtn').disabled = false;
-    if (!advice) { $('advice').innerHTML = '<div class="advice"><h3>No moves left</h3><p>Nobody left fits your open spots.</p></div>'; return; }
+    if (!advice) { $('advice').innerHTML = '<div class="advice"><h3>No moves left</h3><p>Nobody left fits your open spots.</p></div>'; thawClock(); return; }
     drawAdvice();
     aiVoice(advice);
   }
@@ -1525,7 +1536,7 @@ body.war .dec { color: var(--wb-red); }
       <div class="acts"><button class="btn btn-scout" id="takeTip">Draft ${esc(top.p.name.split(' ').slice(-1)[0])}</button><button class="btn btn-alt" id="readTip">Read his card</button><button class="btn btn-alt" id="hideTip">Dismiss</button></div></div>`;
     $('takeTip').onclick = () => { if (!canDraft(top.p, 'you')) { selSlot = top.s.id; draft(top.p, 'you'); } };
     $('readTip').onclick = () => { previewKey = top.p.key; drawPreview(); };
-    $('hideTip').onclick = () => { advice = null; drawAdvice(); };
+    $('hideTip').onclick = () => { advice = null; drawAdvice(); thawClock(); };
   }
   $('scoutBtn').onclick = askScout;
 
