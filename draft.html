@@ -1222,6 +1222,7 @@ body.war .dec { color: var(--wb-red); }
     const wrap = document.createElement('div'); wrap.className = 'howto';
     wrap.innerHTML = `<div class="howto-card" role="dialog" aria-modal="true" aria-labelledby="howtoT"><h2 id="howtoT">How the mock draft works</h2><div class="howto-body"><ul>
       <li><b>Take turns.</b> You and the computer pick one player at a time from the same pool. Every player you take is gone for the computer, and the other way around.</li>
+      <li><b>How long it takes.</b> 36 picks in all, 18 for you and 18 for the computer. A typical draft takes about 10 to 15 minutes. ${$('clockOpt').checked ? "With the pick clock on, it can't run past about 21 minutes, not counting pauses." : "The pick clock is off, so there's no time limit: take as long as you like."}</li>
       <li><b>Fill 18 spots:</b> 9 hitters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH), 5 starters and 4 relievers. Tap an open spot on the field to choose which one you're drafting for, then press Draft next to a player.</li>
       <li><b>Stay under the $${cap}M salary cap.</b> Every player has a price ($M) and a value (Runs+, the runs his season is worth over an average player). The gold cap bar shows your cap space left and drops with every pick.</li>
       ${$('clockOpt').checked ? '<li><b>Beat the clock.</b> You get 60 seconds per pick, and you can pause. If time runs out, the scout picks for you.</li>' : ''}
