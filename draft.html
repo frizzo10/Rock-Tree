@@ -607,6 +607,37 @@ body.war .dec { color: var(--wb-red); }
 .rc-table { max-width: 420px; }
 .rc-verdict { margin: 0 0 8px; line-height: 1.5; max-width: 70ch; }
 .rc-fine { margin: 0 0 4px; font-size: 13px; color: #5A6470; max-width: 70ch; }
+
+/* ---------- phones: the pool first, the field folded away, the clock and scout pinned below, the card as a bottom sheet ---------- */
+.teamsum, .dock, .pv-x { display: none; }
+@media (max-width: 700px) {
+  body.indraft { padding-bottom: calc(var(--dockH, 78px) + 14px); }
+  .room { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  .teamsum { display: flex; order: 0; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 54px; padding: 8px 14px; border: 2px solid var(--wb-frame); border-radius: 8px; background: var(--wb); color: #20262D; font: 500 16px/1.25 var(--text); text-align: left; cursor: pointer; }
+  .teamsum b { font-weight: 700; } .teamsum .chev { font-size: 20px; transition: transform .2s; flex: none; } .teamsum[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .room > .paper.wb { order: 1; display: none; }
+  .room.team-open > .paper.wb { display: block; }
+  .room > .pool { order: 2; display: flex; flex-direction: column; }
+  .pool .pool-head { order: 0; } .pool .tip { order: 1; } .pool #advice { order: 2; } .pool .laptop { order: 3; } .pool #report { order: 4; margin-top: 14px; } .pool #preview { order: 5; }
+  .laptop .ptools input, .laptop .ptools select { min-height: 46px; font-size: 16px; }
+  .sheet { max-height: 62vh; }
+  .sheet th, .sheet td { padding: 7px 4px; }
+  .sheet .btn-draft { min-height: 42px; padding: 8px 12px; font-size: 14px; font-weight: 700; }
+  .sheet td.nm button { display: block; padding: 6px 0; min-height: 40px; text-align: left; }
+  .sheet .star { min-width: 36px; min-height: 42px; font-size: 20px; }
+  .clockpill { display: none !important; }
+  .dock { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 36; align-items: center; gap: 10px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); background: #14213D; color: #FFD86B; box-shadow: 0 -4px 16px rgba(0, 0, 0, .38); }
+  .dock[hidden] { display: none; }
+  .dock .info { flex: 1; min-width: 0; font: 700 17px/1.15 var(--display); } .dock .info small { display: block; margin-top: 2px; font: 500 13px var(--text); color: #E6E9F2; }
+  .dock .info.hurry { color: #fff; animation: pillpulse .8s ease-in-out infinite; }
+  .dock .btn { min-height: 48px; padding: 8px 16px; font-size: 16px; white-space: nowrap; flex: none; }
+  .dock .btn[disabled] { opacity: .45; }
+  .dock .btn-alt { background: transparent; color: #FFD86B; border: 1.5px solid #FFD86B; padding: 8px 12px; }
+  #preview:not(:empty) { position: fixed; left: 0; right: 0; bottom: var(--dockH, 78px); z-index: 35; max-height: 64vh; overflow-y: auto; overscroll-behavior: contain; padding: 6px 10px 14px; background: #FBF5E3; border-top: 4px solid var(--wb-ink); border-radius: 14px 14px 0 0; box-shadow: 0 -12px 30px rgba(0, 0, 0, .4); }
+  #preview .pv-x { display: block; position: sticky; top: 0; margin: 0 0 0 auto; width: 44px; height: 44px; border: 0; border-radius: 22px; background: rgba(20, 33, 61, .85); color: #fff; font-size: 26px; line-height: 44px; cursor: pointer; z-index: 2; }
+  .vcard .vdraft .btn-draft { min-height: 54px; font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .dock .info.hurry { animation: none; } }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -1491,8 +1522,45 @@ body.war .dec { color: var(--wb-red); }
     pill.hidden = !yourTurn || seen || !parts.length;
     const html = parts.join(' <i>|</i> '); if (pill.dataset.k !== html) { pill.dataset.k = html; pill.innerHTML = html; }
     pill.classList.toggle('hurry', left != null && left <= 10 && !paused);
+    updateDock();
   }
   addEventListener('scroll', () => { if (D) updatePill(); }, { passive: true }); // also while the clock is frozen, paused or off
+
+  // ---------- phones: a folded team summary, a pinned clock-and-scout bar, and the player card as a bottom sheet ----------
+  const phone = () => matchMedia('(max-width: 700px)').matches;
+  function ensureDock() {
+    if ($('dock')) return;
+    const dock = document.createElement('div'); dock.id = 'dock'; dock.className = 'dock'; dock.hidden = true;
+    dock.innerHTML = '<div class="info" id="dockInfo" aria-live="off"></div><button class="btn btn-alt" id="dockNb" type="button">Notes</button><button class="btn btn-scout" id="dockScout" type="button">Ask the scout</button>';
+    document.body.appendChild(dock);
+    $('dockScout').onclick = () => { if ($('scoutBtn').disabled) return; Promise.resolve(askScout()).then(() => { const a = $('advice'); if (a && a.innerHTML.trim()) a.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); }); }; // bring the advice into view above the bar
+    $('dockNb').onclick = () => $('nbOpen').click();
+    const rm = document.querySelector('#room .room'), sum = document.createElement('button');
+    sum.id = 'teamSum'; sum.className = 'teamsum'; sum.type = 'button'; sum.setAttribute('aria-expanded', 'false');
+    const paper = rm.querySelector('.paper.wb'); if (paper) { paper.id = 'teamPaper'; sum.setAttribute('aria-controls', 'teamPaper'); }
+    rm.prepend(sum);
+    sum.onclick = () => { const open = !rm.classList.contains('team-open'); rm.classList.toggle('team-open', open); sum.setAttribute('aria-expanded', String(open)); };
+  }
+  function updateDock() {
+    ensureDock();
+    const dock = $('dock'), sum = $('teamSum'), live = !!D && !D.done && !$('room').hidden;
+    document.body.classList.toggle('indraft', live && phone()); dock.hidden = !live;
+    if (D) { // the summary stays right after the draft ends too, when the bar has gone
+      const mineNow = Object.keys(D.teams.you).length, label = `<span><b>Your team</b>: ${mineNow} of ${SLOTS.length} spots filled${D.cap ? ` &middot; ${money(Math.round((D.cap - payroll('you')) * 10) / 10)} left` : ''}</span><span class="chev" aria-hidden="true">&#9662;</span>`;
+      if (sum.dataset.k !== label) { sum.dataset.k = label; sum.innerHTML = label; }
+    }
+    if (!live) { document.documentElement.style.scrollPaddingBottom = ''; return; }
+    const left = clockLeft(), yourTurn = whoPicks(D.pick) === 'you' && !busyCpu;
+    const cap = D.cap ? `Cap left <b>${money(Math.round((D.cap - payroll('you')) * 10) / 10)}</b>` : '';
+    const line = yourTurn ? (left != null ? `${paused ? 'Paused' : 'On the clock'} ${fmtClock(left)}` : 'Your pick') : 'Computer is picking…';
+    const html = `${line}${cap ? `<small>${cap}</small>` : ''}`, info = $('dockInfo');
+    if (info.dataset.k !== html) { info.dataset.k = html; info.innerHTML = html; }
+    info.classList.toggle('hurry', yourTurn && left != null && left <= 10 && !paused);
+    $('dockScout').disabled = !yourTurn || $('scoutBtn').disabled;
+    document.documentElement.style.setProperty('--dockH', dock.offsetHeight + 'px');
+    document.documentElement.style.scrollPaddingBottom = phone() ? (dock.offsetHeight + 12) + 'px' : ''; // anything scrolled into view stops above the pinned bar
+  }
+  addEventListener('resize', () => { if (D) updateDock(); });
   // asking the scout freezes your pick clock; it runs again when you dismiss the advice, and your pick ends the turn
   function freezeClock() {
     if (!clockEnd || paused) return;
@@ -1828,9 +1896,10 @@ body.war .dec { color: var(--wb-red); }
 
   function drawPreview() {
     let p = previewKey && BY.get(previewKey);
-    if (!p) { const first = $('plist').querySelector('[data-prev]'); p = first && BY.get(first.dataset.prev); }
+    if (!p && !phone()) { const first = $('plist').querySelector('[data-prev]'); p = first && BY.get(first.dataset.prev); } // on a phone the card opens only when you tap a player
     $('preview').innerHTML = p ? vcard(p) : '';
     $('preview').querySelectorAll('[data-pdraft]').forEach(b => b.onclick = () => draft(BY.get(b.dataset.pdraft), 'you'));
+    if (p && phone()) { const x = document.createElement('button'); x.className = 'pv-x'; x.type = 'button'; x.setAttribute('aria-label', 'Close player card'); x.innerHTML = '&times;'; x.onclick = () => { previewKey = null; drawPool(); }; $('preview').prepend(x); $('preview').scrollTop = 0; }
   }
 
   function drawTicker() {
@@ -2030,6 +2099,7 @@ body.war .dec { color: var(--wb-red); }
     $('laptop').hidden = D.done; $('preview').hidden = D.done;
     const pb = $('pauseBtn'); pb.hidden = !!D.done; pb.textContent = paused ? 'Resume draft' : 'Pause'; pb.setAttribute('aria-pressed', String(paused));
     if (D.done) gradeDraft();
+    updateDock();
   }
 
   function enterRoom() {
