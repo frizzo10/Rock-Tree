@@ -88,11 +88,11 @@
     if (!ac) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { ac = new C(); } catch (e) { return null; } }
     if (ac.state === 'suspended') ac.resume(); return ac;
   }
-  function noise(dur, freq, peak, delay, type) {
+  function noise(dur, freq, peak, delay, type, attack) {
     const a = audio(); if (!a) return; const len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     const src = a.createBufferSource(); src.buffer = buf; const f = a.createBiquadFilter(); f.type = type || 'lowpass'; f.frequency.value = freq;
-    const g = a.createGain(), t0 = a.currentTime + (delay || 0); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(peak, t0 + Math.min(.02, dur / 4)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    const g = a.createGain(), t0 = a.currentTime + (delay || 0); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(peak, t0 + (attack != null ? attack : Math.min(.02, dur / 4))); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     src.connect(f); f.connect(g); g.connect(a.destination); src.start(t0);
   }
   const pop = () => noise(.12, rnd(2200, 4200), .12, 0, 'highpass');
@@ -145,6 +145,13 @@
   }
   document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else if (soundOn) ac.resume(); });
 
+  // walking into the park: a roar that builds, cheers and whistles on top, and scattered claps
+  function cheer() {
+    if (!soundOn || !audio()) return;
+    noise(4.8, 1500, .34, .15, 'lowpass', 1.8);
+    noise(3.8, 3400, .08, .9, 'bandpass', 1.4);
+    for (let i = 0; i < 18; i++) noise(.09, rnd(1800, 3800), .1, 1 + Math.random() * 3.2, 'highpass');
+  }
   function setSound(on) {
     soundOn = !!on; store.set('cc-sound2', soundOn ? '1' : '0');
     if (soundBtn) { soundBtn.setAttribute('aria-pressed', String(soundOn)); soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; }
@@ -181,6 +188,7 @@
   window.FX = {
     homeRun(o) { queue.push(o || {}); if (!flushT) flushT = setTimeout(flush, 0); }, // same-moment home runs become one celebration
     setSound,
+    cheer,
     ambience(on) { ambWanted = !!on; if (ambWanted) startAmb(); else stopAmb(); }, // ballpark crowd noise while a game is being played
     get soundOn() { return soundOn; },
   };

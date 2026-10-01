@@ -126,6 +126,37 @@ table.line { border-collapse: separate; border-spacing: 5px; min-width: 100%; }
 .lineups li.next em { color: var(--ink-soft); }
 .lineups .pit { margin: 6px 0 0; font-size: 14px; }
 .lineups .pit em { font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .04em; color: var(--ink-soft); margin-left: 4px; }
+/* coming up the tunnel into the ballpark */
+.bp { position: fixed; inset: 0; z-index: 9998; overflow: hidden; background: #0A0C0D; cursor: pointer; transition: opacity .55s ease; }
+.bp.out { opacity: 0; pointer-events: none; }
+.bp-scene { position: absolute; inset: 0; transform-origin: 50% 46%; animation: bpsettle 3.4s ease-out forwards; }
+@keyframes bpsettle { from { transform: scale(1.45); } to { transform: scale(1); } }
+.bp-sky { position: absolute; left: 0; right: 0; top: 0; height: 24%; background: linear-gradient(#5E9BE0, #CFE6FF); }
+.bp-sky i { position: absolute; width: 90px; height: 26px; border-radius: 20px; background: rgba(255, 255, 255, .85); box-shadow: 30px -10px 0 -4px rgba(255, 255, 255, .85); }
+.bp-stands { position: absolute; left: 0; right: 0; top: 22%; height: 45%; background: linear-gradient(#1F2740, #34406A 35%, #1F2740 36%, #34406A 68%, #1F2740 69%, #34406A); box-shadow: inset 0 8px 14px rgba(0, 0, 0, .5); }
+.bp-fan { position: absolute; width: 9px; height: 13px; border-radius: 5px 5px 2px 2px; background: linear-gradient(var(--s) 0 40%, var(--c) 40%); animation: bpjump .55s ease-in-out infinite alternate; animation-delay: var(--dl); }
+@keyframes bpjump { to { transform: translateY(-7px); } }
+.bp-flash { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px 3px rgba(255, 255, 255, .9); animation: bptwinkle 1.2s steps(2, start) infinite; animation-delay: var(--dl); }
+@keyframes bptwinkle { 50% { opacity: 0; } }
+.bp-wall { position: absolute; left: 0; right: 0; top: 66%; height: 4%; background: repeating-linear-gradient(90deg, #C8312B 0 14%, #F4F1E8 14% 28%, #2D5BB8 28% 42%, #F2B33D 42% 56%), #1E5A38; border-top: 3px solid #F2D23D; border-bottom: 3px solid #123A25; }
+.bp-field { position: absolute; left: 0; right: 0; top: 70%; bottom: 0; background: repeating-linear-gradient(90deg, #2F8F4E 0 9%, #3AA25B 9% 18%); }
+.bp-diamond { position: absolute; left: 50%; top: 22%; width: 150px; height: 150px; margin-left: -75px; background: #B98B5A; transform: rotate(45deg) scaleY(.55); border: 4px solid #F4F1E8; box-shadow: inset 0 0 0 26px #3AA25B; }
+.bp-banner { position: absolute; left: 0; right: 0; top: 30%; text-align: center; z-index: 5; pointer-events: none; color: #fff; text-shadow: 0 3px 0 #123A25, 0 6px 18px rgba(0, 0, 0, .6); opacity: 0; }
+.bp-banner b { display: block; font: 800 clamp(26px, 8.5vw, 46px)/1.05 var(--display); letter-spacing: .04em; }
+.bp-banner small { display: block; margin-top: 8px; font: 600 clamp(14px, 4.2vw, 19px) var(--display); color: #FFE9A0; }
+.bp-b1 { animation: bpb1 1.4s ease both 2.6s; }
+@keyframes bpb1 { 0% { opacity: 0; transform: translateY(14px); } 20%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.bp-b2 { animation: bpb2 .6s cubic-bezier(.2, 1.6, .4, 1) both 4.05s; }
+@keyframes bpb2 { 0% { opacity: 0; transform: scale(.4); } 100% { opacity: 1; transform: scale(1); } }
+.bp-b2 b { color: #FFD24A; font-size: clamp(38px, 13vw, 70px); }
+.bp-tunnel { position: absolute; left: 50%; top: 46%; width: 400vmax; height: 400vmax; margin: -200vmax 0 0 -200vmax; z-index: 3; pointer-events: none;
+  background: radial-gradient(circle closest-side, transparent 0, transparent 70px, #8A9094 74px, #3A3F42 120px, #15181A 220px, #0A0C0D 420px);
+  animation: bpdive 2.7s cubic-bezier(.55, .05, .85, .45) .35s forwards; }
+@keyframes bpdive { to { transform: scale(13); } }
+.bp-glow { position: absolute; inset: 0; z-index: 4; pointer-events: none; background: radial-gradient(circle at 50% 46%, #fff 0, rgba(255, 255, 255, .9) 6%, rgba(255, 255, 255, 0) 42%); animation: bpglow 2.6s ease-in .9s forwards; }
+@keyframes bpglow { 0% { opacity: .95; } 100% { opacity: 0; } }
+.bp-skip { position: absolute; left: 0; right: 0; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 6; text-align: center; color: rgba(255, 255, 255, .6); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .bp { display: none; } }
 .fieldview { margin: 0 auto 14px; max-width: 280px; }
 .fieldview svg { width: 100%; height: auto; display: block; }
 .fieldview .infield { fill: #2A4A3C; stroke: var(--dim); stroke-width: 1.5; }
@@ -1114,7 +1145,39 @@ body.war .dec { color: var(--wb-red); }
     $('tableArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  $('start').onclick = start;
+  // the first time you play ball: up the tunnel into the park, the crowd on its feet (tap to skip)
+  function crowdHtml() {
+    const shirts = ['#C8312B', '#F4F1E8', '#2D5BB8', '#F2B33D', '#2F8F57', '#E6E6E6'], skins = ['#F1C9A5', '#D9A07A', '#B97A56', '#8B5A3C', '#F6D5B8'];
+    const pick = a => a[Math.floor(Math.random() * a.length)];
+    let h = '';
+    for (const top of [3, 36, 69]) for (let r = 0; r < 6; r++) for (let x = 0; x < 30; x++) {
+      const left = x * 3.3 + (r % 2 ? 1.6 : 0) + Math.random() * .8, y = top + r * 4.9 + Math.random() * .6;
+      h += `<i class="bp-fan" style="left:${left.toFixed(1)}%;top:${y.toFixed(1)}%;--c:${pick(shirts)};--s:${pick(skins)};--dl:${(Math.random() * .6).toFixed(2)}s"></i>`;
+    }
+    for (let i = 0; i < 20; i++) h += `<i class="bp-flash" style="left:${(Math.random() * 96).toFixed(1)}%;top:${(4 + Math.random() * 90).toFixed(1)}%;--dl:${(Math.random() * 1.2).toFixed(2)}s"></i>`;
+    return h;
+  }
+  let entering = false;
+  function ballparkEntrance(done) {
+    if (entering) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { done(); return; }
+    entering = true;
+    if (window.FX && FX.cheer) FX.cheer(); // inside the tap, so the browser lets the roar play
+    const club = $('youSel').selectedOptions[0] ? $('youSel').selectedOptions[0].textContent : '';
+    const b = document.createElement('div'); b.className = 'bp'; b.setAttribute('aria-hidden', 'true');
+    b.innerHTML = `<div class="bp-scene"><div class="bp-sky"><i style="left:12%;top:22%"></i><i style="left:62%;top:48%"></i></div>
+        <div class="bp-stands">${crowdHtml()}</div><div class="bp-wall"></div><div class="bp-field"><div class="bp-diamond"></div></div></div>
+      <div class="bp-tunnel"></div><div class="bp-glow"></div>
+      <div class="bp-banner bp-b1"><b>WELCOME TO THE BALLPARK</b></div>
+      <div class="bp-banner bp-b2"><b>PLAY BALL!</b>${club ? `<small>You're managing the ${esc(club)}</small>` : ''}</div>
+      <div class="bp-skip">Tap to skip</div>`;
+    document.body.appendChild(b);
+    let finished = false, timer = 0;
+    const finish = () => { if (finished) return; finished = true; clearTimeout(timer); entering = false; done(); b.classList.add('out'); setTimeout(() => b.remove(), 650); };
+    timer = setTimeout(finish, 5300);
+    b.addEventListener('click', finish);
+  }
+  $('start').onclick = () => { if ($('start').textContent.trim() === 'Play ball') ballparkEntrance(start); else start(); };
   $('act').onclick = () => {
     if (busy) return;
     if (stage === 'duel') rollDuel();
