@@ -639,6 +639,9 @@ body.war .dec { color: var(--wb-red); }
   .dock .btn { min-height: 48px; padding: 8px 16px; font-size: 16px; white-space: nowrap; flex: none; }
   .dock .btn[disabled] { opacity: .45; }
   .dock .btn-alt { background: transparent; color: #FFD86B; border: 1.5px solid #FFD86B; padding: 8px 12px; }
+  .dock #dockDraft { flex: 1 1 auto; min-width: 0; min-height: 54px; padding: 8px 14px; font-size: 18px; font-weight: 800; background: #1E7B45; color: #fff; border: 0; overflow: hidden; text-overflow: ellipsis; }
+  #preview .vdraft { display: none; }  /* the bar carries the Draft button now */
+  body.cardopen .fx-sound { display: none !important; }  /* out of the way of the open card, back when it closes */
   #preview:not(:empty) { position: fixed; left: 0; right: 0; bottom: var(--dockH, 78px); z-index: 35; max-height: 64vh; overflow-y: auto; overscroll-behavior: contain; padding: 6px 10px 14px; background: #FBF5E3; border-top: 4px solid var(--wb-ink); border-radius: 14px 14px 0 0; box-shadow: 0 -12px 30px rgba(0, 0, 0, .4); }
   #preview .pv-x { display: block; position: sticky; top: 0; margin: 0 0 0 auto; width: 44px; height: 44px; border: 0; border-radius: 22px; background: rgba(20, 33, 61, .85); color: #fff; font-size: 26px; line-height: 44px; cursor: pointer; z-index: 2; }
   .vcard .vdraft .btn-draft { min-height: 54px; font-size: 18px; }
@@ -1538,9 +1541,10 @@ body.war .dec { color: var(--wb-red); }
   function ensureDock() {
     if ($('dock')) return;
     const dock = document.createElement('div'); dock.id = 'dock'; dock.className = 'dock'; dock.hidden = true;
-    dock.innerHTML = '<div class="info" id="dockInfo" aria-live="off"></div><button class="btn btn-alt" id="dockJump" type="button">Players &darr;</button><button class="btn btn-scout" id="dockScout" type="button">Ask the scout</button>';
+    dock.innerHTML = '<div class="info" id="dockInfo" aria-live="off"></div><button class="btn btn-alt" id="dockJump" type="button">Players &darr;</button><button class="btn btn-scout" id="dockScout" type="button">Ask the scout</button><button class="btn btn-draft" id="dockDraft" type="button" hidden>Draft</button>';
     document.body.appendChild(dock);
     $('dockScout').onclick = () => { if ($('scoutBtn').disabled) return; Promise.resolve(askScout()).then(() => { const a = $('advice'); if (a && a.innerHTML.trim()) a.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); }); }; // bring the advice into view above the bar
+    $('dockDraft').onclick = () => { const p = previewKey && BY.get(previewKey); if (p) draft(p, 'you'); };   // the same call the card's button makes
     $('dockJump').onclick = () => { // jump between your field and the players, whichever you are not looking at
       const rm = document.querySelector('#room .room'), pool = rm.querySelector('.pool'), onPool = pool.getBoundingClientRect().top < innerHeight * 0.55;
       const tgt = onPool ? (rm.classList.contains('team-closed') ? $('teamSum') : rm.querySelector('.paper.wb')) : pool.querySelector('.pool-head');
@@ -1561,7 +1565,7 @@ body.war .dec { color: var(--wb-red); }
       const mineNow = Object.keys(D.teams.you).length, label = `<span><b>Your team</b>: ${mineNow} of ${SLOTS.length} spots filled${D.cap ? ` &middot; ${money(Math.round((D.cap - payroll('you')) * 10) / 10)} left` : ''}</span><span class="chev" aria-hidden="true">&#9662;</span>`;
       if (sum.dataset.k !== label) { sum.dataset.k = label; sum.innerHTML = label; }
     }
-    if (!live) { document.documentElement.style.scrollPaddingBottom = ''; return; }
+    if (!live) { document.documentElement.style.scrollPaddingBottom = ''; document.body.classList.remove('cardopen'); return; }
     const left = clockLeft(), yourTurn = whoPicks(D.pick) === 'you' && !busyCpu;
     const cap = D.cap ? `Cap left <b>${money(Math.round((D.cap - payroll('you')) * 10) / 10)}</b>` : '';
     const line = yourTurn ? (left != null ? `${paused ? 'Paused' : 'On the clock'} ${fmtClock(left)}` : 'Your pick') : 'Computer is picking…';
@@ -1569,6 +1573,15 @@ body.war .dec { color: var(--wb-red); }
     if (info.dataset.k !== html) { info.dataset.k = html; info.innerHTML = html; }
     info.classList.toggle('hurry', yourTurn && left != null && left <= 10 && !paused);
     $('dockScout').disabled = !yourTurn || $('scoutBtn').disabled;
+    // a player's card is open: the bar becomes a single, large Draft button (disabled, with the reason, when it can't be done)
+    const card = phone() && previewKey ? BY.get(previewKey) : null, dd = $('dockDraft');
+    if (card) {
+      const yt = yourTurn && !paused, why = yt ? canDraft(card, 'you') : 'Wait for your pick';
+      dd.textContent = 'Draft ' + card.name; dd.disabled = !!why;
+      const small = why ? `<small>${esc(why)}</small>` : (cap ? `<small>${cap}</small>` : ''), h2 = `${line}${small}`;
+      if (info.dataset.k !== h2) { info.dataset.k = h2; info.innerHTML = h2; }
+    }
+    dd.hidden = !card; $('dockJump').hidden = !!card; $('dockScout').hidden = !!card; document.body.classList.toggle('cardopen', !!card);
     const poolEl = document.querySelector('#room .room .pool'), jump = $('dockJump');
     if (poolEl && jump) { const lab = poolEl.getBoundingClientRect().top < innerHeight * 0.55 ? 'Team \u2191' : 'Players \u2193'; if (jump.textContent !== lab) jump.textContent = lab; }
     document.documentElement.style.setProperty('--dockH', dock.offsetHeight + 'px');
@@ -1913,6 +1926,7 @@ body.war .dec { color: var(--wb-red); }
     if (!p && !phone()) { const first = $('plist').querySelector('[data-prev]'); p = first && BY.get(first.dataset.prev); } // on a phone the card opens only when you tap a player
     $('preview').innerHTML = p ? vcard(p) : '';
     $('preview').querySelectorAll('[data-pdraft]').forEach(b => b.onclick = () => draft(BY.get(b.dataset.pdraft), 'you'));
+    updateDock();
     if (p && phone()) { const x = document.createElement('button'); x.className = 'pv-x'; x.type = 'button'; x.setAttribute('aria-label', 'Close player card'); x.innerHTML = '&times;'; x.onclick = () => { previewKey = null; drawPool(); }; $('preview').prepend(x); $('preview').scrollTop = 0; }
   }
 
