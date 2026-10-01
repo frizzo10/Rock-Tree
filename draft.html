@@ -323,6 +323,11 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
 .wb-banner.clock.hurry, .tclock.hurry { color: var(--wb-red); animation: hurry .8s steps(2, start) infinite; }
 @keyframes hurry { to { visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) { .wb-banner.clock.hurry, .tclock.hurry { animation: none; } }
+.clockpill { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 30; padding: 9px 18px; border-radius: 24px; background: #14213D; color: #FFD86B; font: 700 20px/1 var(--display); box-shadow: 0 4px 14px rgba(0, 0, 0, .35); white-space: nowrap; pointer-events: none; }
+.clockpill[hidden] { display: none; }
+.clockpill.hurry { background: #B3261E; color: #fff; animation: pillpulse .8s ease-in-out infinite; }
+@keyframes pillpulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .clockpill.hurry { animation: none; } }
 .tclock { font: 400 22px var(--marker); color: var(--wb-ink); margin-left: 8px; vertical-align: -2px; }
 .clockopt { display: flex; align-items: center; gap: 8px; font-size: 15px; margin-top: 12px; }
 .clockopt input { width: 18px; height: 18px; accent-color: var(--wb-ink); }
@@ -1309,7 +1314,7 @@ body.war .dec { color: var(--wb-red); }
   let clockEnd = 0, clockTimer = null, paused = false, clockLeftMs = 0, scoutHold = false;
   const clockOn = () => D && D.clock !== false;
   const fmtClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  function stopClock() { clearInterval(clockTimer); clockTimer = null; clockEnd = 0; clockLeftMs = 0; scoutHold = false; }
+  function stopClock() { clearInterval(clockTimer); clockTimer = null; clockEnd = 0; clockLeftMs = 0; scoutHold = false; const pl = $('clockPill'); if (pl) pl.hidden = true; }
   function startClock() {
     stopClock();
     if (!clockOn() || D.done || whoPicks(D.pick) !== 'you' || busyCpu) return;
@@ -1325,6 +1330,16 @@ body.war .dec { color: var(--wb-red); }
   }
   // sleeps only count while the draft is running, so a pause freezes the computer's timers too
   function psleep(ms) { return new Promise(res => { let left = ms; const t = setInterval(() => { if (paused) return; left -= 100; if (left <= 0) { clearInterval(t); res(); } }, 100); }); }
+  // a floating timer so you can see your time while you scroll down to pick; it only shows when the clock banner is off screen
+  function updatePill() {
+    let pill = $('clockPill');
+    if (!pill) { pill = document.createElement('div'); pill.id = 'clockPill'; pill.className = 'clockpill'; pill.setAttribute('aria-hidden', 'true'); pill.hidden = true; document.body.appendChild(pill); }
+    const left = clockLeft(), b = $('clockBanner'), r = b && b.getBoundingClientRect();
+    const bannerSeen = !!r && r.bottom > 0 && r.top < innerHeight;
+    pill.hidden = left == null || bannerSeen || !D || D.done || $('room').hidden;
+    if (left != null) { pill.textContent = `${paused ? 'Paused' : 'On the clock'} ${fmtClock(left)}`; pill.classList.toggle('hurry', left <= 10 && !paused); }
+  }
+  addEventListener('scroll', () => { if (D && clockLeft() != null) updatePill(); }, { passive: true }); // also while the clock is frozen or paused
   // asking the scout freezes your pick clock; it runs again when you dismiss the advice, and your pick ends the turn
   function freezeClock() {
     if (!clockEnd || paused) return;
@@ -1344,7 +1359,7 @@ body.war .dec { color: var(--wb-red); }
     } else if (clockLeftMs > 0) {
       scoutHold = false; clockEnd = Date.now() + clockLeftMs; clockLeftMs = 0; clockTimer = setInterval(tickClock, 250);
     }
-    drawRoom();
+    drawRoom(); updatePill();
     if (!paused) tickClock();
   }
   function tickClock() {
@@ -1354,6 +1369,7 @@ body.war .dec { color: var(--wb-red); }
       el.textContent = id === 'clockBanner' ? `On the clock: ${fmtClock(left)}` : fmtClock(left);
       el.classList.toggle('hurry', left <= 10);
     }
+    updatePill();
     if (left === 0) timeExpired();
   }
   function timeExpired() {
