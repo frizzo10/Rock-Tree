@@ -66,6 +66,7 @@ button { font: inherit; }
 .feed li.p { padding: 7px 4px; border-bottom: 1px solid #E8EBED; }
 .feed li.p b { font-weight: 600; } .feed .d { display: block; font-size: 12.5px; color: #6B747D; }
 .feed li.hr b { color: var(--wb-red); } .feed li.chg { color: #4A5560; font-style: italic; padding: 5px 4px; }
+.feedhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; } .feedhead h2 { margin: 0; } .feedhead .btn { min-height: 44px; padding: 8px 16px; }
 .final { text-align: center; }
 .final .big-score { font: 400 clamp(30px, 6vw, 46px)/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 4px; }
 table.box { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 6px 0 14px; }
@@ -75,6 +76,16 @@ h3.tm { font: 400 19px var(--marker); color: var(--wb-ink); margin: 14px 0 0; }
 .card select { padding: 10px 12px; border: 1.5px solid #8C959E; border-radius: 4px; min-height: 46px; max-width: 100%; background: #fff; color: #1B1F24; font: inherit; }
 footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
 @media (max-width: 640px) { .wb { padding: 16px 18px; } .card { padding: 14px 14px; } .die b { font-size: 34px; } .die small { font-size: 11.5px; } .sit { grid-template-columns: 1fr; } .hide-sm { display: none; } }
+
+/* ---------- phones: a nine-inning line score fits without sliding sideways; extra innings slide with the club name staying put ---------- */
+@media (max-width: 640px) {
+  .ls { font-size: 13.5px; }
+  .ls th { padding: 5px 1px; font-size: 10.5px; letter-spacing: 0; }
+  .ls td { padding: 7px 1px; min-width: 0; }
+  .ls td.team, .ls th.team { max-width: 66px; overflow: hidden; text-overflow: ellipsis; padding-right: 5px; position: sticky; left: 0; z-index: 1; background: var(--wb); }
+  .ls td.tot { padding-left: 3px; padding-right: 2px; }
+  .ls td.now { box-shadow: inset 0 0 0 1.5px #E1B62E; }
+}
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -236,7 +247,8 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
       <section class="card" id="rollcard"><div class="sit" id="sit"></div>
         <div class="dice" id="dice" aria-live="polite"></div><p class="dnote" id="dnote"></p><p class="result" id="result"></p>
         <div class="row" id="ctl"></div></section>
-      <section class="card"><h2>Play by play</h2><ul class="feed" id="feed"></ul></section><section class="card final" id="fin" hidden></section>`;
+      <section class="card final" id="fin" hidden></section>
+      <section class="card" id="feedCard"><div class="feedhead"><h2>Play by play</h2><button class="btn alt" id="feedToggle" type="button" aria-controls="feed"></button></div><ul class="feed" id="feed"></ul></section>`;
     updateAll();
   }
   function updateAll() { updateBoard(); updateSituation(); updateDice(); updateControls(); updateFeed(); updateFinal(); const rc = $('rollcard'); if (rc) rc.hidden = S.idx >= S.log.length && !S.dice; }
@@ -276,8 +288,13 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     el.innerHTML = left > 0 ? `<button class="btn big" id="bRoll" ${off ? 'disabled' : ''}>Roll the dice</button><button class="btn alt" id="bHalf" ${off ? 'disabled' : ''}>Play out this half-inning</button><button class="btn alt" id="bSkip" ${off ? 'disabled' : ''}>Skip to the final</button>` : '';
     if (left > 0) { $('bRoll').onclick = rollNext; $('bHalf').onclick = playHalf; $('bSkip').onclick = skipAll; }
   }
+  const feedOpen = () => S.feedUser !== undefined ? S.feedUser : S.idx < S.log.length;   // open while you roll, folded once it's over, unless you choose
   function updateFeed() {
     const el = $('feed'); if (!el) return; let html = '', last = '';
+    const open = feedOpen(), tg = $('feedToggle');
+    el.hidden = !open;
+    if (tg) { tg.textContent = open ? 'Hide play-by-play' : `Show all ${S.log.length} plays`; tg.setAttribute('aria-expanded', String(open)); tg.onclick = () => { S.feedUser = !feedOpen(); updateFeed(); }; }
+    if (!open) { el.innerHTML = ''; return; }
     for (let i = S.idx - 1; i >= 0; i--) {
       const p = S.log[i], k = p.inning + '-' + p.half, nextKey = i > 0 ? S.log[i - 1].inning + '-' + S.log[i - 1].half : null;
       html += `<li class="p${p.code === 'HR' ? ' hr' : ''}"><b>${esc(p.txt)}</b>${p.scored ? ` <span class="note">Score: ${esc(name(S.game.away_seat))} ${p.score[0]}, ${esc(name(S.game.home_seat))} ${p.score[1]}.</span>` : ''}<span class="d">${esc(p.batter)} d20 ${p.bat}, ${esc(p.pitcher)} d20 ${p.pit}, ${p.owner === 'batter' ? 'batter' : 'pitcher'}'s card, roll ${p.roll}</span></li>`;
@@ -303,6 +320,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
       <div class="row" style="justify-content:center"><a class="btn" href="season.html?league=${g.league_id}">Back to the season</a></div>
       <div style="text-align:left"><h2 style="margin-top:20px">Box score</h2>${boxTable(R, 0)}${boxTable(R, 1)}</div>`;
     const rb = $('retry'); if (rb) rb.onclick = finish;
+    if (S.mode === 'playing' && !S.finalSeen) { S.finalSeen = true; requestAnimationFrame(() => el.scrollIntoView({ behavior: S.reduce ? 'auto' : 'smooth', block: 'start' })); }
   }
 
   window.addEventListener('cc-auth', () => load());
