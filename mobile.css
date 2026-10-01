@@ -1,0 +1,46 @@
+/* Phones: comfortable tap targets and readable text.
+   Loaded last on every page. Nothing here applies on screens wider than 700px. */
+@media (max-width: 700px) {
+
+  /* the strip across the top of every page, and the account widget */
+  .crumbs a:not(.badge) { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; margin: 0 -4px; }
+  .crumbs .badge { flex: none; min-width: 44px; min-height: 44px; }
+  .acct .lnk, .acct .go { min-height: 44px !important; padding: 10px 12px !important; }
+  .acct input { min-height: 44px; font-size: 16px; }
+
+  /* buttons, tabs, and the footer links */
+  .btn, a.btn, button.btn { min-height: 44px; }
+  .tab, button.tab, .tab.pos { min-height: 44px !important; }
+  .tab.pos { min-width: 44px; padding-inline: 8px; }
+  #mgrLink { display: inline-flex; align-items: center; min-height: 44px; }
+  #tabs a { display: inline-flex; align-items: center; min-height: 44px; }
+  button.x { min-width: 44px; min-height: 44px; }
+  footer a[href="terms.html"], footer a[href="privacy.html"], footer a[href="#top"] { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; }
+
+  /* form controls, and the labels that carry a checkbox or radio button */
+  select, input[type="text"], input[type="search"], input[type="email"], input[type="number"], input:not([type]), textarea { min-height: 44px !important; font-size: 16px; }
+  input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; flex: none; }
+  label.check, label.choice, label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { min-height: 44px; align-items: center; }
+
+  /* disclosure rows, link-style buttons, the contents lists on the legal pages, and result links inside tables */
+  summary { padding-block: 12px; }
+  .linkbtn { min-height: 44px; }
+  .toc a { display: inline-block; padding: 14px 0; }
+  td a { display: inline-block; padding: 14px 6px; }
+
+  /* the draft: pool buttons, stars and field spots */
+  .sheet .btn-draft { min-height: 44px; }
+  .sheet .star, .star { min-width: 44px !important; min-height: 44px !important; }
+  .sheettabs button { min-height: 44px; }
+  .sheet thead th button { min-height: 44px; }
+  .spot, .staff .spot { min-height: 44px; }
+  body.indraft .fx-sound { bottom: calc(var(--dockH, 78px) + 12px) !important; }  /* the sound button rides above the pinned bar */
+
+  /* the quick game's controls: the club picker gets the full width instead of being squeezed to two characters */
+  .setup.simple { flex-wrap: wrap; }
+  .setup.simple .field { flex: 1 1 100%; }
+  .setup.simple .btn { flex: 1 1 140px; text-align: center; justify-content: center; }
+
+  /* nothing smaller than 12px */
+  .card .stats small, .spot .pl, .steal, .sheet .lock, .legend, .lineups li em, .lineups .pit em, .ls th { font-size: 12px !important; }
+}

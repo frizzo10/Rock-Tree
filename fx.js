@@ -315,6 +315,7 @@
   }
   function mountSoundButton() {
     if (soundBtn || !document.body) return;
+    ensureStyle(); // the button needs its stylesheet from the start, not only after the first home run
     soundBtn = document.createElement('button'); soundBtn.type = 'button'; soundBtn.className = 'fx-sound'; soundBtn.setAttribute('aria-label', 'Home run sound effects');
     soundBtn.onclick = () => setSound(!soundOn); document.body.appendChild(soundBtn); setSound(soundOn);
   }
