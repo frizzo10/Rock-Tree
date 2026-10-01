@@ -100,6 +100,23 @@ table.line { border-collapse: separate; border-spacing: 5px; min-width: 100%; }
 .pct { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 8px; }
 .pct .total { font: 800 40px/1 var(--display); color: var(--lamp); min-width: 70px; text-align: left; }
 .pct .total:empty { display: none; }
+.lineups { margin: 14px 0; }
+.lineups h2 { margin: 0 0 8px; font: 700 20px var(--display); }
+.lineups .lu { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.lineups .team h3 { margin: 0 0 6px; font: 700 16px var(--display); display: flex; flex-direction: column; }
+.lineups .team h3 small { font-weight: 400; font-size: 12.5px; color: var(--ink-soft); font-family: inherit; }
+.lineups ol { list-style: none; margin: 0; padding: 0; }
+.lineups li { display: grid; grid-template-columns: 16px 1fr 24px 36px; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 4px; font-size: 14px; border-bottom: 1px solid var(--rule); }
+.lineups li .n, .lineups li .ps { color: var(--ink-soft); font-size: 12px; }
+.lineups li .ps { text-align: center; }
+.lineups li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lineups li em { font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-align: right; }
+.lineups li.up { background: var(--lamp); color: #14213D; font-weight: 700; }
+.lineups li.up .n, .lineups li.up .ps { color: inherit; }
+.lineups li.deck { background: rgba(242, 179, 61, .25); }
+.lineups li.next em { color: var(--ink-soft); }
+.lineups .pit { margin: 6px 0 0; font-size: 14px; }
+.lineups .pit em { font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .04em; color: var(--ink-soft); margin-left: 4px; }
 .fieldview { margin: 0 auto 14px; max-width: 280px; }
 .fieldview svg { width: 100%; height: auto; display: block; }
 .fieldview .infield { fill: #2A4A3C; stroke: var(--dim); stroke-width: 1.5; }
@@ -295,6 +312,8 @@ body.war .dec { color: var(--wb-red); }
     </section>
     <article class="card" id="pitCard" aria-label="Pitcher card"></article>
   </div>
+
+  <section class="paper lineups" id="lineups" aria-label="Batting orders" hidden></section>
 
   <div class="panels">
     <section class="paper" aria-label="Play-by-play">
@@ -894,6 +913,21 @@ body.war .dec { color: var(--wb-red); }
     $('pitCard').classList.toggle('owner', ownerSide === 'pitcher');
   }
 
+  // both batting orders: who is up and on deck for the team at bat, who leads off next for the team in the field, and each pitcher
+  function drawLineups() {
+    const el = $('lineups'); if (!g || g.over) { el.hidden = true; return; }
+    el.hidden = false;
+    const col = i => {
+      const s = g.teams[i], t = s.t, batting = g.half === i, cur = s.idx % 9;
+      const rows = t.order.map((b, k) => {
+        const tag = batting ? (k === cur ? 'UP' : k === (cur + 1) % 9 ? 'DECK' : '') : (k === cur ? 'NEXT' : '');
+        return `<li class="${tag === 'UP' ? 'up' : tag === 'DECK' ? 'deck' : tag === 'NEXT' ? 'next' : ''}"><span class="n">${k + 1}</span><span class="nm">${esc(b.short)}</span><span class="ps">${esc(String(b.fpos || '').toUpperCase())}</span><em>${tag}</em></li>`;
+      }).join('');
+      return `<div class="team"><h3>${i === you ? 'Your lineup' : 'Computer'}<small>${esc(t.year ? t.year + ' ' : '')}${esc(t.nick)}</small></h3><ol>${rows}</ol><p class="pit"><b>P</b> ${esc(s.pitcher.short)}${batting ? '' : '<em>ON MOUND</em>'}</p></div>`;
+    };
+    el.innerHTML = `<h2>Batting orders</h2><div class="lu">${col(you)}${col(1 - you)}</div>`;
+  }
+
   function prompt() {
     if (g.over) return endGame();
     const youBat = g.half === you, b = g.batter(), p = g.pitcher();
@@ -905,7 +939,7 @@ body.war .dec { color: var(--wb-red); }
     $('dieBat').classList.toggle('you', youBat); $('diePit').classList.toggle('you', !youBat);
     $('dw0').querySelector('span').textContent = youBat ? 'You' : 'Computer';
     $('dw1').querySelector('span').textContent = youBat ? 'Computer' : 'You';
-    drawCards(null); drawField(); drawLine(); drawStatus();
+    drawCards(null); drawField(); drawLine(); drawStatus(); drawLineups();
   }
 
   async function tumble(el, max, final, fmt = x => x) {
@@ -985,7 +1019,7 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function endGame() {
-    if (window.FX) FX.ambience(false);
+    if (window.FX) FX.ambience(false); $('lineups').hidden = true;
     drawLine(); drawStatus();
     const [a, h] = g.teams, w = g.teams[g.winner], l = g.teams[1 - g.winner];
     const fin = document.createElement('p'); fin.className = 'final';
