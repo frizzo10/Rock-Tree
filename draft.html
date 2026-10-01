@@ -1184,7 +1184,7 @@ body.war .dec { color: var(--wb-red); }
   // ---------- draft state ----------
   let D = store.get('gts-draft', null);
   const save = () => store.set('gts-draft', D);
-  let mode = 'classic', view = 'you', selSlot = null, previewKey = null, fresh = null, busyCpu = false;
+  let mode = 'payroll', view = 'you', selSlot = null, previewKey = null, fresh = null, busyCpu = false;
 
   function poolFor(m, param) {
     let list;
@@ -1853,7 +1853,7 @@ body.war .dec { color: var(--wb-red); }
   // ---------- setup ----------
   function drawSetup() {
     const pr = progress();
-    $('modes').innerHTML = MODES.map(m => `<button class="mode" data-mode="${m.id}" aria-pressed="${mode === m.id}"><h3>${m.name}</h3><p>${m.desc}</p>${pr.cleared[m.id] ? '<span class="done">Challenge won</span>' : ''}</button>`).join('');
+    $('modes').innerHTML = MODES.filter(m => m.id === 'payroll').map(m => `<button class="mode" data-mode="${m.id}" aria-pressed="${mode === m.id}"><h3>${m.name}</h3><p>${m.desc}</p>${pr.cleared[m.id] ? '<span class="done">Challenge won</span>' : ''}</button>`).join('');
     $('modes').querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { mode = b.dataset.mode; drawSetup(); });
     $('decadeField').hidden = mode !== 'decade'; $('franchField').hidden = mode !== 'franchise';
     const nLeg = ALL.filter(p => p.legend).length;
