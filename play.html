@@ -841,7 +841,7 @@ body.war .dec { color: var(--wb-red); }
   let cpuKey = null;
   $('youSel').onchange = () => { if (!g || g.over) { cpuKey = null; drawLine(); } };
 
-  let g = null, you = 1, busy = false, stage = 'duel', duelWinner = null, lastHalfKey = '';
+  let advTok = 0, g = null, you = 1, busy = false, stage = 'duel', duelWinner = null, lastHalfKey = '';
 
   function pairing() {
     const y = byKey($('youSel').value);
@@ -1013,8 +1013,15 @@ body.war .dec { color: var(--wb-red); }
     $('result').textContent = play.txt; $('result').className = 'result' + (play.scored ? ' scored' : '');
     drawField(play); drawLine(); drawStatus();
     if (g.over || play.outs >= 3) boxScore();
-    $('act').textContent = g.over ? 'See the final' : 'Next batter';
-    $('act').disabled = false; stage = 'next'; busy = false;
+    // no Next batter button: let the result sink in, then the next batter (or the final) comes up on its own
+    $('act').textContent = '…'; $('act').disabled = true; stage = 'next'; busy = true;
+    $('hint').textContent = g.over ? 'And that\'s the game.' : 'Next batter coming up…';
+    const tok = ++advTok;
+    await new Promise(r => setTimeout(r, 2400)); // a real pause, even with reduced motion
+    if (tok !== advTok) return; // a new game or an auto-roll took over
+    busy = false;
+    ['dieBat', 'diePit', 'tens', 'ones'].forEach(id => $(id).textContent = '–'); $('pctTotal').textContent = ''; $('result').textContent = '';
+    prompt();
   }
 
   function logPlay(play, note) {
@@ -1091,6 +1098,7 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function start() {
+    advTok++; busy = false;
     const mine = $('youSel').value, others = teams.filter(t => t.key !== mine);
     cpuKey = others[Math.floor(Math.random() * others.length)].key;
     const [a, h] = pairing(); you = 1;
