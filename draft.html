@@ -249,6 +249,11 @@ footer p { margin: 0 0 6px; }
 .vcard .band small { font-size: 12px; opacity: .85; }
 .vcard .band h3 { font: 800 26px/1 var(--display); margin: 2px 0 2px; }
 .vcard .band p { margin: 0; font-size: 13px; opacity: .9; }
+.steal { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: #D8392B; color: #fff; font-weight: 700; font-size: 10.5px; line-height: 1.4; letter-spacing: .06em; vertical-align: 2px; animation: stealflash .7s steps(2, start) infinite; }
+@keyframes stealflash { to { background: #F2B33D; color: #14213D; } }
+.sheet tr.stealrow td.nm { animation: stealrow 1.4s ease-in-out infinite; }
+@keyframes stealrow { 50% { background: #FFF1A6; } }
+@media (prefers-reduced-motion: reduce) { .steal { animation: none; } .sheet tr.stealrow td.nm { animation: none; background: #FFF1A6; } }
 .vcard .vdraft { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px 0; }
 .vcard .vdraft .btn-draft { flex: 1 1 200px; padding: 11px 18px; font-size: 16px; font-weight: 700; background: var(--wb-green); color: #fff; }
 .vcard .vdraft .btn-draft:hover { background: #17633A; }
@@ -1186,6 +1191,27 @@ body.war .dec { color: var(--wb-red); }
   // ---------- pool ----------
   const ALL = POOL.players.map(p => ({ ...p, lgRates: POOL.leagues[p.lg], key: `${p.id}-${p.yr}` }));
   const BY = new Map(ALL.map(p => [p.key, p]));
+  // A "steal" is priced well below what his season is worth. Value is measured from his stats (standard run values for each
+  // outcome, against his own league), then compared with the salary that value normally earns for his role.
+  const STEAL = (() => {
+    const W = { BB: .33, HBP: .35, S: .47, '2B': .77, '3B': 1.04, HR: 1.4 };
+    const val = p => {
+      const lg = p.lgRates;
+      if (p.kind === 'H') { const ev = { BB: p.BB, HBP: p.HBP, S: p.S, '2B': p.D, '3B': p.T, HR: p.HR }; return 600 * Object.keys(W).reduce((s, k) => s + W[k] * (ev[k] / p.PA - lg[k]), 0); }
+      const hit = lg.S + lg['2B'] + lg['3B'], xb = (lg['2B'] * W['2B'] + lg['3B'] * W['3B'] + lg.S * W.S) / hit;
+      return -p.BF * (W.BB * (p.BB / p.BF - lg.BB) + W.HBP * (p.HBP / p.BF - lg.HBP) + xb * ((p.H - p.HR) / p.BF - hit) + W.HR * (p.HR / p.BF - lg.HR));
+    };
+    const groups = new Map(), out = new Map();
+    for (const p of ALL) { const g = p.kind === 'H' ? 'H' : p.role; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(p); }
+    for (const ps of groups.values()) {
+      const xs = ps.map(val), n = ps.length, mx = xs.reduce((a, b) => a + b, 0) / n, my = ps.reduce((a, p) => a + p.sal, 0) / n;
+      let sxy = 0, sxx = 0; ps.forEach((p, i) => { sxy += (xs[i] - mx) * (p.sal - my); sxx += (xs[i] - mx) ** 2; });
+      const b = sxy / sxx, a = my - b * mx;
+      ps.forEach((p, i) => { const gap = a + b * xs[i] - p.sal; if (gap >= 1 && p.sal >= 2) out.set(p.key, gap); }); // gap = $M under what his value says
+    }
+    return out;
+  })();
+  const stealBadge = p => STEAL.has(p.key) ? ` <span class="steal" title="Priced about ${money(Math.round(STEAL.get(p.key) * 2) / 2)} below what his season is worth">STEAL</span>` : '';
   const prepCache = new Map();
   const prep = p => {
     if (!prepCache.has(p.key)) {
@@ -1238,7 +1264,7 @@ body.war .dec { color: var(--wb-red); }
       <li><b>Take turns.</b> You and the computer pick one player at a time from the same pool. Every player you take is gone for the computer, and the other way around.</li>
       <li><b>How long it takes.</b> 36 picks in all, 18 for you and 18 for the computer. A typical draft takes about 10 to 15 minutes. ${$('clockOpt').checked ? "With the pick clock on, it can't run past about 21 minutes, not counting pauses." : "The pick clock is off, so there's no time limit: take as long as you like."}</li>
       <li><b>Fill 18 spots:</b> 9 hitters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH), 5 starters and 4 relievers. Tap an open spot on the field to choose which one you're drafting for, then press Draft next to a player.</li>
-      <li><b>Stay under the $${cap}M salary cap.</b> Every player has a price ($M) and a value (Runs+, the runs his season is worth over an average player). The gold cap bar shows your cap space left and drops with every pick.</li>
+      <li><b>Stay under the $${cap}M salary cap.</b> Every player has a price ($M) and a value (Runs+, the runs his season is worth over an average player). The gold cap bar shows your cap space left and drops with every pick. A flashing <b>STEAL</b> tag means a player's price is well below what his season is worth.</li>
       ${$('clockOpt').checked ? '<li><b>Beat the clock.</b> You get 60 seconds per pick, and you can pause. If time runs out, the scout picks for you.</li>' : ''}
       <li><b>Need help?</b> Tap Ask the scout for a recommendation. Click a player\'s name to read his card, and star players to track them in your notebook.</li>
       <li><b>At the end</b> you get a score, a letter grade and your chance of beating the computer\'s team.</li></ul></div>
@@ -1618,7 +1644,7 @@ body.war .dec { color: var(--wb-red); }
     const x = prep(p);
     const rows = x.card.map(r => `<li class="${GOOD.has(r.code) ? 'good' : ''}"><b>${r.lo === r.hi ? String(r.lo).padStart(2, '0') : `${String(r.lo).padStart(2, '0')}–${r.hi === 100 ? '00' : String(r.hi).padStart(2, '0')}`}</b><span>${r.label}</span></li>`).join('');
     const line = p.kind === 'H' ? `${f3(x.avg)} AVG, ${p.HR} HR, ${p.RBI} RBI, ${f3(x.obp)} OBP` : `${p.W}-${p.L}, ${x.era.toFixed(2)} ERA, ${p.SO} SO${p.SV >= 5 ? `, ${p.SV} SV` : ''}`;
-    return `<article class="vcard" style="--band:${band(p.fr)}"><div class="band"><small>${p.yr} ${esc(p.tm)}${p.legend ? ', legend' : ''}</small><h3>${esc(p.name)}</h3><p>${line}</p>${D && D.cap ? `<p><b>${money(p.sal)}</b> salary &middot; <b>Runs+ ${Math.round(runs(p))}</b></p>` : ''}</div>
+    return `<article class="vcard" style="--band:${band(p.fr)}"><div class="band"><small>${p.yr} ${esc(p.tm)}${p.legend ? ', legend' : ''}</small><h3>${esc(p.name)}</h3><p>${line}</p>${D && D.cap ? `<p><b>${money(p.sal)}</b> salary &middot; <b>Runs+ ${Math.round(runs(p))}</b>${STEAL.has(p.key) ? ` <span class="steal">STEAL</span> <small>priced about ${money(Math.round(STEAL.get(p.key) * 2) / 2)} under his value</small>` : ''}</p>` : ''}</div>
       ${(() => { const yt = !!D && !D.done && whoPicks(D.pick) === 'you' && !busyCpu && !paused, why = yt ? canDraft(p, 'you') : 'Wait for your pick';
         return `<div class="vdraft"><button class="btn btn-draft" data-pdraft="${p.key}"${why ? ' disabled' : ''}>Draft ${esc(p.name)}</button>${why ? `<small>${esc(why)}</small>` : ''}</div>`; })()}
       <div class="body"><p class="note">${esc(p.note)}</p><ol class="rows">${rows}</ol></div></article>`;
@@ -1699,8 +1725,8 @@ body.war .dec { color: var(--wb-red); }
     const head = `<tr><th></th><th aria-label="Target"></th>${th('Player')}<th>${sheet === 'H' ? 'Pos' : 'W-L'}</th>${allCols.map((c, i) => th(c[0], c[3], optOf(i))).join('')}<th></th></tr>`;
     const rows = shown.map((p, i) => {
       const why = canDraft(p, 'you'), locked = p.legend && !legendsOpen();
-      return `<tr class="${locked ? 'locked' : ''} ${previewKey === p.key ? 'pv' : ''}"><td class="rn">${i + 1}</td><td><button class="star" data-star="${p.key}" aria-pressed="${(D.targets || []).includes(p.key)}" aria-label="${(D.targets || []).includes(p.key) ? 'Remove' : 'Add'} ${esc(p.name)} ${(D.targets || []).includes(p.key) ? 'from' : 'to'} your targets">${(D.targets || []).includes(p.key) ? '★' : '☆'}</button></td>
-        <td class="nm"><button data-prev="${p.key}">${esc(p.name)}</button>${locked ? ' <span class="lock">Locked</span>' : ''}<small>${p.yr} ${esc(p.tm)}</small></td><td class="tx">${p.kind === 'H' ? p.pos.toUpperCase() : `${p.W}-${p.L}`}</td>
+      return `<tr class="${locked ? 'locked' : ''} ${previewKey === p.key ? 'pv' : ''} ${STEAL.has(p.key) ? 'stealrow' : ''}"><td class="rn">${i + 1}</td><td><button class="star" data-star="${p.key}" aria-pressed="${(D.targets || []).includes(p.key)}" aria-label="${(D.targets || []).includes(p.key) ? 'Remove' : 'Add'} ${esc(p.name)} ${(D.targets || []).includes(p.key) ? 'from' : 'to'} your targets">${(D.targets || []).includes(p.key) ? '★' : '☆'}</button></td>
+        <td class="nm"><button data-prev="${p.key}">${esc(p.name)}</button>${locked ? ' <span class="lock">Locked</span>' : ''}${stealBadge(p)}<small>${p.yr} ${esc(p.tm)}</small></td><td class="tx">${p.kind === 'H' ? p.pos.toUpperCase() : `${p.W}-${p.L}`}</td>
         ${allCols.map((c, i) => `<td class="${c[3] ? 'key' : ''}${optOf(i)}">${c[2](c[1](p))}</td>`).join('')}
         <td><button class="btn btn-draft" data-draft="${p.key}" ${!yourTurn || why ? `disabled title="${esc(why || 'Wait for your pick')}"` : ''}>Draft</button></td></tr>`;
     }).join('');
