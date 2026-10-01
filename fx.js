@@ -125,38 +125,115 @@
   function playSounds(big) {
     if (!soundOn || !audio()) return;
     noise(.09, 3200, .55, 0, 'bandpass');                       // the crack of the bat
-    noise(big ? 3.2 : 2.2, 900, big ? .32 : .22, .18, 'lowpass'); // the crowd swells
+    if (crowd) playBuf(crowd.roar, big ? .9 : .6, .15); else noise(big ? 3.2 : 2.2, 900, big ? .32 : .22, .18, 'lowpass'); // the crowd swells
   }
-  // ---------- ballpark ambience: a soft synthesized crowd bed with the odd swell (follows the Sound button) ----------
+  // ---------- crowd voices: a babble of many small synthesized voices, a roar, and single shouts ----------
+  // Real crowds are lots of overlapping voices, not hiss. Each voice here is a buzzing vocal source (a sawtooth at a speaking pitch)
+  // shaped by moving vowel filters and chopped into syllables. Many of them, run through a big-room echo, read as people.
+  let crowd = null, crowdP = null, crowdFailed = false;
+  function offline(ch, secs, rate) { const O = window.OfflineAudioContext || window.webkitOfflineAudioContext; return new O(ch, Math.floor(secs * rate), rate); }
+  function render(off) { const r = off.startRendering(); return r && r.then ? r : new Promise(res => { off.oncomplete = e => res(e.renderedBuffer); }); }
+  function room(c, wet) { // a dry path plus a big stadium echo, rolled off above the range of speech
+    const inp = c.createGain(), dry = c.createGain(), w = c.createGain(), cv = c.createConvolver(), out = c.createBiquadFilter();
+    const len = Math.floor(c.sampleRate * 1.2), ir = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.4); }
+    cv.buffer = ir; dry.gain.value = 1 - wet; w.gain.value = wet; out.type = 'lowpass'; out.frequency.value = 4800;
+    inp.connect(dry); inp.connect(cv); cv.connect(w); dry.connect(out); w.connect(out);
+    return { inp, out };
+  }
+  function voice(c, dst, t0, dur, o) {
+    const osc = c.createOscillator(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(o.f0, t0);
+    for (let t = t0 + rnd(.1, .3); t < t0 + dur; t += rnd(.12, .35)) osc.frequency.linearRampToValueAtTime(o.f0 * (1 + rnd(-.09, .09) + (o.glide || 0) * (t - t0) / dur), t);
+    const sum = c.createGain(), amp = c.createGain();
+    for (const [rng, q, gn] of [[o.f1, 6, 1], [o.f2, 7, .65], [[2500, 2700], 8, .3]]) { // three vowel formants that keep drifting
+      const f = c.createBiquadFilter(), g = c.createGain(); f.type = 'bandpass'; f.Q.value = q; g.gain.value = gn;
+      f.frequency.setValueAtTime(rnd(rng[0], rng[1]), t0);
+      for (let t = t0 + rnd(.08, .25); t < t0 + dur; t += rnd(.1, .3)) f.frequency.linearRampToValueAtTime(rnd(rng[0], rng[1]), t);
+      osc.connect(f); f.connect(g); g.connect(sum);
+    }
+    amp.gain.setValueAtTime(.0001, t0);
+    if (o.single) { amp.gain.linearRampToValueAtTime(o.gain, t0 + .07); amp.gain.linearRampToValueAtTime(o.gain * .7, t0 + dur * .45); amp.gain.linearRampToValueAtTime(.0001, t0 + dur); }
+    else for (let t = t0 + rnd(0, .5); t < t0 + dur - .4; ) { // syllables with pauses between them
+      const on = rnd(o.on[0], o.on[1]), pk = o.gain * rnd(.4, 1);
+      amp.gain.linearRampToValueAtTime(.0001, t); amp.gain.linearRampToValueAtTime(pk, t + Math.min(.04, on * .3)); amp.gain.linearRampToValueAtTime(pk * .55, t + on * .75); amp.gain.linearRampToValueAtTime(.0001, t + on);
+      t += on + rnd(o.gap[0], o.gap[1]);
+    }
+    sum.connect(amp);
+    let node = amp; if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = o.pan || 0; amp.connect(p); node = p; }
+    node.connect(dst); osc.start(t0); osc.stop(t0 + dur + .1);
+  }
+  const pitch = () => Math.random() < .45 ? rnd(180, 270) : Math.random() < .12 ? rnd(280, 380) : rnd(88, 145); // men, women, kids
+  function renderBabble() {
+    const off = offline(2, 10, 16000), r = room(off, .3); r.out.connect(off.destination);
+    for (let i = 0; i < 26; i++) voice(off, r.inp, 0, 10, { f0: pitch(), f1: [380, 850], f2: [950, 2200], gain: .05, on: [.08, .26], gap: [.04, 1.2], pan: rnd(-.85, .85) });
+    return render(off).then(b => norm(b, .1));
+  }
+  function renderRoar() {
+    const off = offline(2, 6.5, 16000), r = room(off, .35), env = off.createGain();
+    env.gain.setValueAtTime(.001, 0); env.gain.exponentialRampToValueAtTime(1, 1.8); env.gain.setValueAtTime(1, 3.3); env.gain.exponentialRampToValueAtTime(.001, 6.4);
+    env.connect(r.inp); r.out.connect(off.destination);
+    for (let i = 0; i < 48; i++) voice(off, env, 0, 6.5, { f0: pitch() * rnd(1, 1.12), f1: [560, 900], f2: [1000, 1750], gain: .04, on: [.3, .9], gap: [0, .15], pan: rnd(-.9, .9) });
+    const nb = off.createBuffer(1, off.length, 16000), nd = nb.getChannelData(0); // hand claps
+    for (let k = 0; k < 160; k++) { const at = Math.floor(rnd(.8, 5.8) * 16000), n = Math.floor(rnd(.004, .012) * 16000); for (let i = 0; i < n && at + i < nd.length; i++) nd[at + i] = (Math.random() * 2 - 1) * (1 - i / n) * rnd(.1, .4); }
+    const ns = off.createBufferSource(), hp = off.createBiquadFilter(), ng = off.createGain(); ns.buffer = nb; hp.type = 'highpass'; hp.frequency.value = 1800; ng.gain.value = .12;
+    ns.connect(hp); hp.connect(ng); ng.connect(env); ns.start(0);
+    return render(off).then(b => norm(b, .1));
+  }
+  function renderShout() {
+    const off = offline(2, 1.3, 16000), r = room(off, .4); r.out.connect(off.destination);
+    voice(off, r.inp, .02, 1.1, { f0: rnd(150, 235), glide: -.2, f1: [420, 820], f2: [1000, 2300], gain: .5, single: true, pan: rnd(-.7, .7) });
+    return render(off).then(b => norm(b, .08));
+  }
+  function norm(buf, target) { // bring each rendered sound to a known loudness
+    let s = 0, n = 0, pk = 0; const ds = []; for (let c = 0; c < buf.numberOfChannels; c++) ds.push(buf.getChannelData(c));
+    for (const d of ds) for (let i = 0; i < d.length; i++) { s += d[i] * d[i]; n++; }
+    let k = s ? target / Math.sqrt(s / n) : 1;
+    for (const d of ds) for (let i = 0; i < d.length; i++) pk = Math.max(pk, Math.abs(d[i]) * k);
+    if (pk > .9) k *= .9 / pk;
+    for (const d of ds) for (let i = 0; i < d.length; i++) d[i] *= k;
+    return buf;
+  }
+  function prepCrowd() {
+    if (!crowdP) crowdP = Promise.all([renderBabble(), renderRoar(), renderShout(), renderShout(), renderShout(), renderShout()])
+      .then(([babble, roar, ...shouts]) => (crowd = { babble, roar, shouts })).catch(() => { crowdFailed = true; return null; });
+    return crowdP;
+  }
+  function playBuf(buf, gain, delay, pan) {
+    const a = audio(); if (!a || !buf) return;
+    const s = a.createBufferSource(), g = a.createGain(); s.buffer = buf; g.gain.value = gain; s.connect(g); let n = g;
+    if (pan != null && a.createStereoPanner) { const p = a.createStereoPanner(); p.pan.value = pan; g.connect(p); n = p; }
+    n.connect(outNode || a.destination); s.start(a.currentTime + (delay || 0));
+  }
+
+  // ---------- ballpark ambience: a crowd murmur with the odd swell and shout (follows the Sound button) ----------
   let amb = null, ambWanted = false, ambTimer = 0;
   function startAmb() {
     if (amb || !soundOn) return;
     const a = audio(); if (!a) return;
-    const len = a.sampleRate * 8, buf = a.createBuffer(2, len, a.sampleRate);
-    for (let c = 0; c < 2; c++) { // pink-ish noise reads as a distant crowd; two channels keep it wide
-      const d = buf.getChannelData(c); let b0 = 0, b1 = 0, b2 = 0;
-      for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; }
+    if (!crowd && !crowdFailed) { prepCrowd().then(() => { if (ambWanted && !amb) startAmb(); }); return; } // the voices are still being made
+    let buf = crowd && crowd.babble;
+    if (!buf) { // fallback if this browser couldn't render the voices: a soft noise bed
+      const len = a.sampleRate * 8; buf = a.createBuffer(2, len, a.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); let b0 = 0, b1 = 0, b2 = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; } }
     }
+    const level = crowd && crowd.babble ? .24 : .55;
     const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
-    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200; lp.Q.value = .4;
-    const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
     const bed = a.createGain(); bed.gain.value = 0.0001;
     const sway = a.createGain(); sway.gain.value = 1;
-    const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .18; // slow breathing, like a crowd
+    const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .12; // slow breathing, like a crowd
     lfo.connect(lfoAmt); lfoAmt.connect(sway.gain);
-    src.connect(hp); hp.connect(lp); lp.connect(bed); bed.connect(sway); sway.connect(outNode || a.destination);
+    src.connect(bed); bed.connect(sway); sway.connect(outNode || a.destination);
     src.start(); lfo.start();
-    bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(.55, a.currentTime + 2.5);
-    amb = { src, lfo, bed, lp };
-    const swell = () => { // now and then the crowd rises, then settles
+    bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(level, a.currentTime + 2.5);
+    amb = { src, lfo, bed };
+    const swell = () => { // now and then the crowd rises: a murmur swell, sometimes a roar or a lone shout
       ambTimer = setTimeout(() => {
         if (!amb) return; const t = a.currentTime, big = Math.random() < .3;
         amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(amb.bed.gain.value, t);
-        amb.bed.gain.linearRampToValueAtTime(big ? 1.05 : .8, t + 1.3); amb.bed.gain.linearRampToValueAtTime(.55, t + (big ? 6 : 4));
-        amb.lp.frequency.cancelScheduledValues(t); amb.lp.frequency.setValueAtTime(amb.lp.frequency.value, t);
-        amb.lp.frequency.linearRampToValueAtTime(big ? 4200 : 3200, t + 1.3); amb.lp.frequency.linearRampToValueAtTime(2200, t + (big ? 6 : 4));
+        amb.bed.gain.linearRampToValueAtTime(level * (big ? 1.8 : 1.4), t + 1.3); amb.bed.gain.linearRampToValueAtTime(level, t + (big ? 6 : 4));
+        if (crowd) { if (big) playBuf(crowd.roar, .35, .2); if (Math.random() < .6) playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], rnd(.3, .6), rnd(.4, 1.6), rnd(-.8, .8)); }
         swell();
-      }, rnd(9000, 24000));
+      }, rnd(7000, 18000));
     };
     swell();
     if (a.state !== 'running') { // browsers hold audio until the first tap or key press
@@ -174,6 +251,8 @@
   // walking into the park: a roar that builds, cheers and whistles on top, and scattered claps
   function cheer() {
     if (!soundOn) return; unlock(); if (!audio()) return;
+    if (!crowd && !crowdFailed) { const t = Date.now(); prepCrowd().then(() => { if (Date.now() - t < 4200) cheer(); }); return; } // the voices are still being made: cheer as soon as they are
+    if (crowd) { playBuf(crowd.roar, .95, .05); [.8, 1.7, 2.6].forEach(d => playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], .5, d, rnd(-.8, .8))); return; }
     noise(4.8, 2600, .34, .15, 'lowpass', 1.8);
     noise(3.8, 3400, .08, .9, 'bandpass', 1.4);
     for (let i = 0; i < 18; i++) noise(.09, rnd(1800, 3800), .1, 1 + Math.random() * 3.2, 'highpass');
@@ -215,6 +294,7 @@
     homeRun(o) { queue.push(o || {}); if (!flushT) flushT = setTimeout(flush, 0); }, // same-moment home runs become one celebration
     setSound,
     cheer,
+    prepare() { return prepCrowd(); }, // pages that play games call this early so the crowd voices are ready
     ambience(on) { ambWanted = !!on; if (ambWanted) startAmb(); else stopAmb(); }, // ballpark crowd noise while a game is being played
     get soundOn() { return soundOn; },
   };

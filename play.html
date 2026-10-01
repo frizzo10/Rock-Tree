@@ -1177,6 +1177,7 @@ body.war .dec { color: var(--wb-red); }
     timer = setTimeout(finish, 5300);
     b.addEventListener('click', finish);
   }
+  if (window.FX && FX.prepare) setTimeout(FX.prepare, 600); // build the crowd voices in the background
   $('start').onclick = () => { if ($('start').textContent.trim() === 'Play ball') ballparkEntrance(start); else start(); };
   $('act').onclick = () => {
     if (busy) return;
