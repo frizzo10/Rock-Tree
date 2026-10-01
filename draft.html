@@ -196,6 +196,9 @@ footer p { margin: 0 0 6px; }
 .unlock b { font-weight: 600; }
 .capbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 10px; padding: 8px 14px; border-radius: 8px; border: 2px solid var(--lamp); background: rgba(242, 179, 61, .16); color: var(--ink); font: 600 16px/1.2 var(--text); }
 .capbar small { font-weight: 400; font-size: 13px; opacity: .8; }
+.capbar small.pace { display: block; margin-top: 3px; font-weight: 600; opacity: 1; }
+.capbar small.pace.tight { color: #B3261E; }
+.capbar small.pace.room { color: #1D6B3A; }
 .capbar b { font: 700 30px/1 var(--display); }
 .capbar.flash { animation: capflash .5s ease-in-out 5; }
 @keyframes capflash { 0%, 100% { background: rgba(242, 179, 61, .16); color: var(--ink); } 50% { background: var(--lamp); color: #14213D; } }
@@ -603,6 +606,7 @@ body.war .dec { color: var(--wb-red); }
       <button class="btn btn-alt" id="resume" hidden>Resume your mock draft</button>
     </div>
     <label class="clockopt"><input type="checkbox" id="clockOpt" checked> Pick clock: 60 seconds per pick, and you can pause it. If time runs out, the scout picks for you.</label>
+    <label class="clockopt"><input type="checkbox" id="rookieOpt"> Rookie mode: the computer plays with an $80M cap instead of $100M, so it's easier to beat.</label>
     <p class="unlock" id="unlock"></p>
   </section>
 
@@ -1263,6 +1267,7 @@ body.war .dec { color: var(--wb-red); }
     wrap.innerHTML = `<div class="howto-card" role="dialog" aria-modal="true" aria-labelledby="howtoT"><h2 id="howtoT">How the mock draft works</h2><div class="howto-body"><ul>
       <li><b>Take turns.</b> You and the computer pick one player at a time from the same pool. Every player you take is gone for the computer, and the other way around.</li>
       <li><b>How long it takes.</b> 36 picks in all, 18 for you and 18 for the computer. A typical draft takes about 10 to 15 minutes. ${$('clockOpt').checked ? "With the pick clock on, it can't run past about 21 minutes, not counting pauses." : "The pick clock is off, so there's no time limit: take as long as you like."}</li>
+      <li><b>How the computer drafts.</b> It grabs the priciest player it can afford, so it tends to end up with a few stars and a lot of cheap fillers. Spread your money, take steals, and fill every spot with a good player.${$('rookieOpt').checked ? ' Rookie mode is on: its cap is $80M.' : ''}</li>
       <li><b>Fill 18 spots:</b> 9 hitters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH), 5 starters and 4 relievers. Tap an open spot on the field to choose which one you're drafting for, then press Draft next to a player.</li>
       <li><b>Stay under the $${cap}M salary cap.</b> Every player has a price ($M) and a value (Runs+, the runs his season is worth over an average player). The gold cap bar shows your cap space left and drops with every pick. A flashing <b>STEAL</b> tag means a player's price is well below what his season is worth.</li>
       ${$('clockOpt').checked ? '<li><b>Beat the clock.</b> You get 60 seconds per pick, and you can pause. If time runs out, the scout picks for you.</li>' : ''}
@@ -1281,7 +1286,7 @@ body.war .dec { color: var(--wb-red); }
     const param = mode === 'decade' ? $('decadeSel').value : mode === 'franchise' ? $('franchSel').value : null;
     const youFirst = Math.random() < 0.5;
     const showReport = !store.get('gts-report-seen', false); store.set('gts-report-seen', true); // the full report opens on your very first draft only
-    D = { showReport, mode, param, cap: m.cap || null, pool: poolFor(mode, param), teams: { you: {}, cpu: {} }, pick: 0, youFirst, log: [], done: false, clock: $('clockOpt').checked };
+    D = { showReport, handicap: $('rookieOpt').checked ? 20 : 0, mode, param, cap: m.cap || null, pool: poolFor(mode, param), teams: { you: {}, cpu: {} }, pick: 0, youFirst, log: [], done: false, clock: $('clockOpt').checked };
     save(); enterRoom();
   }
 
@@ -1296,6 +1301,7 @@ body.war .dec { color: var(--wb-red); }
   };
   const taken = () => ctx().taken;
   const payroll = side => Object.values(D.teams[side]).reduce((n, k) => n + BY.get(k).sal, 0);
+  const capOf = side => (D.cap || 0) - (side === 'cpu' ? D.handicap || 0 : 0); // Rookie mode gives the computer a smaller cap
   const openSlots = side => SLOTS.filter(s => !D.teams[side][s.id]);
   const frOn = side => new Set(Object.values(D.teams[side]).map(k => BY.get(k).fr));
 
@@ -1339,7 +1345,7 @@ body.war .dec { color: var(--wb-red); }
     if (D.mode === 'onefr' && frOn(side).has(p.fr)) return `You already have a ${POOL.franchises[p.fr] || p.fr}`;
     const s = slotFor(p, side, side === 'you' ? selSlot : null);
     if (!s) return 'No open spot';
-    if (D.cap && payroll(side) + p.sal + reserve(side, s.id) > D.cap) return 'Over the payroll';
+    if (D.cap && payroll(side) + p.sal + reserve(side, s.id) > capOf(side)) return 'Over the payroll';
     return '';
   }
 
@@ -1359,7 +1365,7 @@ body.war .dec { color: var(--wb-red); }
     D.log.push({ side, key: p.key, slot: s.id, n: D.pick + 1, auto: side === 'you' && autoPicked });
     autoPicked = false;
     D.pick++; fresh = { side, slot: s.id }; advice = null;
-    if (side === 'you') { selSlot = null; previewKey = null; $('plist').scrollTop = 0; }
+    if (side === 'you') { selSlot = null; previewKey = null; stuckNote = ''; $('plist').scrollTop = 0; }
     if (D.pick >= TOTAL) D.done = true;
     save();
     if (side === 'you') {
@@ -1387,8 +1393,18 @@ body.war .dec { color: var(--wb-red); }
   const clockOn = () => D && D.clock !== false;
   const fmtClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   function stopClock() { clearInterval(clockTimer); clockTimer = null; clockEnd = 0; clockLeftMs = 0; scoutHold = false; const pl = $('clockPill'); if (pl) pl.hidden = true; }
+  let stuckNote = '';
+  // if nobody left fits your open spots and your cap, skip your turn instead of freezing (empty spots count as average players)
+  function skipIfStuck() {
+    if (!D || D.done || whoPicks(D.pick) !== 'you' || busyCpu || D.pool.some(k => !canDraft(BY.get(k), 'you'))) return false;
+    stuckNote = 'Nobody left fits your open spots and your cap, so this turn was skipped. An empty spot counts as an average player.';
+    D.pick++; if (D.pick >= TOTAL) D.done = true; save(); drawRoom(); project();
+    if (!D.done) { if (whoPicks(D.pick) === 'cpu') cpuPick(); else startClock(); }
+    return true;
+  }
   function startClock() {
     stopClock();
+    if (skipIfStuck()) return;
     if (!clockOn() || D.done || whoPicks(D.pick) !== 'you' || busyCpu) { updatePill(); return; }
     if (paused) { clockLeftMs = CLOCK_SECS * 1000; return; }
     clockEnd = Date.now() + CLOCK_SECS * 1000;
@@ -1478,7 +1494,7 @@ body.war .dec { color: var(--wb-red); }
     // best available with a little randomness, nudged toward whatever the roster is short of
     const score = p => p.sal * (0.85 + Math.random() * 0.3) * (p.kind === 'H' ? (hitNeed >= pitNeed ? 1.08 : 0.95) : (pitNeed > hitNeed ? 1.08 : 0.95));
     cands.sort((a, b) => score(b) - score(a));
-    if (cands[0]) draft(cands[0], 'cpu'); else { busyCpu = false; cpuPhase = null; D.pick++; save(); view = 'you'; drawRoom(); }
+    if (cands[0]) draft(cands[0], 'cpu'); else { busyCpu = false; cpuPhase = null; D.pick++; if (D.pick >= TOTAL) D.done = true; save(); view = 'you'; drawRoom(); project(); if (!D.done) startClock(); }
   }
 
   // ---------- projections (fast engine, average players in open spots) ----------
@@ -1671,9 +1687,11 @@ body.war .dec { color: var(--wb-red); }
     let capBar = ''; // cap space left for the team on screen; it flashes when a pick changes it
     if (D.cap) {
       if (lastCap.d !== D) lastCap = { d: D };
-      const left = Math.round((D.cap - payroll(side)) * 10) / 10, flash = lastCap[side] != null && lastCap[side] !== left;
+      const left = Math.round((capOf(side) - payroll(side)) * 10) / 10, flash = lastCap[side] != null && lastCap[side] !== left;
       lastCap[side] = left;
-      capBar = `<p class="capbar${flash ? ' flash' : ''}" id="capBar"><span>${side === 'you' ? 'Your' : "Computer's"} cap space left <small>of ${money(D.cap)}</small></span><b>${money(left)}</b></p>`;
+      const openN = openSlots(side).length, per = openN ? left / openN : 0, base = capOf(side) / SLOTS.length;
+      const pace = !openN ? '' : per < base * .55 ? ['tight', 'Tight: pick cheaper'] : per >= base * 1.4 ? ['room', 'Room to spend'] : ['', 'On pace'];
+      capBar = `<p class="capbar${flash ? ' flash' : ''}" id="capBar"><span>${side === 'you' ? 'Your' : "Computer's"} cap space left <small>of ${money(capOf(side))}</small>${pace ? `<small class="pace ${pace[0]}">${money(Math.round(per * 10) / 10)} per open spot &middot; ${pace[1]}</small>` : ''}</span><b>${money(left)}</b></p>`;
     }
     $('fieldHost').innerHTML = banner + capBar + `<div class="park" role="group" aria-label="${side === 'you' ? 'Your' : "Computer's"} lineup">
       <svg class="grass" viewBox="0 0 100 92" preserveAspectRatio="none" aria-hidden="true">
@@ -1762,7 +1780,7 @@ body.war .dec { color: var(--wb-red); }
     const prev = lp ? (last.auto ? `Time ran out, so the scout took ${lp.name} (${lp.yr}) for you. ` : `${last.side === 'you' ? 'You took' : 'Computer took'} ${lp.name} (${lp.yr}). `)
       : (D.youFirst ? 'You won the coin flip. ' : 'The computer won the coin flip. ');
     const clock = you && !busyCpu && clockOn() ? ` <span class="tclock" id="tickClock">${fmtClock(clockLeft() ?? CLOCK_SECS)}</span>` : '';
-    $('ticker').innerHTML = `${esc(prev)}Round ${round} of 18. <b>${paused ? 'Draft paused.' : you ? (busyCpu ? "You're up next." : "You're on the clock.") : 'Computer is picking…'}</b>${clock}`;
+    $('ticker').innerHTML = `${stuckNote ? esc(stuckNote) + ' ' : ''}${esc(prev)}Round ${round} of 18. <b>${paused ? 'Draft paused.' : you ? (busyCpu ? "You're up next." : "You're on the clock.") : 'Computer is picking…'}</b>${clock}`;
   }
 
   function drawLog() {
@@ -1798,7 +1816,7 @@ body.war .dec { color: var(--wb-red); }
       classic: 'Bats first. Elite hitters are the scarcest thing on the board; the pitching pool is deep, so good starters will still be there in the middle rounds.',
       decade: `Only ${D.param}s seasons are in play, so every position is thin. Grab the best player at the scarcest spots early and watch the needs list below.`,
       franchise: 'One franchise means a small pool. Take the true stars early; the drop-off after them is steep.',
-      payroll: 'Budget is everything. Pay for one or two stars, then hunt the best Runs+ you can afford at each spot; the scout will flag when money gets tight.',
+      payroll: 'Budget is everything. The computer grabs the priciest player it can fit, so it ends up with stars and scrubs. Pay for one or two stars, then fill every other spot with the best value you can find (watch for STEAL tags); the scout will flag when money gets tight.',
       onefr: 'Each franchise can only appear once on your team, so taking a star also closes the door on his teammates. Spread your picks across clubs.',
     };
     return plans[D.mode] || plans.classic;
@@ -1983,6 +2001,8 @@ body.war .dec { color: var(--wb-red); }
   $('franchSel').innerHTML = Object.entries(POOL.franchises).sort((a, b) => a[1].localeCompare(b[1])).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
   $('franchSel').value = 'NYY';
   $('clockOpt').checked = store.get('gts-clock', true);
+  { const r = store.get('gts-rookie', null); $('rookieOpt').checked = r === null ? progress().wins < 1 : !!r; } // new players start in Rookie mode
+  $('rookieOpt').onchange = () => store.set('gts-rookie', $('rookieOpt').checked);
   $('clockOpt').onchange = () => store.set('gts-clock', $('clockOpt').checked);
   $('startDraft').onclick = newDraft;
   $('pauseBtn').onclick = () => setPaused(!paused);
