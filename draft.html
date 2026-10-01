@@ -249,6 +249,11 @@ footer p { margin: 0 0 6px; }
 .vcard .band small { font-size: 12px; opacity: .85; }
 .vcard .band h3 { font: 800 26px/1 var(--display); margin: 2px 0 2px; }
 .vcard .band p { margin: 0; font-size: 13px; opacity: .9; }
+.vcard .vdraft { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px 0; }
+.vcard .vdraft .btn-draft { flex: 1 1 200px; padding: 11px 18px; font-size: 16px; font-weight: 700; background: var(--wb-green); color: #fff; }
+.vcard .vdraft .btn-draft:hover { background: #17633A; }
+.vcard .vdraft .btn-draft[disabled] { background: #C9CED4; color: #fff; opacity: 1; cursor: not-allowed; }
+.vcard .vdraft small { font-size: 13px; color: #6A5A3A; }
 .vcard .body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 12px; padding: 10px 14px 12px; }
 .vcard .note { font-size: 14.5px; line-height: 1.45; margin: 0; }
 .vcard .rows { padding: 0; }
@@ -378,6 +383,15 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
 .sheet .btn-draft:hover { background: #17633A; }
 .sheet .btn-draft[disabled] { background: #C9CED4; color: #fff; opacity: 1; }
 .sheet .lock { font-size: 11px; }
+/* on a phone the whole spreadsheet fits across the screen: no sliding sideways to reach Draft */
+@media (max-width: 600px) {
+  .sheet table { font-size: 12.5px; }
+  .sheet th, .sheet td { padding: 3px 3px; }
+  .sheet td.nm { min-width: 0; }
+  .sheet th:first-child, .sheet td.rn, .sheet th:nth-child(4), .sheet td.tx, .sheet .opt { display: none; }
+  .sheet .btn-draft { padding: 3px 7px; font-size: 12px; }
+  .sheet .star { font-size: 16px; padding: 0 1px; }
+}
 .sheet .more { padding: 8px 10px; color: #5A6470; font-size: 13px; margin: 0; }
 .sheettabs { display: flex; gap: 2px; background: #E3E6EA; padding: 0 6px; border-top: 1px solid #C9CED4; }
 .sheettabs button { all: unset; cursor: pointer; padding: 6px 14px; font-size: 13px; color: #3B4450; background: #D5D9DE; border-radius: 0 0 4px 4px; }
@@ -1605,6 +1619,8 @@ body.war .dec { color: var(--wb-red); }
     const rows = x.card.map(r => `<li class="${GOOD.has(r.code) ? 'good' : ''}"><b>${r.lo === r.hi ? String(r.lo).padStart(2, '0') : `${String(r.lo).padStart(2, '0')}–${r.hi === 100 ? '00' : String(r.hi).padStart(2, '0')}`}</b><span>${r.label}</span></li>`).join('');
     const line = p.kind === 'H' ? `${f3(x.avg)} AVG, ${p.HR} HR, ${p.RBI} RBI, ${f3(x.obp)} OBP` : `${p.W}-${p.L}, ${x.era.toFixed(2)} ERA, ${p.SO} SO${p.SV >= 5 ? `, ${p.SV} SV` : ''}`;
     return `<article class="vcard" style="--band:${band(p.fr)}"><div class="band"><small>${p.yr} ${esc(p.tm)}${p.legend ? ', legend' : ''}</small><h3>${esc(p.name)}</h3><p>${line}</p>${D && D.cap ? `<p><b>${money(p.sal)}</b> salary &middot; <b>Runs+ ${Math.round(runs(p))}</b></p>` : ''}</div>
+      ${(() => { const yt = !!D && !D.done && whoPicks(D.pick) === 'you' && !busyCpu && !paused, why = yt ? canDraft(p, 'you') : 'Wait for your pick';
+        return `<div class="vdraft"><button class="btn btn-draft" data-pdraft="${p.key}"${why ? ' disabled' : ''}>Draft ${esc(p.name)}</button>${why ? `<small>${esc(why)}</small>` : ''}</div>`; })()}
       <div class="body"><p class="note">${esc(p.note)}</p><ol class="rows">${rows}</ol></div></article>`;
   }
 
@@ -1678,13 +1694,14 @@ body.war .dec { color: var(--wb-red); }
     const lk = p => (p.legend && !legendsOpen()) ? 1 : 0; // locked legends sink to the bottom
     list.sort((a, b) => lk(a) - lk(b) || (special[sortKey] ? special[sortKey](a, b) * -sortDir : (val(a) - val(b)) * dir));
     const shown = list.slice(0, 150);
-    const th = (name, key) => `<th class="${key ? 'key' : ''} ${sortKey === name ? 'sorted' : ''}"><button data-sort="${name}" aria-label="Sort by ${name}">${name}${sortKey === name ? (sortDir < 0 ? ' ▼' : ' ▲') : ''}</button></th>`;
-    const head = `<tr><th></th><th aria-label="Target"></th>${th('Player')}<th>${sheet === 'H' ? 'Pos' : 'W-L'}</th>${allCols.map(c => th(c[0], c[3])).join('')}<th></th></tr>`;
+    const optOf = i => (i === 0 || i === 2) && i < cols.length ? ' opt' : ''; // AVG and SLG, or W/SV and WHIP: hidden on phones
+    const th = (name, key, opt) => `<th class="${key ? 'key' : ''}${opt || ''} ${sortKey === name ? 'sorted' : ''}"><button data-sort="${name}" aria-label="Sort by ${name}">${name}${sortKey === name ? (sortDir < 0 ? ' ▼' : ' ▲') : ''}</button></th>`;
+    const head = `<tr><th></th><th aria-label="Target"></th>${th('Player')}<th>${sheet === 'H' ? 'Pos' : 'W-L'}</th>${allCols.map((c, i) => th(c[0], c[3], optOf(i))).join('')}<th></th></tr>`;
     const rows = shown.map((p, i) => {
       const why = canDraft(p, 'you'), locked = p.legend && !legendsOpen();
       return `<tr class="${locked ? 'locked' : ''} ${previewKey === p.key ? 'pv' : ''}"><td class="rn">${i + 1}</td><td><button class="star" data-star="${p.key}" aria-pressed="${(D.targets || []).includes(p.key)}" aria-label="${(D.targets || []).includes(p.key) ? 'Remove' : 'Add'} ${esc(p.name)} ${(D.targets || []).includes(p.key) ? 'from' : 'to'} your targets">${(D.targets || []).includes(p.key) ? '★' : '☆'}</button></td>
         <td class="nm"><button data-prev="${p.key}">${esc(p.name)}</button>${locked ? ' <span class="lock">Locked</span>' : ''}<small>${p.yr} ${esc(p.tm)}</small></td><td class="tx">${p.kind === 'H' ? p.pos.toUpperCase() : `${p.W}-${p.L}`}</td>
-        ${allCols.map(c => `<td class="${c[3] ? 'key' : ''}">${c[2](c[1](p))}</td>`).join('')}
+        ${allCols.map((c, i) => `<td class="${c[3] ? 'key' : ''}${optOf(i)}">${c[2](c[1](p))}</td>`).join('')}
         <td><button class="btn btn-draft" data-draft="${p.key}" ${!yourTurn || why ? `disabled title="${esc(why || 'Wait for your pick')}"` : ''}>Draft</button></td></tr>`;
     }).join('');
     $('plist').innerHTML = list.length ? `<table><thead>${head}</thead><tbody>${rows}</tbody></table>` + (list.length > shown.length ? `<p class="more">Showing the top 150 of ${list.length}. Search or sort to find more.</p>` : '')
@@ -1709,6 +1726,7 @@ body.war .dec { color: var(--wb-red); }
     let p = previewKey && BY.get(previewKey);
     if (!p) { const first = $('plist').querySelector('[data-prev]'); p = first && BY.get(first.dataset.prev); }
     $('preview').innerHTML = p ? vcard(p) : '';
+    $('preview').querySelectorAll('[data-pdraft]').forEach(b => b.onclick = () => draft(BY.get(b.dataset.pdraft), 'you'));
   }
 
   function drawTicker() {
