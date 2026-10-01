@@ -608,15 +608,21 @@ body.war .dec { color: var(--wb-red); }
 .rc-verdict { margin: 0 0 8px; line-height: 1.5; max-width: 70ch; }
 .rc-fine { margin: 0 0 4px; font-size: 13px; color: #5A6470; max-width: 70ch; }
 
-/* ---------- phones: the pool first, the field folded away, the clock and scout pinned below, the card as a bottom sheet ---------- */
+/* ---------- phones: the field on screen and compact, the clock and scout pinned below, the card as a bottom sheet ---------- */
 .teamsum, .dock, .pv-x { display: none; }
 @media (max-width: 700px) {
   body.indraft { padding-bottom: calc(var(--dockH, 78px) + 14px); }
   .room { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
   .teamsum { display: flex; order: 0; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 54px; padding: 8px 14px; border: 2px solid var(--wb-frame); border-radius: 8px; background: var(--wb); color: #20262D; font: 500 16px/1.25 var(--text); text-align: left; cursor: pointer; }
   .teamsum b { font-weight: 700; } .teamsum .chev { font-size: 20px; transition: transform .2s; flex: none; } .teamsum[aria-expanded="true"] .chev { transform: rotate(180deg); }
-  .room > .paper.wb { order: 1; display: none; }
-  .room.team-open > .paper.wb { display: block; }
+  .room > .paper.wb { order: 1; padding: 12px 12px 14px; }
+  .room.team-closed > .paper.wb { display: none; }
+  #fieldHost .wb-banner.clock { display: none; }
+  .capbar { padding: 6px 10px; margin-bottom: 8px; font-size: 14px; }
+  .board { padding: 12px 12px 10px; }
+  .board-top { padding: 0 2px 6px; } .board-top p { display: none; }
+  body.war .proj .m b { font-size: 30px; } .proj { gap: 6px 14px; padding: 2px 2px 0; } .proj .m { font-size: 13px; }
+  .tickrow { gap: 8px; }
   .room > .pool { order: 2; display: flex; flex-direction: column; }
   .pool .pool-head { order: 0; } .pool .tip { order: 1; } .pool #advice { order: 2; } .pool .laptop { order: 3; } .pool #report { order: 4; margin-top: 14px; } .pool #preview { order: 5; }
   .laptop .ptools input, .laptop .ptools select { min-height: 46px; font-size: 16px; }
@@ -1531,15 +1537,20 @@ body.war .dec { color: var(--wb-red); }
   function ensureDock() {
     if ($('dock')) return;
     const dock = document.createElement('div'); dock.id = 'dock'; dock.className = 'dock'; dock.hidden = true;
-    dock.innerHTML = '<div class="info" id="dockInfo" aria-live="off"></div><button class="btn btn-alt" id="dockNb" type="button">Notes</button><button class="btn btn-scout" id="dockScout" type="button">Ask the scout</button>';
+    dock.innerHTML = '<div class="info" id="dockInfo" aria-live="off"></div><button class="btn btn-alt" id="dockJump" type="button">Players &darr;</button><button class="btn btn-scout" id="dockScout" type="button">Ask the scout</button>';
     document.body.appendChild(dock);
     $('dockScout').onclick = () => { if ($('scoutBtn').disabled) return; Promise.resolve(askScout()).then(() => { const a = $('advice'); if (a && a.innerHTML.trim()) a.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }); }); }; // bring the advice into view above the bar
-    $('dockNb').onclick = () => $('nbOpen').click();
+    $('dockJump').onclick = () => { // jump between your field and the players, whichever you are not looking at
+      const rm = document.querySelector('#room .room'), pool = rm.querySelector('.pool'), onPool = pool.getBoundingClientRect().top < innerHeight * 0.55;
+      const tgt = onPool ? (rm.classList.contains('team-closed') ? $('teamSum') : rm.querySelector('.paper.wb')) : pool.querySelector('.pool-head');
+      tgt.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    };
     const rm = document.querySelector('#room .room'), sum = document.createElement('button');
-    sum.id = 'teamSum'; sum.className = 'teamsum'; sum.type = 'button'; sum.setAttribute('aria-expanded', 'false');
+    sum.id = 'teamSum'; sum.className = 'teamsum'; sum.type = 'button'; sum.setAttribute('aria-expanded', 'true');
     const paper = rm.querySelector('.paper.wb'); if (paper) { paper.id = 'teamPaper'; sum.setAttribute('aria-controls', 'teamPaper'); }
     rm.prepend(sum);
-    sum.onclick = () => { const open = !rm.classList.contains('team-open'); rm.classList.toggle('team-open', open); sum.setAttribute('aria-expanded', String(open)); };
+    const closed = !!store.get('gts-team-closed', false); rm.classList.toggle('team-closed', closed); sum.setAttribute('aria-expanded', String(!closed));
+    sum.onclick = () => { const nowClosed = !rm.classList.contains('team-closed'); rm.classList.toggle('team-closed', nowClosed); sum.setAttribute('aria-expanded', String(!nowClosed)); store.set('gts-team-closed', nowClosed); };
   }
   function updateDock() {
     ensureDock();
@@ -1557,6 +1568,8 @@ body.war .dec { color: var(--wb-red); }
     if (info.dataset.k !== html) { info.dataset.k = html; info.innerHTML = html; }
     info.classList.toggle('hurry', yourTurn && left != null && left <= 10 && !paused);
     $('dockScout').disabled = !yourTurn || $('scoutBtn').disabled;
+    const poolEl = document.querySelector('#room .room .pool'), jump = $('dockJump');
+    if (poolEl && jump) { const lab = poolEl.getBoundingClientRect().top < innerHeight * 0.55 ? 'Team \u2191' : 'Players \u2193'; if (jump.textContent !== lab) jump.textContent = lab; }
     document.documentElement.style.setProperty('--dockH', dock.offsetHeight + 'px');
     document.documentElement.style.scrollPaddingBottom = phone() ? (dock.offsetHeight + 12) + 'px' : ''; // anything scrolled into view stops above the pinned bar
   }
@@ -1826,7 +1839,7 @@ body.war .dec { color: var(--wb-red); }
         <path d="M50 86 L4 42 Q50 -12 96 42 Z"/><path d="M50 82 L76 58 L50 34 L24 58 Z"/><circle cx="50" cy="59" r="2.6"/></svg>${hit}</div>
       <p class="wb-key"><span><i style="background:var(--wb-green)"></i>Your picks</span><span><i style="background:var(--wb-red)"></i>Computer's picks</span></p>
       <div class="staff"><h3>Rotation</h3><div class="row">${sp}</div><h3>Bullpen</h3><div class="row pen">${rp}</div></div>`;
-    $('fieldHost').querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { selSlot = selSlot === b.dataset.slot ? null : b.dataset.slot; syncPosFilter(); drawRoom(); });
+    $('fieldHost').querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { selSlot = selSlot === b.dataset.slot ? null : b.dataset.slot; syncPosFilter(); drawRoom(); if (phone() && selSlot) glideTo('.pool.desk'); });
     $('fieldHost').querySelectorAll('[data-key]').forEach(b => b.onclick = () => { previewKey = b.dataset.key; drawPool(); });
     fresh = null;
   }
