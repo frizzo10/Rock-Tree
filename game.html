@@ -75,7 +75,7 @@ table.box td { padding: 5px 6px; border-top: 1px solid #ECEEF0; } table.box td.n
 h3.tm { font: 400 19px var(--marker); color: var(--wb-ink); margin: 14px 0 0; }
 .card select { padding: 10px 12px; border: 1.5px solid #8C959E; border-radius: 4px; min-height: 46px; max-width: 100%; background: #fff; color: #1B1F24; font: inherit; }
 footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
-@media (max-width: 640px) { .wb { padding: 16px 18px; } .card { padding: 14px 14px; } .die b { font-size: 34px; } .die small { font-size: 11.5px; } .sit { grid-template-columns: 1fr; } .hide-sm { display: none; } }
+@media (max-width: 640px) { .wb { padding: 16px 18px; } .card { padding: 14px 14px; } .die b { font-size: 34px; } .die small { font-size: 12px; } .sit { grid-template-columns: 1fr; } .hide-sm { display: none; } }
 
 /* ---------- phones: a nine-inning line score fits without sliding sideways; extra innings slide with the club name staying put ---------- */
 @media (max-width: 640px) {
@@ -85,6 +85,22 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   .ls td.team, .ls th.team { max-width: 66px; overflow: hidden; text-overflow: ellipsis; padding-right: 5px; position: sticky; left: 0; z-index: 1; background: var(--wb); }
   .ls td.tot { padding-left: 3px; padding-right: 2px; }
   .ls td.now { box-shadow: inset 0 0 0 1.5px #E1B62E; }
+}
+
+/* ---------- phones: the roll buttons stay pinned to the bottom of the screen ---------- */
+.rollbar { display: none; }
+@media (max-width: 700px) {
+  body.inplay { padding-bottom: calc(var(--barH, 118px) + 14px); }
+  body.inplay #ctl { display: none; }
+  .rollbar { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 36; padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); background: #14213D; color: #fff; box-shadow: 0 -4px 16px rgba(0, 0, 0, .38); }
+  .rollbar[hidden] { display: none; }
+  .rb-status { margin: 0 0 6px; font-weight: 600; font-size: 14px; line-height: 1.2; color: #FFD86B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rb-btns { display: flex; gap: 8px; }
+  .rb-btns .btn { margin: 0; }
+  #rbRoll { flex: 1 1 auto; min-height: 52px; padding: 8px 14px; font-size: 18px; }
+  .rb-btns .alt { flex: none; padding: 8px 12px; background: transparent; color: #FFD86B; border: 1.5px solid #FFD86B; }
+  .rb-btns .btn[disabled] { opacity: .5; }
+  body.inplay .fx-sound { bottom: calc(var(--barH, 118px) + 12px) !important; }  /* the sound button rides above the bar */
 }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
@@ -231,6 +247,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   // ---------- drawing ----------
   function render() {
     if (window.FX) FX.ambience(S.mode === 'playing');
+    updateRollBar();
     const g = S.game; const sub = $('sub');
     if (g) sub.textContent = (g.round && g.round !== 'regular' ? `${g.round === 'final' ? 'The final' : 'Semifinal'}, game ${g.game_no}.` : `Game day ${g.day} of 27.`) + (S.mode === 'ready' ? ` Open until ${fmt(g.deadline_at)}.` : '');
     else if (S.mode === 'msg') sub.textContent = '';
@@ -288,7 +305,33 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     const el = $('ctl'); if (!el) return; const left = S.log.length - S.idx, off = S.busy || S.animating;
     el.innerHTML = left > 0 ? `<button class="btn big" id="bRoll" ${off ? 'disabled' : ''}>Roll the dice</button><button class="btn alt" id="bHalf" ${off ? 'disabled' : ''}>Play out this half-inning</button><button class="btn alt" id="bSkip" ${off ? 'disabled' : ''}>Skip to the final</button>` : '';
     if (left > 0) { $('bRoll').onclick = rollNext; $('bHalf').onclick = playHalf; $('bSkip').onclick = skipAll; }
+    updateRollBar();
   }
+
+  // ---------- phones: the roll buttons stay pinned to the bottom of the screen ----------
+  const phone = () => matchMedia('(max-width: 700px)').matches;
+  function ensureRollBar() {
+    if ($('rollBar')) return;
+    const bar = document.createElement('div'); bar.id = 'rollBar'; bar.className = 'rollbar'; bar.hidden = true; bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Game controls');
+    bar.innerHTML = '<p class="rb-status" id="rbStatus"></p><div class="rb-btns"><button class="btn big" id="rbRoll" type="button">Roll the dice</button><button class="btn alt" id="rbHalf" type="button" aria-label="Play out this half-inning">Half-inning</button><button class="btn alt" id="rbSkip" type="button" aria-label="Skip to the final">Skip</button></div>';
+    document.body.appendChild(bar);
+    // if the roll area has scrolled away, bring it back so you see the dice land
+    const showRoll = fn => () => { const rc = $('rollcard'); if (rc) { const r = rc.getBoundingClientRect(); if (r.top < 0 || r.top > innerHeight * .45) rc.scrollIntoView({ behavior: S.reduce ? 'auto' : 'smooth', block: 'start' }); } fn(); };
+    $('rbRoll').onclick = showRoll(rollNext); $('rbHalf').onclick = showRoll(playHalf); $('rbSkip').onclick = skipAll;
+  }
+  function updateRollBar() {
+    ensureRollBar();
+    const bar = $('rollBar'), on = S.mode === 'playing' && !!S.log && S.idx < S.log.length && phone();
+    document.body.classList.toggle('inplay', on); bar.hidden = !on;
+    if (!on) { document.documentElement.style.scrollPaddingBottom = ''; return; }
+    const off = S.busy || S.animating; ['rbRoll', 'rbHalf', 'rbSkip'].forEach(id => { $(id).disabled = off; });
+    const g = S.game, nx = S.log[S.idx], pv = S.log[S.idx - 1], same = pv && pv.half === nx.half && pv.inning === nx.inning && pv.outs < 3, outs = same ? pv.outs : 0, ls = lineScore();
+    const nick = seat => name(seat).split(' ').pop();
+    $('rbStatus').textContent = `${nx.half ? 'Bottom' : 'Top'} ${ord(nx.inning)} · ${outs} out${outs === 1 ? '' : 's'} · ${nick(g.away_seat)} ${ls.runs[0]}, ${nick(g.home_seat)} ${ls.runs[1]}`;
+    document.documentElement.style.setProperty('--barH', bar.offsetHeight + 'px');
+    document.documentElement.style.scrollPaddingBottom = (bar.offsetHeight + 12) + 'px'; // anything scrolled into view stops above the bar
+  }
+  addEventListener('resize', () => { if (S.log) updateRollBar(); });
   const feedOpen = () => S.feedUser !== undefined ? S.feedUser : S.idx < S.log.length;   // open while you roll, folded once it's over, unless you choose
   function updateFeed() {
     const el = $('feed'); if (!el) return; let html = '', last = '';
