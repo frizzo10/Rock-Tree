@@ -100,6 +100,15 @@ table.line { border-collapse: separate; border-spacing: 5px; min-width: 100%; }
 .pct { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 8px; }
 .pct .total { font: 800 40px/1 var(--display); color: var(--lamp); min-width: 70px; text-align: left; }
 .pct .total:empty { display: none; }
+.pk-run { position: fixed; left: 0; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 9985; width: 120px; pointer-events: none; animation: pkrun 4.6s linear forwards; }
+@keyframes pkrun { from { transform: translateX(-140px); } to { transform: translateX(calc(100vw + 20px)); } }
+.pk-run .bob { animation: pkbob .28s ease-in-out infinite alternate; }
+@keyframes pkbob { to { transform: translateY(-5px); } }
+.pk-run .legA, .pk-run .legB { transform-box: fill-box; transform-origin: 50% 0; }
+.pk-run .legA { animation: pkleg .28s ease-in-out infinite alternate; }
+.pk-run .legB { animation: pkleg .28s ease-in-out infinite alternate-reverse; }
+@keyframes pkleg { from { transform: rotate(-32deg); } to { transform: rotate(32deg); } }
+@media (prefers-reduced-motion: reduce) { .pk-run { display: none; } }
 .lineups { margin: 14px 0; }
 .lineups h2 { margin: 0 0 8px; font: 700 20px var(--display); }
 .lineups .lu { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
@@ -928,6 +937,16 @@ body.war .dec { color: var(--wb-red); }
     el.innerHTML = `<h2>Batting orders</h2><div class="lu">${col(you)}${col(1 - you)}</div>`;
   }
 
+  // between innings, a ballpark regular sprints across the bottom of the screen (hot dog most often)
+  const RUNNERS = [`<svg viewBox="0 0 120 84" width="120" height="84"><g class="bob"><g class="legA"><rect x="42" y="52" width="6" height="14" rx="3" fill="#2B2B2B"/><ellipse cx="46" cy="68" rx="9" ry="4.5" fill="#fff" stroke="#2B2B2B" stroke-width="1.5"/></g><g class="legB"><rect x="70" y="52" width="6" height="14" rx="3" fill="#2B2B2B"/><ellipse cx="74" cy="68" rx="9" ry="4.5" fill="#fff" stroke="#2B2B2B" stroke-width="1.5"/></g><rect x="14" y="12" width="92" height="30" rx="15" fill="#E3A63E"/><rect x="6" y="19" width="108" height="19" rx="9.5" fill="#B5412A"/><path d="M16 27 q8 -8 16 0 t16 0 t16 0 t16 0 t16 0" stroke="#F2C230" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="14" y="30" width="92" height="22" rx="11" fill="#F0C46A"/><circle cx="51" cy="40" r="2.8" fill="#222"/><circle cx="69" cy="40" r="2.8" fill="#222"/><path d="M54 47 q6 6 12 0" stroke="#222" stroke-width="2" fill="none" stroke-linecap="round"/></g></svg>`, `<svg viewBox="0 0 120 84" width="120" height="84"><g class="bob"><g class="legA"><rect x="42" y="52" width="6" height="14" rx="3" fill="#2B2B2B"/><ellipse cx="46" cy="68" rx="9" ry="4.5" fill="#fff" stroke="#2B2B2B" stroke-width="1.5"/></g><g class="legB"><rect x="70" y="52" width="6" height="14" rx="3" fill="#2B2B2B"/><ellipse cx="74" cy="68" rx="9" ry="4.5" fill="#fff" stroke="#2B2B2B" stroke-width="1.5"/></g><rect x="14" y="12" width="92" height="30" rx="15" fill="#E3A63E"/><rect x="6" y="19" width="108" height="19" rx="9.5" fill="#B5412A"/><path d="M16 27 q8 -8 16 0 t16 0 t16 0 t16 0 t16 0" stroke="#F2C230" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="14" y="30" width="92" height="22" rx="11" fill="#F0C46A"/><circle cx="51" cy="40" r="2.8" fill="#222"/><circle cx="69" cy="40" r="2.8" fill="#222"/><path d="M54 47 q6 6 12 0" stroke="#222" stroke-width="2" fill="none" stroke-linecap="round"/></g></svg>`, `<svg viewBox="0 0 120 84" width="120" height="84"><g class="bob"><g class="legA"><rect x="42" y="68" width="6" height="6" rx="3" fill="#2B2B2B"/><ellipse cx="46" cy="76" rx="9" ry="4.5" fill="#fff" stroke="#2B2B2B" stroke-width="1.5"/></g><g class="legB"><rect x="70" y="68" width="6" height="6" rx="3" fill="#2B2B2B"/><ellipse cx="74" cy="76" rx="9" ry="4.5" fill="#fff" stroke="#2B2B2B" stroke-width="1.5"/></g><g fill="#FFF3C4" stroke="#E2C879" stroke-width="1.5"><circle cx="42" cy="28" r="8"/><circle cx="56" cy="21" r="9"/><circle cx="71" cy="25" r="9"/><circle cx="81" cy="31" r="7"/><circle cx="50" cy="32" r="8"/><circle cx="65" cy="31" r="8"/></g><polygon points="34,34 86,34 80,70 40,70" fill="#D8392B"/><polygon points="40,34 52,34 51,70 43,70" fill="#fff"/><polygon points="68,34 80,34 77,70 69,70" fill="#fff"/><circle cx="51" cy="50" r="2.8" fill="#222"/><circle cx="69" cy="50" r="2.8" fill="#222"/><path d="M54 57 q6 6 12 0" stroke="#222" stroke-width="2" fill="none" stroke-linecap="round"/></g></svg>`, `<svg viewBox="0 0 120 84" width="120" height="84"><g class="bob"><g class="legA"><rect x="42" y="58" width="6" height="8" rx="3" fill="#2B2B2B"/><ellipse cx="46" cy="68" rx="9" ry="4.5" fill="#fff" stroke="#2B2B2B" stroke-width="1.5"/></g><g class="legB"><rect x="70" y="58" width="6" height="8" rx="3" fill="#2B2B2B"/><ellipse cx="74" cy="68" rx="9" ry="4.5" fill="#fff" stroke="#2B2B2B" stroke-width="1.5"/></g><circle cx="60" cy="34" r="28" fill="#fff" stroke="#BDBDBD" stroke-width="2"/><path d="M42 12 q11 22 0 44 M78 12 q-11 22 0 44" stroke="#C8352B" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="51" cy="32" r="2.8" fill="#222"/><circle cx="69" cy="32" r="2.8" fill="#222"/><path d="M54 39 q6 6 12 0" stroke="#222" stroke-width="2" fill="none" stroke-linecap="round"/></g></svg>`];
+  function ballparkRun() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.querySelectorAll('.pk-run').forEach(e => e.remove());
+    const d = document.createElement('div'); d.className = 'pk-run'; d.setAttribute('aria-hidden', 'true');
+    d.innerHTML = RUNNERS[Math.floor(Math.random() * RUNNERS.length)];
+    document.body.appendChild(d); setTimeout(() => d.remove(), 5000);
+  }
+
   // at the end of every half-inning, glide up to the scoreboard, pause so you can read it, then glide back to where you were
   let peekKey = '1-0', peeking = false;
   async function inningPeek() {
@@ -942,7 +961,7 @@ body.war .dec { color: var(--wb-red); }
 
   function prompt() {
     if (g.over) return endGame();
-    const hk = `${g.inning}-${g.half}`; if (hk !== peekKey) { peekKey = hk; inningPeek(); } // a new half-inning just began, so the last one ended
+    const hk = `${g.inning}-${g.half}`; if (hk !== peekKey) { peekKey = hk; inningPeek(); if (g.half === 0) ballparkRun(); } // a new half-inning just began, so the last one ended
     const youBat = g.half === you, b = g.batter(), p = g.pitcher();
     $('trayTitle').textContent = youBat ? `${b.short} at the plate` : `${p.short} on the mound`;
     $('hint').textContent = youBat ? `You're batting. Roll your d20 to win the duel against ${p.short}.` : `You're pitching. Roll your d20 to win the duel against ${b.short}.`;
