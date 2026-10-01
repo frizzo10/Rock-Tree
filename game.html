@@ -205,6 +205,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   }
   function skipAll() { if (S.busy || S.animating || S.idx >= S.log.length) return; const last = S.log[S.log.length - 1]; S.dice = { bat: last.bat, pit: last.pit, roll: last.roll, winner: last.owner, note: cardNote(last), spin: [] }; reveal(S.log.length - S.idx); }
   async function finish() {
+    if (window.FX) FX.ambience(false);
     if (S.finishing || S.game.status === 'final') { updateAll(); return; } S.finishing = true; S.finishErr = ''; updateFinal();
     if (S.starter && S.game.status === 'in_progress') {
       const { data, error } = await client().rpc('finish_game', { p_game_id: S.id });
@@ -216,6 +217,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
 
   // ---------- drawing ----------
   function render() {
+    if (window.FX) FX.ambience(S.mode === 'playing');
     const g = S.game; const sub = $('sub');
     if (g) sub.textContent = (g.round && g.round !== 'regular' ? `${g.round === 'final' ? 'The final' : 'Semifinal'}, game ${g.game_no}.` : `Game day ${g.day} of 27.`) + (S.mode === 'ready' ? ` Open until ${fmt(g.deadline_at)}.` : '');
     else if (S.mode === 'msg') sub.textContent = '';

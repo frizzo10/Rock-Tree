@@ -1,7 +1,7 @@
 /* Cooperstown Cash: home run celebrations.
    FX.homeRun({ text, runs, walkOff }) fires fireworks, a banner, a flash and a screen shake.
    Several home runs in the same moment (like auto-roll to the final) become one celebration.
-   Everything is skipped or softened for people who ask for reduced motion. Sound is off until turned on. */
+   Everything is skipped or softened for people who ask for reduced motion. Sound is on unless the player turns it off with the Sound button. */
 (function () {
   'use strict';
   const PALETTES = [['#FFD86B', '#FFF1B8', '#F2B33D'], ['#FF6B4A', '#FFB199', '#E0452B'], ['#6FA8FF', '#BFD8FF', '#3E74D6'], ['#FFFFFF', '#F3EAD3', '#E8D5A4'], ['#7CE0A3', '#C8F5D8', '#3FB36E']];
@@ -10,7 +10,7 @@
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 
   let cv = null, cx = null, W = 0, H = 0, dpr = 1, raf = 0, last = 0, parts = [], rockets = [], timers = [], queue = [], flushT = 0, bannerT = 0;
-  let soundOn = store.get('cc-sound') === '1', ac = null, soundBtn = null;
+  let soundOn = store.get('cc-sound') !== '0', ac = null, soundBtn = null;
 
   const css = `
 .fx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9990; }
@@ -101,10 +101,54 @@
     noise(.09, 3200, .55, 0, 'bandpass');                       // the crack of the bat
     noise(big ? 3.2 : 2.2, 900, big ? .32 : .22, .18, 'lowpass'); // the crowd swells
   }
+  // ---------- ballpark ambience: a soft synthesized crowd bed with the odd swell (follows the Sound button) ----------
+  let amb = null, ambWanted = false, ambTimer = 0;
+  function startAmb() {
+    if (amb || !soundOn) return;
+    const a = audio(); if (!a) return;
+    const len = a.sampleRate * 8, buf = a.createBuffer(2, len, a.sampleRate);
+    for (let c = 0; c < 2; c++) { // pink-ish noise reads as a distant crowd; two channels keep it wide
+      const d = buf.getChannelData(c); let b0 = 0, b1 = 0, b2 = 0;
+      for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; }
+    }
+    const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = .4;
+    const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
+    const bed = a.createGain(); bed.gain.value = 0.0001;
+    const sway = a.createGain(); sway.gain.value = 1;
+    const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .18; // slow breathing, like a crowd
+    lfo.connect(lfoAmt); lfoAmt.connect(sway.gain);
+    src.connect(hp); hp.connect(lp); lp.connect(bed); bed.connect(sway); sway.connect(a.destination);
+    src.start(); lfo.start();
+    bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(.55, a.currentTime + 2.5);
+    amb = { src, lfo, bed, lp };
+    const swell = () => { // now and then the crowd rises, then settles
+      ambTimer = setTimeout(() => {
+        if (!amb) return; const t = a.currentTime, big = Math.random() < .3;
+        amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(amb.bed.gain.value, t);
+        amb.bed.gain.linearRampToValueAtTime(big ? 1.05 : .8, t + 1.3); amb.bed.gain.linearRampToValueAtTime(.55, t + (big ? 6 : 4));
+        amb.lp.frequency.cancelScheduledValues(t); amb.lp.frequency.setValueAtTime(amb.lp.frequency.value, t);
+        amb.lp.frequency.linearRampToValueAtTime(big ? 2400 : 1700, t + 1.3); amb.lp.frequency.linearRampToValueAtTime(1100, t + (big ? 6 : 4));
+        swell();
+      }, rnd(9000, 24000));
+    };
+    swell();
+    if (a.state !== 'running') { // browsers hold audio until the first tap or key press
+      const go = () => { a.resume(); ['pointerdown', 'keydown', 'touchend'].forEach(e => removeEventListener(e, go, true)); };
+      ['pointerdown', 'keydown', 'touchend'].forEach(e => addEventListener(e, go, true));
+    }
+  }
+  function stopAmb() {
+    clearTimeout(ambTimer); if (!amb || !ac) { amb = null; return; }
+    const m = amb, t = ac.currentTime; amb = null;
+    try { m.bed.gain.cancelScheduledValues(t); m.bed.gain.setValueAtTime(Math.max(.0001, m.bed.gain.value), t); m.bed.gain.linearRampToValueAtTime(.0001, t + .6); m.src.stop(t + .7); m.lfo.stop(t + .7); } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else if (soundOn) ac.resume(); });
+
   function setSound(on) {
     soundOn = !!on; store.set('cc-sound', soundOn ? '1' : '0');
     if (soundBtn) { soundBtn.setAttribute('aria-pressed', String(soundOn)); soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; }
-    if (soundOn) { audio(); noise(.08, 3000, .3, 0, 'bandpass'); }
+    if (soundOn) { audio(); noise(.08, 3000, .3, 0, 'bandpass'); if (ambWanted) startAmb(); } else stopAmb();
   }
   function mountSoundButton() {
     if (soundBtn || !document.body) return;
@@ -137,6 +181,7 @@
   window.FX = {
     homeRun(o) { queue.push(o || {}); if (!flushT) flushT = setTimeout(flush, 0); }, // same-moment home runs become one celebration
     setSound,
+    ambience(on) { ambWanted = !!on; if (ambWanted) startAmb(); else stopAmb(); }, // ballpark crowd noise while a game is being played
     get soundOn() { return soundOn; },
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountSoundButton); else mountSoundButton();

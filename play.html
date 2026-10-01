@@ -985,6 +985,7 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function endGame() {
+    if (window.FX) FX.ambience(false);
     drawLine(); drawStatus();
     const [a, h] = g.teams, w = g.teams[g.winner], l = g.teams[1 - g.winner];
     const fin = document.createElement('p'); fin.className = 'final';
@@ -1033,7 +1034,7 @@ body.war .dec { color: var(--wb-red); }
     $('feed').innerHTML = ''; $('right').innerHTML = '<p class="empty">The box score appears here when the game ends.</p>';
     $('tableArea').hidden = false; $('batCard').hidden = false; $('pitCard').hidden = false; $('autoInning').disabled = false; $('autoGame').disabled = false;
     ['dieBat', 'diePit', 'tens', 'ones'].forEach(id => $(id).textContent = '–'); $('pctTotal').textContent = ''; $('result').textContent = '';
-    $('start').textContent = 'New game';
+    $('start').textContent = 'New game'; if (window.FX) FX.ambience(true);
     $('oppNote').textContent = `Tonight's opponent: the ${a.year} ${a.nick}. Starting pitchers: ${g.teams[0].pitcher.name} for them, ${g.teams[1].pitcher.name} for you.`;
     prompt(); boxScore();
     $('tableArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
