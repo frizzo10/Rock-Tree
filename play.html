@@ -1022,13 +1022,14 @@ body.war .dec { color: var(--wb-red); }
     drawCards(duelWinner);
     const youWon = (duelWinner === 'batter') === (g.half === you);
     const who = duelWinner === 'batter' ? g.batter().short : g.pitcher().short;
-    if (youWon) {
-      $('hint').textContent = `You win the duel, ${Math.max(bat, pit)} to ${Math.min(bat, pit)}. The play comes from ${who}'s card. Roll for the result.`;
-      $('act').textContent = 'Roll result'; $('act').disabled = false; stage = 'result'; busy = false;
-    } else {
-      $('hint').textContent = `Computer wins the duel, ${Math.max(bat, pit)} to ${Math.min(bat, pit)}. It rolls on ${who}'s card.`;
-      await wait(700); await rollResult();
-    }
+    // one tap does it all: the first dice settle, and two seconds later the result dice roll by themselves
+    const tok = advTok;
+    if (youWon) $('hint').textContent = `You win the duel, ${Math.max(bat, pit)} to ${Math.min(bat, pit)}. The play comes from ${who}'s card. Rolling for the result…`;
+    else $('hint').textContent = `Computer wins the duel, ${Math.max(bat, pit)} to ${Math.min(bat, pit)}. It rolls on ${who}'s card.`;
+    $('act').textContent = '…'; stage = 'result';
+    await new Promise(r => setTimeout(r, 2000)); // a real pause, even with reduced motion
+    if (tok !== advTok) return; // a new game started in the meantime
+    await rollResult();
   }
 
   async function rollResult() {
