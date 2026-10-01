@@ -1440,13 +1440,22 @@ body.war .dec { color: var(--wb-red); }
       const pool = draftable.filter(p => p.key !== except && strictFit(p, s)).sort((a, b) => runs(b) - runs(a));
       return pool[Math.min(pool.length - 1, demand(s) - 1)];
     };
-    const short = new Map();
-    draftable.slice().sort((a, b) => runs(b) - runs(a)).slice(0, 40).forEach(p => short.set(p.key, p));
-    for (const s of myOpen) draftable.filter(p => strictFit(p, s)).sort((a, b) => runs(b) - runs(a)).slice(0, 4).forEach(p => short.set(p.key, p));
-    const cands = [...short.values()].map(p => {
-      const s = slotFor(p, 'you', null), nb = replacement(s, p.key);
-      return { p, s, gain: Math.max(0, runs(p) - (nb ? runs(nb) : 0)), nb };
-    }).sort((a, b) => b.gain - a.gain || runs(b.p) - runs(a.p));
+    // If you've highlighted an open spot, the scout advises for that spot only.
+    const want = selSlot && myOpen.find(s => s.id === selSlot) || null;
+    const build = wantSlot => {
+      const short = new Map();
+      if (wantSlot) draftable.filter(p => strictFit(p, wantSlot)).sort((a, b) => runs(b) - runs(a)).slice(0, 40).forEach(p => short.set(p.key, p));
+      else {
+        draftable.slice().sort((a, b) => runs(b) - runs(a)).slice(0, 40).forEach(p => short.set(p.key, p));
+        for (const s of myOpen) draftable.filter(p => strictFit(p, s)).sort((a, b) => runs(b) - runs(a)).slice(0, 4).forEach(p => short.set(p.key, p));
+      }
+      return [...short.values()].map(p => {
+        const s = wantSlot || slotFor(p, 'you', null), nb = replacement(s, p.key);
+        return { p, s, gain: Math.max(0, runs(p) - (nb ? runs(nb) : 0)), nb };
+      }).sort((a, b) => b.gain - a.gain || runs(b.p) - runs(a.p));
+    };
+    let cands = want ? build(want) : [];
+    if (!cands.length) cands = build(null); // nobody fits the highlighted spot: fall back to the whole board
     if (!cands.length) return null;
     const top = cands[0];
     // scarcity at his spot: strong players left for it (top third of the original pool at that spot)
