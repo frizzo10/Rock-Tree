@@ -215,7 +215,7 @@
 
   // ---------- vendors: now and then someone calls out from the stands ----------
   const VENDORS = ['popcorn', 'beer', 'peanuts', 'pretzels', 'hotdogs', 'lemonade', 'scorecards', 'candy'];
-  const VENDOR_GAIN = .38;
+  const VENDOR_GAIN = .3;
   let vendorBufs = null, vendorP = null, vendorTimer = 0, lastVendor = -1;
   function loadVendors() {
     if (vendorP) return vendorP;
@@ -267,7 +267,7 @@
       const len = a.sampleRate * 8; buf = a.createBuffer(2, len, a.sampleRate);
       for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); let b0 = 0, b1 = 0, b2 = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; } }
     }
-    const level = crowd && crowd.babble ? .12 : .55;
+    const level = crowd && crowd.babble ? .15 : .55;
     const bed = a.createGain(); bed.gain.value = 0.0001;
     const sway = a.createGain(); sway.gain.value = 1;
     const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .12; // slow breathing, like a crowd
