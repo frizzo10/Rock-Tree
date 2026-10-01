@@ -1280,6 +1280,7 @@ body.war .dec { color: var(--wb-red); }
     if (D.pick >= TOTAL) D.done = true;
     save();
     if (side === 'you') {
+      glideTo('.room .wb');
       if (!D.done && whoPicks(D.pick) === 'cpu') { drawRoom(); project(); psleep(reduced ? 200 : 700).then(cpuPick); } // let your magnet land, then flip
       else { autoNext(); drawRoom(); project(); startClock(); }
       return;
@@ -1296,6 +1297,8 @@ body.war .dec { color: var(--wb-red); }
   }
 
   // ---------- pick clock: 60 seconds, then the scout picks for you ----------
+  // Glide down to the player pool when your clock starts, and back up to the roster once you've picked (phone and desktop).
+  function glideTo(sel) { const el = document.querySelector(sel); if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); }
   const CLOCK_SECS = 60;
   let clockEnd = 0, clockTimer = null, paused = false, clockLeftMs = 0;
   const clockOn = () => D && D.clock !== false;
@@ -1307,6 +1310,7 @@ body.war .dec { color: var(--wb-red); }
     if (paused) { clockLeftMs = CLOCK_SECS * 1000; return; }
     clockEnd = Date.now() + CLOCK_SECS * 1000;
     clockTimer = setInterval(tickClock, 250); tickClock();
+    glideTo('.pool.desk');
   }
   function clockLeft() {
     if (clockEnd) return Math.max(0, Math.ceil((clockEnd - Date.now()) / 1000));
