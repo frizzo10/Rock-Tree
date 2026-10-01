@@ -323,7 +323,8 @@ body.war .done-panel .btn-alt { color: #20262D; border-color: #8C959E; }
 .wb-banner.clock.hurry, .tclock.hurry { color: var(--wb-red); animation: hurry .8s steps(2, start) infinite; }
 @keyframes hurry { to { visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) { .wb-banner.clock.hurry, .tclock.hurry { animation: none; } }
-.clockpill { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 30; padding: 9px 18px; border-radius: 24px; background: #14213D; color: #FFD86B; font: 700 20px/1 var(--display); box-shadow: 0 4px 14px rgba(0, 0, 0, .35); white-space: nowrap; pointer-events: none; }
+.clockpill i { font-style: normal; opacity: .5; margin: 0 4px; }
+.clockpill { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 30; padding: 9px 16px; border-radius: 24px; background: #14213D; color: #FFD86B; font: 700 17px/1 var(--display); box-shadow: 0 4px 14px rgba(0, 0, 0, .35); white-space: nowrap; pointer-events: none; }
 .clockpill[hidden] { display: none; }
 .clockpill.hurry { background: #B3261E; color: #fff; animation: pillpulse .8s ease-in-out infinite; }
 @keyframes pillpulse { 50% { opacity: .55; } }
@@ -471,6 +472,8 @@ body.war .dec { color: var(--wb-red); }
 
 /* scout's standing report */
 .report { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border-radius: 2px; padding: 10px 16px 12px 40px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); margin: 4px 0 12px; }
+.report.fold { padding-top: 4px; padding-bottom: 4px; }
+.report.fold summary { font: 400 19px/26px var(--marker); color: var(--wb-ink); cursor: pointer; }
 .report::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
 .report h3 { font: 400 19px/26px var(--marker); color: var(--wb-ink); margin: 0; }
 .report p { margin: 0; line-height: 26px; font-size: 14.5px; }
@@ -1209,7 +1212,8 @@ body.war .dec { color: var(--wb-red); }
     const m = MODES.find(x => x.id === mode);
     const param = mode === 'decade' ? $('decadeSel').value : mode === 'franchise' ? $('franchSel').value : null;
     const youFirst = Math.random() < 0.5;
-    D = { mode, param, cap: m.cap || null, pool: poolFor(mode, param), teams: { you: {}, cpu: {} }, pick: 0, youFirst, log: [], done: false, clock: $('clockOpt').checked };
+    const showReport = !store.get('gts-report-seen', false); store.set('gts-report-seen', true); // the full report opens on your very first draft only
+    D = { showReport, mode, param, cap: m.cap || null, pool: poolFor(mode, param), teams: { you: {}, cpu: {} }, pick: 0, youFirst, log: [], done: false, clock: $('clockOpt').checked };
     save(); enterRoom();
   }
 
@@ -1317,7 +1321,7 @@ body.war .dec { color: var(--wb-red); }
   function stopClock() { clearInterval(clockTimer); clockTimer = null; clockEnd = 0; clockLeftMs = 0; scoutHold = false; const pl = $('clockPill'); if (pl) pl.hidden = true; }
   function startClock() {
     stopClock();
-    if (!clockOn() || D.done || whoPicks(D.pick) !== 'you' || busyCpu) return;
+    if (!clockOn() || D.done || whoPicks(D.pick) !== 'you' || busyCpu) { updatePill(); return; }
     if (paused) { clockLeftMs = CLOCK_SECS * 1000; return; }
     clockEnd = Date.now() + CLOCK_SECS * 1000;
     clockTimer = setInterval(tickClock, 250); tickClock();
@@ -1334,12 +1338,17 @@ body.war .dec { color: var(--wb-red); }
   function updatePill() {
     let pill = $('clockPill');
     if (!pill) { pill = document.createElement('div'); pill.id = 'clockPill'; pill.className = 'clockpill'; pill.setAttribute('aria-hidden', 'true'); pill.hidden = true; document.body.appendChild(pill); }
-    const left = clockLeft(), b = $('clockBanner'), r = b && b.getBoundingClientRect();
-    const bannerSeen = !!r && r.bottom > 0 && r.top < innerHeight;
-    pill.hidden = left == null || bannerSeen || !D || D.done || $('room').hidden;
-    if (left != null) { pill.textContent = `${paused ? 'Paused' : 'On the clock'} ${fmtClock(left)}`; pill.classList.toggle('hurry', left <= 10 && !paused); }
+    const left = clockLeft(), yourTurn = !!D && !D.done && whoPicks(D.pick) === 'you' && !busyCpu && !$('room').hidden;
+    const anchor = view === 'you' ? ($('capBar') || $('clockBanner')) : null, r = anchor && anchor.getBoundingClientRect();
+    const seen = !!r && r.bottom > 0 && r.top < innerHeight; // the real clock and cap bar are on screen, so no pill
+    const parts = [];
+    if (left != null) parts.push(`${paused ? 'Paused' : 'On the clock'} ${fmtClock(left)}`);
+    if (D && D.cap) parts.push(`Cap left <b>${money(Math.round((D.cap - payroll('you')) * 10) / 10)}</b>`);
+    pill.hidden = !yourTurn || seen || !parts.length;
+    const html = parts.join(' <i>|</i> '); if (pill.dataset.k !== html) { pill.dataset.k = html; pill.innerHTML = html; }
+    pill.classList.toggle('hurry', left != null && left <= 10 && !paused);
   }
-  addEventListener('scroll', () => { if (D && clockLeft() != null) updatePill(); }, { passive: true }); // also while the clock is frozen or paused
+  addEventListener('scroll', () => { if (D) updatePill(); }, { passive: true }); // also while the clock is frozen, paused or off
   // asking the scout freezes your pick clock; it runs again when you dismiss the advice, and your pick ends the turn
   function freezeClock() {
     if (!clockEnd || paused) return;
@@ -1736,13 +1745,17 @@ body.war .dec { color: var(--wb-red); }
       .map(n => `${n.s.kind === 'H' ? (n.s.pos === 'dh' ? 'DH' : n.s.pos.toUpperCase()) : n.s.role} (${n.strong} strong left)`).join(', ');
     const alert = (D.alerts || []).filter(a => a.n >= D.pick - 2).map(a => BY.get(a.key)).map(p => `The computer took your target ${p.name} (${p.yr}).`).join(' ');
     const tLeft = (D.targets || []).filter(k => !taken().has(k)).length;
-    $('report').innerHTML = `<div class="report"><h3>Scout's report</h3>
+    const body = `
       ${mine < 2 ? `<p><b>Game plan:</b> ${esc(gamePlan())}</p>` : ''}
       ${grades ? `<div class="grades">${grades}</div>` : ''}
       ${needTxt ? `<p><b>Needs, scarcest first:</b> ${needTxt}</p>` : ''}
       ${alert ? `<p class="alert">${esc(alert)}</p>` : ''}
-      <p class="muted" style="font-size:13px">${tLeft ? `${tLeft} of your targets still on the board. ` : 'Star players in the spreadsheet to track targets. '}Open the notebook for your cheat sheet.</p></div>`;
+      <p class="muted" style="font-size:13px">${tLeft ? `${tLeft} of your targets still on the board. ` : 'Star players in the spreadsheet to track targets. '}Open the notebook for your cheat sheet.</p>`;
+    if (D.showReport) { $('report').innerHTML = `<div class="report"><h3>Scout's report</h3>${body}</div>`; return; }
+    $('report').innerHTML = `<details class="report fold"${reportOpen ? ' open' : ''}><summary>Scout's report${alert ? ' (new alert)' : ''}</summary>${body}</details>`;
+    $('report').querySelector('details').ontoggle = e => { reportOpen = e.target.open; };
   }
+  let reportOpen = false;
 
   // ---------- targets ----------
   function toggleTarget(k) {
