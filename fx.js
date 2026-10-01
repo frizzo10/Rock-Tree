@@ -84,16 +84,42 @@
   }
 
   // ---------- sound: tiny synthesized bat crack, crowd swell and pops (off until turned on) ----------
+  let outNode = null, silentEl = null, unlocked = false;
   function audio() {
-    if (!ac) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { ac = new C(); } catch (e) { return null; } }
+    if (!ac) {
+      const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { ac = new C(); } catch (e) { return null; }
+      // everything goes through one master gain and a compressor: phone speakers are small, so it needs to be loud, and the compressor keeps it from clipping
+      const master = ac.createGain(); master.gain.value = 3.4;
+      const comp = ac.createDynamicsCompressor(); comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 8; comp.attack.value = .003; comp.release.value = .25;
+      master.connect(comp); comp.connect(ac.destination); outNode = master;
+    }
     if (ac.state === 'suspended') ac.resume(); return ac;
   }
+  // iPhones play web audio like a ringtone: silent switch on = silence, and ringer volume instead of media volume. Playing a silent
+  // <audio> clip (and asking Safari for the 'playback' audio session) makes the sounds behave like media. This runs inside a tap.
+  function silentWav() {
+    const n = 800, b = new Uint8Array(44 + n), w = (o, s) => { for (let i = 0; i < s.length; i++) b[o + i] = s.charCodeAt(i); }, u32 = (o, v) => { b[o] = v & 255; b[o + 1] = v >> 8 & 255; b[o + 2] = v >> 16 & 255; b[o + 3] = v >> 24 & 255; };
+    w(0, 'RIFF'); u32(4, 36 + n); w(8, 'WAVEfmt '); u32(16, 16); b[20] = 1; b[22] = 1; u32(24, 8000); u32(28, 8000); b[32] = 1; b[34] = 8; w(36, 'data'); u32(40, n); b.fill(128, 44);
+    return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+  }
+  function unlock() {
+    if (!soundOn) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    try {
+      if (!silentEl) { silentEl = new Audio(silentWav()); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); silentEl.volume = 1; }
+      const p = silentEl.play(); if (p && p.catch) p.catch(() => {});
+    } catch (e) {}
+    const a = audio(); if (!a) return;
+    try { const s = a.createBufferSource(); s.buffer = a.createBuffer(1, 1, 22050); s.connect(outNode || a.destination); s.start(0); } catch (e) {}
+    unlocked = true;
+  }
+  ['touchend', 'pointerdown', 'click', 'keydown'].forEach(e => addEventListener(e, () => { if (!unlocked || (silentEl && silentEl.paused)) unlock(); }, true));
   function noise(dur, freq, peak, delay, type, attack) {
     const a = audio(); if (!a) return; const len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     const src = a.createBufferSource(); src.buffer = buf; const f = a.createBiquadFilter(); f.type = type || 'lowpass'; f.frequency.value = freq;
     const g = a.createGain(), t0 = a.currentTime + (delay || 0); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(peak, t0 + (attack != null ? attack : Math.min(.02, dur / 4))); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(f); f.connect(g); g.connect(a.destination); src.start(t0);
+    src.connect(f); f.connect(g); g.connect(outNode || a.destination); src.start(t0);
   }
   const pop = () => noise(.12, rnd(2200, 4200), .12, 0, 'highpass');
   function playSounds(big) {
@@ -112,23 +138,23 @@
       for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; }
     }
     const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
-    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; lp.Q.value = .4;
-    const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 220;
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200; lp.Q.value = .4;
+    const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
     const bed = a.createGain(); bed.gain.value = 0.0001;
     const sway = a.createGain(); sway.gain.value = 1;
     const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .18; // slow breathing, like a crowd
     lfo.connect(lfoAmt); lfoAmt.connect(sway.gain);
-    src.connect(hp); hp.connect(lp); lp.connect(bed); bed.connect(sway); sway.connect(a.destination);
+    src.connect(hp); hp.connect(lp); lp.connect(bed); bed.connect(sway); sway.connect(outNode || a.destination);
     src.start(); lfo.start();
-    bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(.8, a.currentTime + 2.5);
+    bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(.55, a.currentTime + 2.5);
     amb = { src, lfo, bed, lp };
     const swell = () => { // now and then the crowd rises, then settles
       ambTimer = setTimeout(() => {
         if (!amb) return; const t = a.currentTime, big = Math.random() < .3;
         amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(amb.bed.gain.value, t);
-        amb.bed.gain.linearRampToValueAtTime(big ? 1.5 : 1.1, t + 1.3); amb.bed.gain.linearRampToValueAtTime(.8, t + (big ? 6 : 4));
+        amb.bed.gain.linearRampToValueAtTime(big ? 1.05 : .8, t + 1.3); amb.bed.gain.linearRampToValueAtTime(.55, t + (big ? 6 : 4));
         amb.lp.frequency.cancelScheduledValues(t); amb.lp.frequency.setValueAtTime(amb.lp.frequency.value, t);
-        amb.lp.frequency.linearRampToValueAtTime(big ? 3200 : 2300, t + 1.3); amb.lp.frequency.linearRampToValueAtTime(1500, t + (big ? 6 : 4));
+        amb.lp.frequency.linearRampToValueAtTime(big ? 4200 : 3200, t + 1.3); amb.lp.frequency.linearRampToValueAtTime(2200, t + (big ? 6 : 4));
         swell();
       }, rnd(9000, 24000));
     };
@@ -147,15 +173,15 @@
 
   // walking into the park: a roar that builds, cheers and whistles on top, and scattered claps
   function cheer() {
-    if (!soundOn || !audio()) return;
-    noise(4.8, 1500, .34, .15, 'lowpass', 1.8);
+    if (!soundOn) return; unlock(); if (!audio()) return;
+    noise(4.8, 2600, .34, .15, 'lowpass', 1.8);
     noise(3.8, 3400, .08, .9, 'bandpass', 1.4);
     for (let i = 0; i < 18; i++) noise(.09, rnd(1800, 3800), .1, 1 + Math.random() * 3.2, 'highpass');
   }
   function setSound(on) {
     soundOn = !!on; store.set('cc-sound2', soundOn ? '1' : '0');
     if (soundBtn) { soundBtn.setAttribute('aria-pressed', String(soundOn)); soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; }
-    if (soundOn) { audio(); noise(.08, 3000, .3, 0, 'bandpass'); if (ambWanted) startAmb(); } else stopAmb();
+    if (soundOn) { unlock(); audio(); noise(.08, 3000, .3, 0, 'bandpass'); if (ambWanted) startAmb(); } else { stopAmb(); if (silentEl) silentEl.pause(); }
   }
   function mountSoundButton() {
     if (soundBtn || !document.body) return;
