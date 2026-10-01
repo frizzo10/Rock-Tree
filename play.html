@@ -992,7 +992,7 @@ body.war .dec { color: var(--wb-red); }
 
   function prompt() {
     if (g.over) return endGame();
-    const hk = `${g.inning}-${g.half}`; if (hk !== peekKey) { peekKey = hk; inningPeek(); if (g.half === 0) ballparkRun(); } // a new half-inning just began, so the last one ended
+    const hk = `${g.inning}-${g.half}`; if (hk !== peekKey) { peekKey = hk; inningPeek(); if (g.half === 0) ballparkRun(); if (window.FX && FX.crowdUp) FX.crowdUp(g.half === 0); } // a new half-inning just began, so the last one ended
     const youBat = g.half === you, b = g.batter(), p = g.pitcher();
     $('trayTitle').textContent = youBat ? `${b.short} at the plate` : `${p.short} on the mound`;
     $('hint').textContent = youBat ? `You're batting. Roll your d20 to win the duel against ${p.short}.` : `You're pitching. Roll your d20 to win the duel against ${b.short}.`;

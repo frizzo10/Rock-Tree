@@ -90,7 +90,7 @@
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { ac = new C(); } catch (e) { return null; }
       // everything goes through one master gain and a compressor: phone speakers are small, so it needs to be loud, and the compressor keeps it from clipping
       const master = ac.createGain(); master.gain.value = 3.4;
-      const comp = ac.createDynamicsCompressor(); comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 8; comp.attack.value = .003; comp.release.value = .25;
+      const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = .003; comp.release.value = .25;
       master.connect(comp); comp.connect(ac.destination); outNode = master;
     }
     if (ac.state === 'suspended') ac.resume(); return ac;
@@ -205,6 +205,33 @@
     n.connect(outNode || a.destination); s.start(a.currentTime + (delay || 0));
   }
 
+  // ---------- vendors: now and then someone calls out from the stands ----------
+  const VENDORS = ['popcorn', 'beer', 'peanuts', 'pretzels', 'hotdogs', 'lemonade', 'scorecards', 'candy'];
+  const VENDOR_GAIN = .38;
+  let vendorBufs = null, vendorP = null, vendorTimer = 0, lastVendor = -1;
+  function loadVendors() {
+    if (vendorP) return vendorP;
+    const a = audio(); if (!a) return Promise.resolve(null);
+    vendorP = Promise.all(VENDORS.map(n => fetch('vendors/' + n + '.mp3').then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => a.decodeAudioData(b, ok, no))).catch(() => null)))
+      .then(bs => (vendorBufs = bs.filter(Boolean)));
+    return vendorP;
+  }
+  function vendor() { // one call from the stands, never the same one twice running
+    if (!soundOn || !vendorBufs || !vendorBufs.length) return;
+    let i; do { i = Math.floor(Math.random() * vendorBufs.length); } while (i === lastVendor && vendorBufs.length > 1);
+    lastVendor = i; playBuf(vendorBufs[i], VENDOR_GAIN * rnd(.8, 1.2), 0, rnd(-.85, .85));
+  }
+  function scheduleVendor(first) { vendorTimer = setTimeout(() => { if (!amb) return; vendor(); scheduleVendor(); }, first ? rnd(7000, 13000) : rnd(16000, 38000)); }
+  // the crowd rises at the end of an inning (bigger when the whole inning is over): a swell of murmur, a roar and a couple of shouts
+  function crowdUp(big) {
+    if (!soundOn || !amb || !crowd || !ac) return;
+    const t = ac.currentTime;
+    amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(amb.bed.gain.value, t);
+    amb.bed.gain.linearRampToValueAtTime(amb.level * (big ? 3.4 : 2.3), t + 1); amb.bed.gain.linearRampToValueAtTime(amb.level, t + (big ? 7 : 4.5));
+    playBuf(crowd.roar, big ? .95 : .5, .1);
+    if (big) [.7, 1.6].forEach(d => playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], .45, d, rnd(-.8, .8)));
+  }
+
   // ---------- ballpark ambience: a crowd murmur with the odd swell and shout (follows the Sound button) ----------
   let amb = null, ambWanted = false, ambTimer = 0;
   function startAmb() {
@@ -216,7 +243,7 @@
       const len = a.sampleRate * 8; buf = a.createBuffer(2, len, a.sampleRate);
       for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); let b0 = 0, b1 = 0, b2 = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; } }
     }
-    const level = crowd && crowd.babble ? .24 : .55;
+    const level = crowd && crowd.babble ? .15 : .55;
     const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
     const bed = a.createGain(); bed.gain.value = 0.0001;
     const sway = a.createGain(); sway.gain.value = 1;
@@ -225,7 +252,7 @@
     src.connect(bed); bed.connect(sway); sway.connect(outNode || a.destination);
     src.start(); lfo.start();
     bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(level, a.currentTime + 2.5);
-    amb = { src, lfo, bed };
+    amb = { src, lfo, bed, level };
     const swell = () => { // now and then the crowd rises: a murmur swell, sometimes a roar or a lone shout
       ambTimer = setTimeout(() => {
         if (!amb) return; const t = a.currentTime, big = Math.random() < .3;
@@ -236,13 +263,14 @@
       }, rnd(7000, 18000));
     };
     swell();
+    loadVendors().then(() => { if (amb) scheduleVendor(true); });
     if (a.state !== 'running') { // browsers hold audio until the first tap or key press
       const go = () => { a.resume(); ['pointerdown', 'keydown', 'touchend'].forEach(e => removeEventListener(e, go, true)); };
       ['pointerdown', 'keydown', 'touchend'].forEach(e => addEventListener(e, go, true));
     }
   }
   function stopAmb() {
-    clearTimeout(ambTimer); if (!amb || !ac) { amb = null; return; }
+    clearTimeout(ambTimer); clearTimeout(vendorTimer); if (!amb || !ac) { amb = null; return; }
     const m = amb, t = ac.currentTime; amb = null;
     try { m.bed.gain.cancelScheduledValues(t); m.bed.gain.setValueAtTime(Math.max(.0001, m.bed.gain.value), t); m.bed.gain.linearRampToValueAtTime(.0001, t + .6); m.src.stop(t + .7); m.lfo.stop(t + .7); } catch (e) {}
   }
@@ -294,6 +322,8 @@
     homeRun(o) { queue.push(o || {}); if (!flushT) flushT = setTimeout(flush, 0); }, // same-moment home runs become one celebration
     setSound,
     cheer,
+    crowdUp,
+    vendor,
     prepare() { return prepCrowd(); }, // pages that play games call this early so the crowd voices are ready
     ambience(on) { ambWanted = !!on; if (ambWanted) startAmb(); else stopAmb(); }, // ballpark crowd noise while a game is being played
     get soundOn() { return soundOn; },
