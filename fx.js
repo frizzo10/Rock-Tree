@@ -10,7 +10,7 @@
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 
   let cv = null, cx = null, W = 0, H = 0, dpr = 1, raf = 0, last = 0, parts = [], rockets = [], timers = [], queue = [], flushT = 0, bannerT = 0;
-  let soundOn = store.get('cc-sound') !== '0', ac = null, soundBtn = null;
+  let soundOn = store.get('cc-sound2') !== '0', ac = null, soundBtn = null;
 
   const css = `
 .fx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9990; }
@@ -112,23 +112,23 @@
       for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; }
     }
     const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
-    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = .4;
-    const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; lp.Q.value = .4;
+    const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 220;
     const bed = a.createGain(); bed.gain.value = 0.0001;
     const sway = a.createGain(); sway.gain.value = 1;
     const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .18; // slow breathing, like a crowd
     lfo.connect(lfoAmt); lfoAmt.connect(sway.gain);
     src.connect(hp); hp.connect(lp); lp.connect(bed); bed.connect(sway); sway.connect(a.destination);
     src.start(); lfo.start();
-    bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(.55, a.currentTime + 2.5);
+    bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(.8, a.currentTime + 2.5);
     amb = { src, lfo, bed, lp };
     const swell = () => { // now and then the crowd rises, then settles
       ambTimer = setTimeout(() => {
         if (!amb) return; const t = a.currentTime, big = Math.random() < .3;
         amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(amb.bed.gain.value, t);
-        amb.bed.gain.linearRampToValueAtTime(big ? 1.05 : .8, t + 1.3); amb.bed.gain.linearRampToValueAtTime(.55, t + (big ? 6 : 4));
+        amb.bed.gain.linearRampToValueAtTime(big ? 1.5 : 1.1, t + 1.3); amb.bed.gain.linearRampToValueAtTime(.8, t + (big ? 6 : 4));
         amb.lp.frequency.cancelScheduledValues(t); amb.lp.frequency.setValueAtTime(amb.lp.frequency.value, t);
-        amb.lp.frequency.linearRampToValueAtTime(big ? 2400 : 1700, t + 1.3); amb.lp.frequency.linearRampToValueAtTime(1100, t + (big ? 6 : 4));
+        amb.lp.frequency.linearRampToValueAtTime(big ? 3200 : 2300, t + 1.3); amb.lp.frequency.linearRampToValueAtTime(1500, t + (big ? 6 : 4));
         swell();
       }, rnd(9000, 24000));
     };
@@ -146,7 +146,7 @@
   document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else if (soundOn) ac.resume(); });
 
   function setSound(on) {
-    soundOn = !!on; store.set('cc-sound', soundOn ? '1' : '0');
+    soundOn = !!on; store.set('cc-sound2', soundOn ? '1' : '0');
     if (soundBtn) { soundBtn.setAttribute('aria-pressed', String(soundOn)); soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; }
     if (soundOn) { audio(); noise(.08, 3000, .3, 0, 'bandpass'); if (ambWanted) startAmb(); } else stopAmb();
   }

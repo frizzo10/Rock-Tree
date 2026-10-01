@@ -928,8 +928,21 @@ body.war .dec { color: var(--wb-red); }
     el.innerHTML = `<h2>Batting orders</h2><div class="lu">${col(you)}${col(1 - you)}</div>`;
   }
 
+  // at the end of each inning, glide up to the scoreboard, pause so you can read it, then glide back to where you were
+  let peekInning = 1, peeking = false;
+  async function inningPeek() {
+    const board = document.querySelector('.board'); if (!board || peeking) return;
+    peeking = true;
+    const y = window.scrollY, soft = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    board.scrollIntoView({ behavior: soft, block: 'start' });
+    await new Promise(r => setTimeout(r, 3000)); // a real pause, even with reduced motion
+    window.scrollTo({ top: y, behavior: soft });
+    peeking = false;
+  }
+
   function prompt() {
     if (g.over) return endGame();
+    if (g.inning > peekInning) { peekInning = g.inning; inningPeek(); }
     const youBat = g.half === you, b = g.batter(), p = g.pitcher();
     $('trayTitle').textContent = youBat ? `${b.short} at the plate` : `${p.short} on the mound`;
     $('hint').textContent = youBat ? `You're batting. Roll your d20 to win the duel against ${p.short}.` : `You're pitching. Roll your d20 to win the duel against ${b.short}.`;
@@ -1064,7 +1077,7 @@ body.war .dec { color: var(--wb-red); }
     const [a, h] = pairing(); you = 1;
     const sp = () => Math.floor(Math.random() * 5);
     g = new DuelDice.Game(a, h, { starters: [sp(), sp()] });
-    lastHalfKey = '';
+    lastHalfKey = ''; peekInning = g.inning;
     $('feed').innerHTML = ''; $('right').innerHTML = '<p class="empty">The box score appears here when the game ends.</p>';
     $('tableArea').hidden = false; $('batCard').hidden = false; $('pitCard').hidden = false; $('autoInning').disabled = false; $('autoGame').disabled = false;
     ['dieBat', 'diePit', 'tens', 'ones'].forEach(id => $(id).textContent = '–'); $('pctTotal').textContent = ''; $('result').textContent = '';
