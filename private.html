@@ -179,7 +179,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   if (fromUrl) { store.set('cc-join', fromUrl.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20)); history.replaceState(null, '', location.pathname); }
   const joinCode = () => store.get('cc-join') || '';
   const inviteUrl = code => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}private.html?join=${code}`;
-  const LEAGUESAFE = 'https://www.leaguesafe.com/';
+  const LEAGUESAFE = 'https://www.leaguesafe.com/createleague';
 
   // ---------- the agreement ----------
   async function loadAgreement() {
@@ -326,7 +326,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       ${isC && feeBlock(l)}
       ${isC && l.status === 'open' && active(l) ? `<div class="invite"><b>Invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval.</span><code>${esc(inviteUrl(l.invite_code))}</code><button class="btn btn-alt" data-copy="${esc(inviteUrl(l.invite_code))}">Copy link</button></div>` : ''}
       ${isC && pending.length ? `<h3 style="margin-top:16px;font-size:19px">Waiting for your approval</h3><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and were invited by someone they know</span><p class="note" style="margin:2px 0 0">How they know the league: ${esc(r.relationship || 'not given')}</p>${aiNote(r)}<div class="row"><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></div></li>`).join('')}</ul>` : ''}
-      ${isC && live ? `<div class="ls"><b>Playing for dues? Keep the money away from us.</b><p class="note" style="margin:4px 0">If your league plays for dues, use an independent dues service so the money is held separately from Cooperstown Cash. Many leagues use LeagueSafe, which says it holds funds until the season ends and lets members vote on payouts. Cooperstown Cash isn't affiliated with LeagueSafe, gets nothing from it, and can't see or verify payments.</p><ol class="note"><li>Create your league there and set the entry amount and payouts.</li><li>Have members pay through LeagueSafe, never through us.</li><li>Keep your own records. You're responsible for any tax reporting.</li></ol><a class="btn btn-alt" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Go to LeagueSafe</a></div>` : ''}
+      ${isC && live ? `<div class="ls"><b>Playing for dues? Keep the money away from us.</b><p class="note" style="margin:4px 0">If your league plays for dues, use an independent dues service so the money is held separately from Cooperstown Cash. Many leagues use LeagueSafe, which says it holds funds until the season ends and lets members vote on payouts. Cooperstown Cash isn't affiliated with LeagueSafe, gets nothing from it, and can't see or verify payments.</p><ol class="note"><li>Create your league there and set the entry amount and payouts.</li><li>Have members pay through LeagueSafe, never through us.</li><li>Keep your own records. You're responsible for any tax reporting.</li></ol><a class="btn btn-main" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Set up your league on LeagueSafe &#8599;</a></div>` : ''}
       ${supportCard(l)}
       <div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && (live || started) ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>
     </article>`;
