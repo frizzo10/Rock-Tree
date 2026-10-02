@@ -67,6 +67,14 @@ textarea { min-height: 70px; resize: vertical; }
 .ls table.eg th { font-size: 13px; color: #4A5560; background: #F5F6F8; }
 .ls table.eg .n { text-align: right; white-space: nowrap; }
 .ls table.eg tr.tot td { font-weight: 700; border-top: 2px solid #8C959E; border-bottom: 0; }
+#invitePitch h2 { margin: 0 0 6px; font-size: clamp(26px, 5vw, 34px); } #invitePitch h3 { font: 400 22px/1.1 var(--marker); color: var(--wb-ink); margin: 18px 0 8px; }
+#invitePitch .lede { font-size: 18px; margin: 0 0 12px; max-width: 62ch; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 8px 0 10px; }
+.tile { background: #fff; border: 2px solid var(--wb-frame); border-radius: 8px; padding: 10px 12px; } .tile span { display: block; font-size: 13px; font-weight: 600; color: #5A646E; } .tile b { display: block; font: 400 26px/1.15 var(--marker); color: var(--wb-ink); }
+#invitePitch .pay { font-size: 17px; margin: 4px 0 6px; }
+.minis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.mini { background: #FFF4CF; border: 3px solid #C69A2B; border-radius: 10px; padding: 8px 12px 10px; } .mini .y { font: 400 30px/1 var(--marker); color: var(--wb-red); } .mini h4 { font: 400 20px/1.15 var(--marker); color: var(--wb-ink); margin: 2px 0 2px; } .mini p { margin: 0; font-size: 14px; font-weight: 600; color: #6B5A2C; }
+ul.doing { margin: 4px 0 10px; padding-left: 22px; } ul.doing li { margin: 6px 0; }
 .ls .eg-notes { margin: 4px 0 8px; padding-left: 20px; font-size: 14px; color: #4A5560; }
 #hero .h-has, #hero .h-invite, #hero .h-new { display: none; }
 #hero[data-mode="new"] .h-new { display: revert; } #hero[data-mode="has"] .h-has { display: revert; } #hero[data-mode="invite"] .h-invite { display: revert; }
@@ -77,6 +85,7 @@ textarea { min-height: 70px; resize: vertical; }
 #hero[data-mode="new"] ol.how { display: flex; }
 #hero ol.how li { counter-increment: s; flex: 1 1 140px; padding: 8px 10px; background: #fff; border: 1px solid #C9CED4; border-radius: 6px; font-size: 14px; font-weight: 600; }
 #hero ol.how li::before { content: counter(s) ". "; color: #1F3F8F; }
+#hero[data-mode="invite"] ~ #startCard { display: none; }
 #startCard.has #startDet:not([open]) summary h2 { font-size: 18px; margin: 0; }
 #startCard:not(.has) summary { pointer-events: none; cursor: default; }
 #startDet summary { cursor: pointer; list-style: none; display: flex; align-items: center; min-height: 48px; } #startDet summary::-webkit-details-marker { display: none; } #startDet summary h2 { margin: 0 0 6px; }
@@ -158,9 +167,9 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a></nav>
 
   <header class="wb" id="hero" data-mode="new">
-    <h1><span class="h-new">Run your own cash league</span><span class="h-has">Your leagues</span><span class="h-invite">Private leagues</span></h1>
+    <h1><span class="h-new">Run your own cash league</span><span class="h-has">Your leagues</span><span class="h-invite">You're invited</span></h1>
     <p class="lede h-new">You set the buy-in. LeagueSafe holds the money. We run the games.</p>
-    <p class="h-invite">Play with people you know. You're the commissioner: you invite your friends, and you approve everyone who joins. Each league has ten clubs and a salary cap.</p>
+    <p class="h-invite">Someone who knows you has invited you to play baseball with them. Here's what you're joining.</p>
     <ul class="sells h-new">
       <li><b>Everything runs itself.</b> The schedule, the dice, the standings and the playoffs. If a manager misses a game day, the site plays it for them.</li>
       <li><b>The money stays out of our hands.</b> You pick the buy-in and the split, every manager sees the same numbers, and Cooperstown Cash never touches the money.</li>
@@ -174,8 +183,10 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     </div>
   </header>
 
+  <section class="card" id="invitePitch" hidden aria-live="polite" aria-label="About this invitation"></section>
+
   <section class="card" id="joinCard" hidden aria-label="Join a league">
-    <h2>You've been invited to a private league</h2>
+    <h2>Ask for a seat</h2>
     <p class="note" id="joinNote">Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there's no password.</p>
     <form id="joinForm" novalidate>
       <label for="joinClub">Name your club</label>
@@ -208,7 +219,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   </section>
 
   <footer>
-    <p>Prototype for testing. Game days for a full league are the next piece being built, so for now a league holds its members and seats.</p>
+    <p>Prototype for testing. Cooperstown Cash is not affiliated with Major League Baseball or any team.</p>
     <p>Statistics from the Lahman Baseball Database by Sean Lahman, used under CC BY-SA 3.0.</p>
   <p><a href="terms.html" style="color:inherit;font-weight:600">Terms of Service</a> &middot; <a href="privacy.html" style="color:inherit;font-weight:600">Privacy Policy</a></p>
   </footer>
@@ -236,7 +247,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
-  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {} };
+  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {}, invite: null, legends: null };
   const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
   const signedIn = () => !!(window.CC && window.CC.user);
   const client = () => window.CC && window.CC.client;
@@ -476,7 +487,8 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       `- You build a 25-player roster of real player-seasons from baseball history, under a ${cap} salary cap. An AI scout gives advice if you want it.`,
       "- It's a 27-game season, then playoffs for the top four. I'll pick the pace, from one game day a day (about 4 weeks) to three a day (about 9 days).",
       '- You roll the dice on your game days, or have the site play your game for you. If you miss a deadline, the site plays it for you. It takes a few minutes a day.',
-      "- The standings, and who is in the money, are on the league page all season.", '',
+      "- The standings, and who is in the money, are on the league page all season.",
+      `- To get a taste of the seasons you can draft, have a look at this: ${location.origin}${location.pathname.replace(/[^/]*$/, '')}highlights.html`, '',
       'How to join',
       `1. Open this link: ${link}`, '2. Sign in with your email (no password) and name your club.', "3. Confirm you're 18 or older, and sign the short league agreement.",
       buy > 0 ? '4. I approve you, then send you the LeagueSafe link to pay your buy-in.' : '4. I approve you, and you can build your roster.', '',
@@ -538,6 +550,38 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       ${ends}
     </article>`;
   }
+  // ---------- what someone sees from an invite link, before they have an account ----------
+  async function loadInvite() {
+    const code = joinCode(); if (!code) { S.invite = null; return; }
+    if (S.invite && S.invite.code === code && S.invite.done) return;
+    const c = client(); if (!c) return;
+    const { data, error } = await c.rpc('invite_preview', { p_code: code });
+    S.invite = { code, done: !error, data: error ? null : data };
+    if (!S.legends) { try { const r = await fetch('highlights.json'); const h = await r.json(), L = h.legends.slice(), pick = []; // two hitters and a pitcher, drawn at random from the game's legend seasons
+      const take = pool => pool.splice(Math.floor(Math.random() * pool.length), 1)[0], hit = L.filter(x => x.pos !== 'SP' && x.pos !== 'RP'), pit = L.filter(x => x.pos === 'SP' || x.pos === 'RP');
+      if (hit.length > 1 && pit.length) pick.push(take(hit), take(hit), take(pit)); S.legends = pick; } catch (e) { S.legends = []; } }
+    render();
+  }
+  function renderInvite() {
+    const box = $('invitePitch'); box.hidden = !joinCode(); if (!joinCode()) return;
+    const inv = S.invite && S.invite.code === joinCode() ? S.invite : null;
+    if (!inv || !inv.done) { box.innerHTML = '<p class="note">Loading your invitation...</p>'; return; }
+    const d = inv.data, why = { full: 'This league is full.', underway: "This league's season has already started.", closed: 'This league has closed.', inactive: "This league isn't open for new members yet." };
+    if (!d) { box.innerHTML = "<h2>This invitation link doesn't work</h2><p>It may have been copied wrong, or the league may have closed. Ask the person who invited you to send it again.</p>"; $('joinCard').hidden = true; return; }
+    if (!d.open) { box.innerHTML = `<h2>${esc(d.name)}</h2><p><b>${esc(why[d.reason] || 'This league is not taking new members.')}</b> ${d.reason === 'inactive' ? 'The commissioner is still setting it up, so check back soon.' : "Ask the person who invited you if there's another way in."}</p>`; $('joinCard').hidden = true; return; }
+    const buy = d.buy_in, sh = Array.isArray(d.split) ? d.split : null, free = buy === 0, set = buy != null, pot = set ? buy * 10 : 0, cap = d.salary_cap != null ? '$' + Number(d.salary_cap) + ' million' : 'a';
+    const spots = sh && buy > 0 ? [['champion', sh[0]], ['runner-up', sh[1]], ['best regular-season record', sh[2]]].filter(x => x[1] > 0).map(x => `${x[0]} ${usd(pot * x[1] / 100)}`).join(', ') : '';
+    const tile = (k, v) => `<div class="tile"><span>${k}</span><b>${v}</b></div>`;
+    const lg = (S.legends || []).map(c => `<article class="mini"><div class="y">${esc(c.yr)}</div><h4>${esc(c.name)}</h4><p>${esc(c.line)}</p></article>`).join('');
+    box.innerHTML = `<h2>${esc(d.name)}</h2><p class="lede">A baseball dice league with real stats from baseball history. You're here because someone who knows you asked you to play.</p>
+      <div class="tiles">${tile('Buy-in', !set ? 'To be announced' : free ? 'None: just for fun' : usd(buy))}${buy > 0 ? tile('Pot if all 10 join', usd(pot)) : ''}${tile('Seats open', `${d.seats_left} of 10`)}</div>
+      ${spots ? `<p class="pay"><b>Payouts if the league fills up:</b> ${esc(spots)}.</p>` : ''}
+      ${lg ? `<h3>Seasons you could be drafting</h3><div class="minis">${lg}</div>` : ''}
+      <p><a class="btn btn-main" href="highlights.html">See the greatest seasons ever played</a></p>
+      <h3>What you'll do</h3><ul class="doing"><li>Build a 25-player roster of real seasons from baseball history, under ${cap === 'a' ? 'a' : cap} salary cap. An AI scout helps if you want it.</li><li>Play a 27-game season, then playoffs for the top four. Roll the dice on your game days, or let the site play for you if you miss one.</li><li>${buy > 0 ? 'Watch the standings, and who is in the money, all season.' : 'Watch the standings all season.'}</li></ul>
+      ${buy > 0 ? `<p class="note"><b>How the money works.</b> After the commissioner approves you, the buy-in is collected and held by LeagueSafe, an independent service. You never pay Cooperstown Cash, and we never touch the money.</p>` : ''}
+      <p class="note">The commissioner decides who joins, and you must be 18 or older.</p>`;
+  }
   function render() {
     const me = signedIn() ? window.CC.user.id : null;
     document.querySelectorAll('details[data-step]').forEach(d => { // keep a step you opened or closed yourself, but not the page's own default
@@ -553,6 +597,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const has = S.leagues.length > 0; $('hero').dataset.mode = joinCode() ? 'invite' : has ? 'has' : 'new';
     $('startCard').classList.toggle('has', has); if (S.hadLeagues !== has) { $('startDet').open = !has; S.hadLeagues = has; }
     $('joinCard').hidden = !joinCode();
+    renderInvite();
     if (joinCode()) $('joinNote').textContent = signedIn() ? 'Name your club, tell the commissioner how you know the league, and confirm two things. You will sign the league agreement, then the commissioner will review your request.' : 'Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there is no password.';
     document.querySelectorAll('[data-recheck]').forEach(b => b.onclick = () => { S.sig = ''; load(); });
     document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; } catch (e) { window.prompt('Copy this link:', b.dataset.copy); } });
@@ -680,11 +725,11 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   };
   $('joinCancel').onclick = () => { store.del('cc-join'); $('joinCard').hidden = true; };
 
-  window.addEventListener('cc-auth', () => { S.sig = ''; load(); });
+  window.addEventListener('cc-auth', () => { S.sig = ''; load(); loadInvite(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('agrDlg').open) load(); });
   setInterval(() => { if (!document.hidden && !$('agrDlg').open) load(); }, 8000);
   render();
-  (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
+  (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(() => { load(); loadInvite(); });
 })();
 </script>
 </body>
