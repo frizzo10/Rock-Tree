@@ -68,6 +68,20 @@ textarea { min-height: 70px; resize: vertical; }
 .ls table.eg .n { text-align: right; white-space: nowrap; }
 .ls table.eg tr.tot td { font-weight: 700; border-top: 2px solid #8C959E; border-bottom: 0; }
 .ls .eg-notes { margin: 4px 0 8px; padding-left: 20px; font-size: 14px; color: #4A5560; }
+.ls .mset { margin: 12px 0; padding: 12px 14px; background: #fff; border: 1px solid #C9CED4; border-radius: 4px; }
+.ls .mrow { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0; }
+.ls .mrow label { display: block; margin-bottom: 3px; font-size: 14px; font-weight: 600; }
+.ls .mrow input { width: 118px; padding: 8px 10px; border: 1px solid #9AA2A0; border-radius: 4px; font: inherit; background: #fff; }
+.mb { background: #EEF0F3; border-radius: 4px; padding: 10px 14px; margin-top: 12px; }
+.mb h4 { margin: 4px 0 6px; font-size: 17px; } .mb h5 { margin: 10px 0 2px; font-size: 15px; }
+.mb .mlines { margin: 4px 0 8px; padding-left: 20px; } .mb .mlines li { margin: 6px 0; }
+.mb table.st { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 15px; background: #fff; }
+.mb table.st th, .mb table.st td { padding: 7px 8px; border-bottom: 1px solid #DDE1E4; text-align: left; vertical-align: top; }
+.mb table.st th { font-size: 13px; color: #4A5560; background: #F5F6F8; } .mb table.st .n { text-align: right; white-space: nowrap; }
+.mb tr.in-money td { background: #E6F2EA; }
+.mb .seed, .mb .tag-money { display: inline-block; margin: 3px 4px 0 0; padding: 1px 8px; border-radius: 9px; font-size: 12px; font-weight: 700; }
+.mb .seed { background: #DCE3F2; color: #1F3F8F; } .mb .tag-money { background: #1E7B45; color: #fff; }
+.cpu { font-size: 13px; color: #6B747D; font-weight: 400; }
 .ls .eg-notes li { margin: 5px 0; }
 .ls details { margin: 10px 0 12px; border: 1px solid #C9CED4; border-radius: 4px; background: #fff; }
 .ls summary { cursor: pointer; font-weight: 700; padding: 12px 14px; }
@@ -184,7 +198,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
-  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' } };
+  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {} };
   const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
   const signedIn = () => !!(window.CC && window.CC.user);
   const client = () => window.CC && window.CC.client;
@@ -268,7 +282,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (!signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.signed = new Set(); S.sig = ''; return render(); }
     const [lg, ms, rq, sg, rst] = await Promise.all([
       // (rosters: only your own row matters here)
-      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at').eq('is_public', false).order('created_at', { ascending: true }),
+      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at,buy_in_dollars,payout_split,cpu_seats,playoff_seeds').eq('is_public', false).order('created_at', { ascending: true }),
       c.from('seats').select('league_id,seat_no,club_name'),
       c.from('league_requests').select('id,league_id,user_id,club_name,relationship,ai_review,status,created_at').order('created_at', { ascending: true }),
       S.agr ? c.from('agreement_signatures').select('role,version') : Promise.resolve({ data: [] }),
@@ -282,7 +296,17 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       const { data: bd } = await c.from('seat_board').select('league_id,seat_no,club_name,ready').in('league_id', ids);
       (bd || []).forEach(r => { if (!board.has(r.league_id)) board.set(r.league_id, []); board.get(r.league_id).push(r); });
     }
-    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data, [...S.signed], S.rosters]);
+    // the finished games and playoff series of leagues that are under way or over: they make the standings. A finished league's results never change, and a running one is refreshed about once a minute.
+    await Promise.all(leagues.filter(l => l.status === 'started' || l.status === 'complete').map(async l => {
+      const have = S.results.has(l.id), age = Date.now() - (S.resultsAt.get(l.id) || 0);
+      if (have && (l.status === 'complete' ? S.results.get(l.id).done : age < 60000)) return;
+      const [g, s] = await Promise.all([
+        c.from('games').select('away_seat,home_seat,away_runs,home_runs,round').eq('league_id', l.id).eq('status', 'final'),
+        c.from('playoff_series').select('series,round,high_seat,low_seat,high_wins,low_wins,winner_seat,best_of').eq('league_id', l.id)]);
+      if (g.error || s.error) return;
+      S.results.set(l.id, { games: g.data || [], series: (s.data || []).slice().sort((a, b) => a.series - b.series), done: l.status === 'complete' }); S.resultsAt.set(l.id, Date.now());
+    }));
+    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data, [...S.signed], S.rosters, [...S.results]]);
     if (sig === S.sig) return;
     S.sig = sig; S.leagues = leagues; S.board = board; S.seats = ms.data || []; S.reqs = rq.data || []; render();
   }
@@ -296,6 +320,73 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function supportCard(l) {
     if (l.status !== 'complete' || !S.support || store.get('cc-support-off-' + l.id)) return '';
     return `<div class="support"><b>Thanks for playing.</b> If you enjoyed ${esc(l.name)}, you can help keep Cooperstown Cash running with an optional contribution. It's completely voluntary, it isn't linked to any result or prize, and it doesn't change anything about your league.<div class="row"><a class="btn btn-main" href="${esc(S.support)}" target="_blank" rel="noopener noreferrer">Support Cooperstown Cash</a><button class="btn btn-alt" data-nosupport="${l.id}">No thanks</button></div></div>`;
+  }
+  // ---------- this league's own money numbers, and the "if the season ended today" board ----------
+  const usd = x => '$' + (Math.round(x * 100) % 100 === 0 ? Math.round(x).toLocaleString('en-US') : x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  // only real members pay in; computer-run clubs pay nothing
+  const humansIn = l => Math.max(0, (S.board.get(l.id) || []).length - (l.cpu_seats || []).length);
+  function moneyFor(l) {
+    if (!(l.buy_in_dollars > 0) || !Array.isArray(l.payout_split) || l.payout_split.length !== 3) return null;
+    const humans = humansIn(l), pot = humans * l.buy_in_dollars, sh = l.payout_split, amt = p => pot * p / 100;
+    return { buy: l.buy_in_dollars, humans, pot, sh, champ: amt(sh[0]), runner: amt(sh[1]), best: amt(sh[2]) };
+  }
+  // the same order the server uses to seed the playoffs: win percentage, then run difference, then runs scored, then seat number
+  function standingsFor(l) {
+    const R = S.results.get(l.id) || { games: [] }, rows = new Map((S.board.get(l.id) || []).map(b => [b.seat_no, { seat: b.seat_no, club: b.club_name, w: 0, l: 0, rs: 0, ra: 0 }]));
+    R.games.filter(g => g.round === 'regular').forEach(g => {
+      const a = rows.get(g.away_seat), h = rows.get(g.home_seat); if (!a || !h) return;
+      a.rs += g.away_runs; a.ra += g.home_runs; h.rs += g.home_runs; h.ra += g.away_runs;
+      if (g.away_runs > g.home_runs) { a.w++; h.l++; } else { h.w++; a.l++; }
+    });
+    const pct = r => r.w + r.l ? r.w / (r.w + r.l) : 0;
+    return [...rows.values()].sort((x, y) => pct(y) - pct(x) || (y.rs - y.ra) - (x.rs - x.ra) || y.rs - x.rs || x.seat - y.seat);
+  }
+  function moneyBoard(l) {
+    const rows = standingsFor(l), R = S.results.get(l.id) || { games: [], series: [] }, m = moneyFor(l), cpu = new Set(l.cpu_seats || []), done = l.status === 'complete', inPO = l.phase === 'playoffs' || done;
+    const by = new Map(rows.map(r => [r.seat, r])), who = s => by.has(s) ? `<b>${esc(by.get(s).club)}</b>${cpu.has(s) ? ' <span class="cpu">(computer-run)</span>' : ''}` : 'a club';
+    const played = R.games.some(g => g.round === 'regular'), best = rows[0];
+    const fin = R.series.find(s => s.round === 'final'), champSeat = fin && fin.winner_seat ? fin.winner_seat : (done ? l.champion_seat : null), runSeat = fin && fin.winner_seat ? (fin.winner_seat === fin.high_seat ? fin.low_seat : fin.high_seat) : null;
+    const seeds = Array.isArray(l.playoff_seeds) && l.playoff_seeds.length ? l.playoff_seeds : rows.slice(0, 4).map(r => r.seat), seedOf = new Map(seeds.map((s, i) => [s, i + 1]));
+    const paid = new Map(); // seat -> the money tags that club holds right now
+    const give = (seat, text) => { if (seat != null) paid.set(seat, [...(paid.get(seat) || []), text]); };
+    const lines = [];
+    if (m) {
+      const p = m.sh;
+      if (played && p[2] > 0) { give(best.seat, `${usd(m.best)} best record`); lines.push(`<li><b>Best regular-season record:</b> ${who(best.seat)} ${inPO ? 'collects' : 'would collect'} ${usd(m.best)}${inPO ? '. The regular season is over.' : ' if the regular season ended today.'}</li>`); }
+      else if (p[2] > 0) lines.push(`<li><b>Best regular-season record</b> (${usd(m.best)}): no games have been played yet.</li>`);
+      if (done || champSeat) {
+        if (p[0] > 0) { if (champSeat) { give(champSeat, `${usd(m.champ)} champion`); lines.push(`<li><b>Champion:</b> ${who(champSeat)} collects ${usd(m.champ)}.</li>`); } else lines.push(`<li><b>Champion</b> (${usd(m.champ)}): the league ended before the playoffs were finished, so there is no champion. Your league decides how to settle this.</li>`); }
+        if (p[1] > 0) { if (runSeat) { give(runSeat, `${usd(m.runner)} runner-up`); lines.push(`<li><b>Runner-up:</b> ${who(runSeat)} collects ${usd(m.runner)}.</li>`); } else lines.push(`<li><b>Runner-up</b> (${usd(m.runner)}): not decided.</li>`); }
+      } else if (l.phase === 'playoffs') {
+        lines.push(`<li><b>Champion</b> (${usd(m.champ)}) and <b>runner-up</b> (${usd(m.runner)}) go to the winner and loser of the final. The playoffs are on.</li>`);
+      } else {
+        lines.push(`<li><b>Champion</b> (${usd(m.champ)}) and <b>runner-up</b> (${usd(m.runner)}) are decided in the playoffs. Today's four playoff seeds: ${seeds.map((s, i) => `${i + 1}. ${who(s)}`).join(', ')}.</li>`);
+      }
+      if ([best && played ? best.seat : null, champSeat, runSeat].some(s => s != null && cpu.has(s))) lines.push(`<li class="note">A computer-run club can't be paid. Your league decides what happens to that share, as agreed in advance.</li>`);
+    }
+    const series = R.series.map(s => `<li>${s.round === 'final' ? 'Final' : 'Semifinal'}: ${who(s.high_seat)} (seed ${seedOf.get(s.high_seat) || '?'}) vs ${who(s.low_seat)} (seed ${seedOf.get(s.low_seat) || '?'}), ${s.high_wins}&ndash;${s.low_wins}${s.winner_seat ? `, ${who(s.winner_seat)} won` : ''}</li>`).join('');
+    const trs = rows.map((r, i) => {
+      const n = r.w + r.l, pct = n ? (r.w / n).toFixed(3).replace(/^0/, '') : '.000', diff = r.rs - r.ra, tags = (paid.get(r.seat) || []).map(x => `<span class="tag-money">${esc(x)}</span>`).join('') + (seedOf.has(r.seat) ? `<span class="seed">Seed ${seedOf.get(r.seat)}</span>` : '');
+      return `<tr class="${paid.has(r.seat) ? 'in-money' : ''}"><td class="n">${i + 1}</td><td>${esc(r.club)}${cpu.has(r.seat) ? ' <span class="cpu">(computer-run)</span>' : ''}${tags ? `<div>${tags}</div>` : ''}</td><td class="n">${r.w}-${r.l}</td><td class="n">${pct}</td><td class="n">${diff > 0 ? '+' : ''}${diff}</td></tr>`;
+    }).join('');
+    const intro = m ? '' : `<p class="note">${l.buy_in_dollars === 0 ? 'This league has no buy-in, so it plays for fun and no dollar amounts are shown.' : 'No buy-in has been set for this league, so no dollar amounts are shown.'}</p>`;
+    return `<div class="mb"><h4>${done ? 'Final standings and who gets paid' : 'Standings, and who is in the money if the season ended today'}</h4>${played ? '' : '<p class="note">No games have been played yet, so everyone is 0 and 0.</p>'}${intro}${lines.length ? `<ul class="mlines">${lines.join('')}</ul>` : ''}${series && !done ? `<h5>The playoffs so far</h5><ul class="mlines">${series}</ul>` : ''}
+      <table class="st"><thead><tr><th class="n">#</th><th>Club</th><th class="n">W-L</th><th class="n">Pct</th><th class="n">Diff</th></tr></thead><tbody>${trs}</tbody></table>
+      <p class="note">${done ? 'These are the final standings.' : 'This is a live scoreboard from the standings right now.'} Ties are broken by run difference, then runs scored, the same way the playoffs are seeded. It is not a payment or a promise: Cooperstown Cash does not set, hold, pay or guarantee any prize, and your league settles up between its members.</p></div>`;
+  }
+  // the commissioner's form (open until the season starts) and what everyone sees
+  function leagueMoney(l, isC, live) {
+    const m = moneyFor(l), free = l.buy_in_dollars === 0, set = l.buy_in_dollars != null;
+    let html = '<h4>This league\'s money</h4>';
+    if (m) html += `<p class="note" style="margin:2px 0 6px">Buy-in: <b>${usd(m.buy)}</b> per member. Split: champion <b>${m.sh[0]}%</b>, runner-up <b>${m.sh[1]}%</b>, best regular-season record <b>${m.sh[2]}%</b>. With ${m.humans} member${m.humans === 1 ? '' : 's'} in the league right now, the pot is <b>${usd(m.pot)}</b>: champion ${usd(m.champ)}, runner-up ${usd(m.runner)}, best record ${usd(m.best)}.</p><p class="note" style="margin:2px 0 6px">${live ? 'The commissioner can change these until the season starts, then they lock.' : 'The commissioner set these before the season started, and they are locked.'} They are shown for everyone to see. Cooperstown Cash does not set, hold, pay or guarantee any prize.</p>`;
+    else if (free) html += '<p class="note" style="margin:2px 0 6px">The commissioner set no buy-in, so this league plays for fun.</p>';
+    else html += `<p class="note" style="margin:2px 0 6px">${isC && live ? 'Set your league\'s buy-in and split below, so every member sees the same numbers.' : live ? 'The commissioner has not set a buy-in yet.' : 'No buy-in was set for this league.'}</p>`;
+    if (isC && live) {
+      const d = S.mdraft[l.id] || {}, sp = l.payout_split || [60, 25, 15], v = (k, saved) => esc(d[k] != null ? d[k] : saved == null ? '' : saved);
+      const f = (k, label, saved) => `<div><label for="mb-${l.id}-${k}">${label}</label><input class="mf" id="mb-${l.id}-${k}" data-lid="${l.id}" data-k="${k}" type="number" min="0" max="${k === 'buy' ? 10000 : 100}" step="1" inputmode="numeric" value="${v(k, saved)}"></div>`;
+      html += `<div class="mset" data-lid="${l.id}"><b>${set ? 'Change' : 'Set'} your league's buy-in and split</b><div class="mrow">${f('buy', 'Buy-in per member ($)', l.buy_in_dollars)}${f('c', 'Champion %', sp[0])}${f('r', 'Runner-up %', sp[1])}${f('b', 'Best record %', sp[2])}</div><p class="note" id="mchk-${l.id}" style="margin:4px 0"></p><div class="row" style="margin-top:6px"><button class="btn btn-main" type="button" data-money-save="${l.id}">Save for the league</button></div><p class="msg" id="mmsg-${l.id}" role="status"></p></div>`;
+    }
+    return html;
   }
   const dayNow = l => { if (!l.season_start_at) return 1; const h = l.game_day_hours || 24; return Math.max(1, Math.min(27, Math.floor((Date.now() - new Date(l.season_start_at)) / (h * 3600000)) + 1)); };
   function seasonBar(l) {
@@ -340,11 +431,12 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       ${mySeat && live ? rosterBar(l, members) : ''}
       ${isC && (l.status === 'open' || l.status === 'full') ? startPanel(l, members) : ''}
       ${started ? seasonBar(l) : ''}
+      ${started || l.status === 'complete' ? moneyBoard(l) : ''}
       ${isC && feeBlock(l)}
       ${isC && l.status === 'open' && active(l) ? `<div class="invite"><b>Invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval.</span><code>${esc(inviteUrl(l.invite_code))}</code><button class="btn btn-alt" data-copy="${esc(inviteUrl(l.invite_code))}">Copy link</button></div>` : ''}
       ${isC && pending.length ? `<h3 style="margin-top:16px;font-size:19px">Waiting for your approval</h3><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and were invited by someone they know</span><p class="note" style="margin:2px 0 0">How they know the league: ${esc(r.relationship || 'not given')}</p>${aiNote(r)}<div class="row"><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></div></li>`).join('')}</ul>` : ''}
-      ${isC && money ? `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${MONEY_EXAMPLE}<details><summary>How to set up LeagueSafe, step by step</summary><div class="guide"><h4>What you need before you start</h4><ul><li>A free LeagueSafe account. You create it in the first step.</li><li>Your league's entry fee, and how the pot will be paid out (for example winner takes all, or first, second and third).</li><li>Your members' details, such as their email addresses, ready for when LeagueSafe asks who is in your league.</li><li>Every member must be 18 or older.</li></ul><h4>What to do</h4><ol><li>Tap the LeagueSafe button below. LeagueSafe opens in a new tab.</li><li>Create your account, then <b>choose a plan</b>. LeagueSafe offers <b>Express</b> (leagues of up to 24 players, the simplest), <b>Traditional</b> (adds payment reminders and a choice between commissioner control or member voting on payouts), and <b>Pools &amp; Playoffs</b> (for pools and shorter playoff seasons). A ten-club league fits Express or Traditional.</li><li>Enter your <b>league info</b>: a name (your Cooperstown Cash league name works), the entry fee, and how the pot is split.</li><li>Follow LeagueSafe's next steps to <b>add your members</b>, pick a trophy, and <b>notify them</b>. Each member gets an invite and a payment link.</li><li><b>Wait until everyone has paid</b> before you lock rosters and start the season here. Cooperstown Cash cannot see who has paid, so check on LeagueSafe.</li><li>Play the season. When it ends, use the champion and final standings on your league's page here to <b>pay out on LeagueSafe</b>. LeagueSafe says winnings go out within hours, and if your league uses its voting, members vote on the payout split first.</li></ol><h4>What your members do</h4><ul><li>Open the invite LeagueSafe sends and pay by credit or debit card or by e-check.</li><li>Pay only through LeagueSafe: never to Cooperstown Cash, and not to the commissioner's personal account.</li></ul><p class="fine">This summarizes how LeagueSafe describes itself. Plans, fees and rules are LeagueSafe's and can change, so read them on LeagueSafe before you collect or pay anything. LeagueSafe says it is free to use apart from standard card and bank processing fees. Cooperstown Cash is not affiliated with LeagueSafe, gets nothing from it, and cannot see or verify payments. Keep your own records: you are responsible for any tax reporting and for following the laws where you live.</p></div></details>${live ? `<a class="btn btn-main" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Set up your league on LeagueSafe &#8599;</a>` : `<a class="btn btn-main" href="https://www.leaguesafe.com/" target="_blank" rel="noopener noreferrer">Open LeagueSafe &#8599;</a>`}</div>` : ''}
-      ${mySeat && !isC && money ? `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${MONEY_EXAMPLE}<details><summary>If your league plays for dues: what you need to do</summary><div class="guide"><ol><li>Your commissioner sets the league up on LeagueSafe, an independent dues service. LeagueSafe then sends you an invite and a payment link.</li><li>Pay through that invite, by credit or debit card or by e-check. Never pay Cooperstown Cash, and not the commissioner's personal account.</li><li>Wait until everyone has paid. Your commissioner locks rosters and starts the season here.</li><li>When the season ends, your commissioner pays out through LeagueSafe.</li></ol><p class="fine">LeagueSafe is an independent company. Its plans, fees and rules are its own and can change, so read them on LeagueSafe before you pay. Cooperstown Cash is not affiliated with it, gets nothing from it, and cannot see or verify payments. You are responsible for following the laws where you live.</p></div></details></div>` : ''}
+      ${isC && money ? `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${leagueMoney(l, true, live)}${MONEY_EXAMPLE}<details><summary>How to set up LeagueSafe, step by step</summary><div class="guide"><h4>What you need before you start</h4><ul><li>A free LeagueSafe account. You create it in the first step.</li><li>Your league's entry fee, and how the pot will be paid out (for example winner takes all, or first, second and third).</li><li>Your members' details, such as their email addresses, ready for when LeagueSafe asks who is in your league.</li><li>Every member must be 18 or older.</li></ul><h4>What to do</h4><ol><li>Tap the LeagueSafe button below. LeagueSafe opens in a new tab.</li><li>Create your account, then <b>choose a plan</b>. LeagueSafe offers <b>Express</b> (leagues of up to 24 players, the simplest), <b>Traditional</b> (adds payment reminders and a choice between commissioner control or member voting on payouts), and <b>Pools &amp; Playoffs</b> (for pools and shorter playoff seasons). A ten-club league fits Express or Traditional.</li><li>Enter your <b>league info</b>: a name (your Cooperstown Cash league name works), the entry fee, and how the pot is split.</li><li>Follow LeagueSafe's next steps to <b>add your members</b>, pick a trophy, and <b>notify them</b>. Each member gets an invite and a payment link.</li><li><b>Wait until everyone has paid</b> before you lock rosters and start the season here. Cooperstown Cash cannot see who has paid, so check on LeagueSafe.</li><li>Play the season. When it ends, use the champion and final standings on your league's page here to <b>pay out on LeagueSafe</b>. LeagueSafe says winnings go out within hours, and if your league uses its voting, members vote on the payout split first.</li></ol><h4>What your members do</h4><ul><li>Open the invite LeagueSafe sends and pay by credit or debit card or by e-check.</li><li>Pay only through LeagueSafe: never to Cooperstown Cash, and not to the commissioner's personal account.</li></ul><p class="fine">This summarizes how LeagueSafe describes itself. Plans, fees and rules are LeagueSafe's and can change, so read them on LeagueSafe before you collect or pay anything. LeagueSafe says it is free to use apart from standard card and bank processing fees. Cooperstown Cash is not affiliated with LeagueSafe, gets nothing from it, and cannot see or verify payments. Keep your own records: you are responsible for any tax reporting and for following the laws where you live.</p></div></details>${live ? `<a class="btn btn-main" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Set up your league on LeagueSafe &#8599;</a>` : `<a class="btn btn-main" href="https://www.leaguesafe.com/" target="_blank" rel="noopener noreferrer">Open LeagueSafe &#8599;</a>`}</div>` : ''}
+      ${mySeat && !isC && money ? `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${leagueMoney(l, false, live)}${MONEY_EXAMPLE}<details><summary>If your league plays for dues: what you need to do</summary><div class="guide"><ol><li>Your commissioner sets the league up on LeagueSafe, an independent dues service. LeagueSafe then sends you an invite and a payment link.</li><li>Pay through that invite, by credit or debit card or by e-check. Never pay Cooperstown Cash, and not the commissioner's personal account.</li><li>Wait until everyone has paid. Your commissioner locks rosters and starts the season here.</li><li>When the season ends, your commissioner pays out through LeagueSafe.</li></ol><p class="fine">LeagueSafe is an independent company. Its plans, fees and rules are its own and can change, so read them on LeagueSafe before you pay. Cooperstown Cash is not affiliated with it, gets nothing from it, and cannot see or verify payments. You are responsible for following the laws where you live.</p></div></details></div>` : ''}
       ${supportCard(l)}
       <div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && (live || started) ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>
     </article>`;
@@ -366,6 +458,9 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => leave(b.dataset.leave));
     document.querySelectorAll('[data-end]').forEach(b => b.onclick = () => endLeague(b.dataset.end));
     document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startSeason(b.dataset.start));
+    document.querySelectorAll('[data-money-save]').forEach(b => b.onclick = () => saveMoney(b.dataset.moneySave));
+    document.querySelectorAll('.mf').forEach(i => i.oninput = () => moneyInput(i));
+    document.querySelectorAll('.mset').forEach(el => moneyCheck(el.dataset.lid));
     document.querySelectorAll('[data-nosupport]').forEach(b => b.onclick = () => { store.set('cc-support-off-' + b.dataset.nosupport, '1'); render(); });
   }
 
@@ -380,6 +475,29 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const { error } = await client().from('seats').delete().eq('league_id', id);
     if (error) alert('Could not leave that league. Please try again.');
     S.sig = ''; load();
+  }
+  const mval = (lid, k) => { const el = $('mb-' + lid + '-' + k); return el ? el.value.trim() : ''; };
+  function moneyRead(lid) { const n = k => mval(lid, k) === '' ? NaN : Number(mval(lid, k)); return { buy: n('buy'), sh: [n('c'), n('r'), n('b')] }; }
+  function moneyProblem(v) {
+    if (!Number.isInteger(v.buy) || v.buy < 0 || v.buy > 10000) return 'The buy-in must be a whole number of dollars from 0 to 10,000.';
+    if (v.sh.some(x => !Number.isInteger(x) || x < 0 || x > 100)) return 'Each share must be a whole percentage from 0 to 100.';
+    const sum = v.sh[0] + v.sh[1] + v.sh[2]; if (sum !== 100) return `The three shares add up to ${sum}. They need to add up to 100.`;
+    return '';
+  }
+  function moneyCheck(lid) {
+    const el = $('mchk-' + lid); if (!el) return; const v = moneyRead(lid), bad = moneyProblem(v), l = S.leagues.find(x => x.id === lid);
+    if (mval(lid, 'buy') === '') { el.textContent = 'Enter the buy-in each member pays, for example 100.'; return; }
+    if (bad) { el.textContent = bad; return; }
+    const humans = l ? humansIn(l) : 0, pot = humans * v.buy, amt = p => usd(pot * p / 100);
+    el.textContent = v.buy === 0 ? 'A $0 buy-in means no money is shown for this league.' : `With ${humans} member${humans === 1 ? '' : 's'} right now: pot ${usd(pot)}. Champion ${amt(v.sh[0])}, runner-up ${amt(v.sh[1])}, best record ${amt(v.sh[2])}.`;
+  }
+  function moneyInput(i) { const lid = i.dataset.lid; S.mdraft[lid] = { buy: mval(lid, 'buy'), c: mval(lid, 'c'), r: mval(lid, 'r'), b: mval(lid, 'b') }; moneyCheck(lid); }
+  async function saveMoney(lid) {
+    const v = moneyRead(lid), bad = moneyProblem(v); if (bad) return say('mmsg-' + lid, bad, 'err');
+    say('mmsg-' + lid, 'Saving...');
+    const { error } = await client().rpc('set_league_money', { p_league_id: lid, p_buy_in: v.buy, p_split: v.sh });
+    if (error) return say('mmsg-' + lid, error.message, 'err');
+    delete S.mdraft[lid]; S.sig = ''; await load(); say('mmsg-' + lid, 'Saved. Everyone in the league can see these numbers now.', 'ok');
   }
   async function startSeason(id) {
     const pick = document.querySelector(`input[name="pace-${id}"]:checked`), hrs = pick ? +pick.value : 24;
