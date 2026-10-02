@@ -68,10 +68,38 @@ textarea { min-height: 70px; resize: vertical; }
 .ls table.eg .n { text-align: right; white-space: nowrap; }
 .ls table.eg tr.tot td { font-weight: 700; border-top: 2px solid #8C959E; border-bottom: 0; }
 .ls .eg-notes { margin: 4px 0 8px; padding-left: 20px; font-size: 14px; color: #4A5560; }
-.ls .mset { margin: 12px 0; padding: 12px 14px; background: #fff; border: 1px solid #C9CED4; border-radius: 4px; }
-.ls .mrow { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0; }
-.ls .mrow label { display: block; margin-bottom: 3px; font-size: 14px; font-weight: 600; }
-.ls .mrow input { width: 118px; padding: 8px 10px; border: 1px solid #9AA2A0; border-radius: 4px; font: inherit; background: #fff; }
+#hero .h-has, #hero .h-invite, #hero .h-new { display: none; }
+#hero[data-mode="new"] .h-new { display: revert; } #hero[data-mode="has"] .h-has { display: revert; } #hero[data-mode="invite"] .h-invite { display: revert; }
+#hero[data-mode="new"] h1 .h-new, #hero[data-mode="has"] h1 .h-has, #hero[data-mode="invite"] h1 .h-invite { display: inline; }
+#hero .lede { font-size: 20px; font-weight: 600; margin: 4px 0 10px; }
+#hero ul.sells { margin: 8px 0 10px; padding-left: 20px; } #hero ul.sells li { margin: 8px 0; }
+#hero ol.how { flex-wrap: wrap; gap: 8px; list-style: none; margin: 12px 0; padding: 0; counter-reset: s; }
+#hero[data-mode="new"] ol.how { display: flex; }
+#hero ol.how li { counter-increment: s; flex: 1 1 140px; padding: 8px 10px; background: #fff; border: 1px solid #C9CED4; border-radius: 6px; font-size: 14px; font-weight: 600; }
+#hero ol.how li::before { content: counter(s) ". "; color: #1F3F8F; }
+#startCard.has #startDet:not([open]) summary h2 { font-size: 18px; margin: 0; }
+#startCard:not(.has) summary { pointer-events: none; cursor: default; }
+#startDet summary { cursor: pointer; list-style: none; display: flex; align-items: center; min-height: 48px; } #startDet summary::-webkit-details-marker { display: none; } #startDet summary h2 { margin: 0 0 6px; }
+ol.steps { list-style: none; margin: 14px 0 6px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.stp > details { background: #fff; border: 1px solid #C9CED4; border-radius: 6px; }
+.stp.now > details { border: 2px solid #1F3F8F; }
+.stp.done > details { background: #F6F8F6; }
+.stp summary { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; cursor: pointer; list-style: none; }
+.stp summary::-webkit-details-marker { display: none; }
+.stp .ico { flex: none; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-weight: 700; background: #E4E7EA; color: #4A5560; }
+.stp.done .ico { background: #1E7B45; color: #fff; } .stp.now .ico { background: #1F3F8F; color: #fff; }
+.stp .ttl { display: flex; flex-direction: column; gap: 2px; } .stp .ttl b { font-size: 17px; } .stp.todo .ttl b { color: #4A5560; }
+.stp .sm { font-size: 14px; color: #4A5560; font-weight: 400; }
+.stp .badge-n { margin-left: 8px; padding: 1px 8px; border-radius: 9px; background: #C0392B; color: #fff; font-size: 12px; font-weight: 700; }
+.stp .stp-body { padding: 0 14px 14px; } .stp .stp-body > .ls, .stp .stp-body > .mset { margin-top: 8px; }
+.kit { margin-top: 12px; } .kit label { display: block; margin: 8px 0 3px; font-size: 14px; font-weight: 600; }
+.kit input.ek, .kit textarea.ek { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #9AA2A0; border-radius: 4px; font: inherit; background: #fff; }
+.kit textarea.ek { min-height: 360px; line-height: 1.5; }
+details.mp { margin-top: 12px; } details.mp > summary { cursor: pointer; padding: 10px 14px; background: #EEF0F3; border-radius: 4px; }
+.mset { margin: 12px 0; padding: 12px 14px; background: #fff; border: 1px solid #C9CED4; border-radius: 4px; }
+.mrow { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0; }
+.mrow label { display: block; margin-bottom: 3px; font-size: 14px; font-weight: 600; }
+.mrow input { width: 118px; padding: 8px 10px; border: 1px solid #9AA2A0; border-radius: 4px; font: inherit; background: #fff; }
 .mb { background: #EEF0F3; border-radius: 4px; padding: 10px 14px; margin-top: 12px; }
 .mb h4 { margin: 4px 0 6px; font-size: 17px; } .mb h5 { margin: 10px 0 2px; font-size: 15px; }
 .mb .mlines { margin: 4px 0 8px; padding-left: 20px; } .mb .mlines li { margin: 6px 0; }
@@ -129,9 +157,17 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
 <div class="wrap">
   <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a></nav>
 
-  <header class="wb">
-    <h1>Private leagues</h1>
-    <p>Play with people you know. You're the commissioner: you invite your friends, and you approve everyone who joins. Each league has ten clubs and a salary cap.</p>
+  <header class="wb" id="hero" data-mode="new">
+    <h1><span class="h-new">Run your own cash league</span><span class="h-has">Your leagues</span><span class="h-invite">Private leagues</span></h1>
+    <p class="lede h-new">You set the buy-in. LeagueSafe holds the money. We run the games.</p>
+    <p class="h-invite">Play with people you know. You're the commissioner: you invite your friends, and you approve everyone who joins. Each league has ten clubs and a salary cap.</p>
+    <ul class="sells h-new">
+      <li><b>Everything runs itself.</b> The schedule, the dice, the standings and the playoffs. If a manager misses a game day, the site plays it for them.</li>
+      <li><b>The money stays out of our hands.</b> You pick the buy-in and the split, every manager sees the same numbers, and Cooperstown Cash never touches the money.</li>
+      <li><b>Your managers have plenty to do.</b> Salary-cap rosters, an AI scout, and a live board showing who is in the money.</li>
+    </ul>
+    <ol class="how h-new"><li>Name your league</li><li>Set the buy-in and split</li><li>Invite your managers by email</li><li>Collect buy-ins on LeagueSafe</li><li>Start the season</li></ol>
+    <p class="h-new"><a class="btn btn-main" href="#startCard" id="heroGo">Start your league</a></p>
     <div class="pad">
       <h2>About money</h2>
       <p>Cooperstown Cash never touches, holds or takes a share of your league's money. If your league plays for dues, that's between you and your league. The only thing we may charge is a flat hosting fee, paid by the commissioner from their own funds, never by members and never from dues. <button class="linkbtn" id="readAgr" type="button">Read the full league agreement</button></p>
@@ -157,7 +193,8 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   <section id="mine" aria-label="Your private leagues"></section>
 
   <section class="card" id="startCard" aria-label="Start a private league">
-    <h2>Start a private league</h2>
+    <details id="startDet" open>
+      <summary><h2>Start a private league</h2></summary>
     <p class="note">You'll be the commissioner and take the first seat. You'll read and sign a commissioner agreement first. Then share your invite link with people you know.<span id="feeNote"></span></p>
     <form id="startForm" novalidate>
       <label for="lgName">League name</label>
@@ -167,6 +204,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       <div class="row"><button type="submit" class="btn btn-main" id="startGo">Start the league</button></div>
       <p class="msg" id="startMsg" role="status" aria-live="polite"></p>
     </form>
+    </details>
   </section>
 
   <footer>
@@ -198,7 +236,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
-  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {} };
+  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {} };
   const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
   const signedIn = () => !!(window.CC && window.CC.user);
   const client = () => window.CC && window.CC.client;
@@ -282,7 +320,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (!signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.signed = new Set(); S.sig = ''; return render(); }
     const [lg, ms, rq, sg, rst] = await Promise.all([
       // (rosters: only your own row matters here)
-      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at,buy_in_dollars,payout_split,cpu_seats,playoff_seeds').eq('is_public', false).order('created_at', { ascending: true }),
+      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at,buy_in_dollars,payout_split,cpu_seats,playoff_seeds,salary_cap').eq('is_public', false).order('created_at', { ascending: true }),
       c.from('seats').select('league_id,seat_no,club_name'),
       c.from('league_requests').select('id,league_id,user_id,club_name,relationship,ai_review,status,created_at').order('created_at', { ascending: true }),
       S.agr ? c.from('agreement_signatures').select('role,version') : Promise.resolve({ data: [] }),
@@ -375,12 +413,12 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       <p class="note">${done ? 'These are the final standings.' : 'This is a live scoreboard from the standings right now.'} Ties are broken by run difference, then runs scored, the same way the playoffs are seeded. It is not a payment or a promise: Cooperstown Cash does not set, hold, pay or guarantee any prize, and your league settles up between its members.</p></div>`;
   }
   // the commissioner's form (open until the season starts) and what everyone sees
-  function leagueMoney(l, isC, live) {
+  function leagueMoney(l, isC, live, bare) {
     const m = moneyFor(l), free = l.buy_in_dollars === 0, set = l.buy_in_dollars != null;
-    let html = '<h4>This league\'s money</h4>';
+    let html = bare ? '' : '<h4>This league\'s money</h4>';
     if (m) html += `<p class="note" style="margin:2px 0 6px">Buy-in: <b>${usd(m.buy)}</b> per member. Split: champion <b>${m.sh[0]}%</b>, runner-up <b>${m.sh[1]}%</b>, best regular-season record <b>${m.sh[2]}%</b>. With ${m.humans} member${m.humans === 1 ? '' : 's'} in the league right now, the pot is <b>${usd(m.pot)}</b>: champion ${usd(m.champ)}, runner-up ${usd(m.runner)}, best record ${usd(m.best)}.</p><p class="note" style="margin:2px 0 6px">${live ? 'The commissioner can change these until the season starts, then they lock.' : 'The commissioner set these before the season started, and they are locked.'} They are shown for everyone to see. Cooperstown Cash does not set, hold, pay or guarantee any prize.</p>`;
     else if (free) html += '<p class="note" style="margin:2px 0 6px">The commissioner set no buy-in, so this league plays for fun.</p>';
-    else html += `<p class="note" style="margin:2px 0 6px">${isC && live ? 'Set your league\'s buy-in and split below, so every member sees the same numbers.' : live ? 'The commissioner has not set a buy-in yet.' : 'No buy-in was set for this league.'}</p>`;
+    else if (!(bare && isC && live)) html += `<p class="note" style="margin:2px 0 6px">${isC && live ? 'Set your league\'s buy-in and split below, so every member sees the same numbers.' : live ? 'The commissioner has not set a buy-in yet.' : 'No buy-in was set for this league.'}</p>`;
     if (isC && live) {
       const d = S.mdraft[l.id] || {}, sp = l.payout_split || [60, 25, 15], v = (k, saved) => esc(d[k] != null ? d[k] : saved == null ? '' : saved);
       const f = (k, label, saved) => `<div><label for="mb-${l.id}-${k}">${label}</label><input class="mf" id="mb-${l.id}-${k}" data-lid="${l.id}" data-k="${k}" type="number" min="0" max="${k === 'buy' ? 10000 : 100}" step="1" inputmode="numeric" value="${v(k, saved)}"></div>`;
@@ -392,10 +430,10 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function seasonBar(l) {
     return `<div class="rosterbar"><span>Rosters are locked and the schedule is set. It's game day ${dayNow(l)} of 27.</span><a class="btn btn-main" href="season.html?league=${l.id}">Open the season</a><a class="btn btn-alt" href="manager.html?league=${l.id}">Manager settings</a></div>`;
   }
-  function startPanel(l, members) {
-    const waiting = members.filter(m => !m.ready), enough = members.length >= 2, empty = 10 - members.length, all = enough && !waiting.length;
+  function startPanel(l, members, moneySet) {
+    const waiting = members.filter(m => !m.ready), enough = members.length >= 2, empty = 10 - members.length, all = enough && !waiting.length && moneySet;
     return `<div class="start"><b>Start the season</b>
-      <p class="note" style="margin:4px 0">${!enough ? 'You need at least two real clubs to start a season. Invite someone with the link above.' : all ? `Every roster is submitted. Starting locks every roster and builds the 27-game schedule. It can\'t be undone.${empty ? ` The ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs, marked CPU, that play on schedule.` : ''}` : `Waiting on ${waiting.length} roster${waiting.length === 1 ? '' : 's'}: ${waiting.map(m => esc(m.club_name)).join(', ')}. You can start as soon as every club here has submitted${empty ? `, and the ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs` : ''}.`}</p>
+      <p class="note" style="margin:4px 0">${!moneySet ? 'Set your buy-in and split first (step 2). Choose $0 if this league is just for fun. They lock when the season starts.' : !enough ? 'You need at least two real clubs to start a season. Invite someone with the link above.' : all ? `Every roster is submitted. Starting locks every roster and builds the 27-game schedule. It can\'t be undone.${empty ? ` The ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs, marked CPU, that play on schedule.` : ''}` : `Waiting on ${waiting.length} roster${waiting.length === 1 ? '' : 's'}: ${waiting.map(m => esc(m.club_name)).join(', ')}. You can start as soon as every club here has submitted${empty ? `, and the ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs` : ''}.`}</p>
       <fieldset class="pace" ${all ? '' : 'disabled'}><legend class="note">How fast should the season go?</legend>
         <label class="check"><input type="radio" name="pace-${l.id}" value="24" checked> One game day a day <span class="note">(about 4 weeks)</span></label>
         <label class="check"><input type="radio" name="pace-${l.id}" value="12"> Two a day <span class="note">(about 2 weeks)</span></label>
@@ -419,30 +457,91 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const url = S.fee.url ? payUrl(l) : '';
     return `<div class="fee"><b>Activate your league: flat hosting fee, ${money(S.fee.cents)}</b><p class="note" style="margin:4px 0">Your invite link switches on once the fee is received. It pays for the software only, is the same however many members join, and isn't a share of any dues or prizes. Pay it from your own funds, never from league money. Members pay us nothing.</p><div class="row">${url ? `<a class="btn btn-main" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Pay the hosting fee</a>` : '<span class="note">Payment isn\'t available yet. Please check back soon.</span>'}<button class="btn btn-alt" data-recheck="1">I've paid: check again</button></div></div>`;
   }
+  // the money explanation, the worked example, the LeagueSafe guide and button (what the commissioner sees)
+  function moneyExplainC(l, live, withNumbers) { return `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${withNumbers ? leagueMoney(l, true, live, true) : ''}${MONEY_EXAMPLE}<details><summary>How to set up LeagueSafe, step by step</summary><div class="guide"><h4>What you need before you start</h4><ul><li>A free LeagueSafe account. You create it in the first step.</li><li>Your league's entry fee, and how the pot will be paid out (for example winner takes all, or first, second and third).</li><li>Your members' details, such as their email addresses, ready for when LeagueSafe asks who is in your league.</li><li>Every member must be 18 or older.</li></ul><h4>What to do</h4><ol><li>Tap the LeagueSafe button below. LeagueSafe opens in a new tab.</li><li>Create your account, then <b>choose a plan</b>. LeagueSafe offers <b>Express</b> (leagues of up to 24 players, the simplest), <b>Traditional</b> (adds payment reminders and a choice between commissioner control or member voting on payouts), and <b>Pools &amp; Playoffs</b> (for pools and shorter playoff seasons). A ten-club league fits Express or Traditional.</li><li>Enter your <b>league info</b>: a name (your Cooperstown Cash league name works), the entry fee, and how the pot is split.</li><li>Follow LeagueSafe's next steps to <b>add your members</b>, pick a trophy, and <b>notify them</b>. Each member gets an invite and a payment link.</li><li><b>Wait until everyone has paid</b> before you lock rosters and start the season here. Cooperstown Cash cannot see who has paid, so check on LeagueSafe.</li><li>Play the season. When it ends, use the champion and final standings on your league's page here to <b>pay out on LeagueSafe</b>. LeagueSafe says winnings go out within hours, and if your league uses its voting, members vote on the payout split first.</li></ol><h4>What your members do</h4><ul><li>Open the invite LeagueSafe sends and pay by credit or debit card or by e-check.</li><li>Pay only through LeagueSafe: never to Cooperstown Cash, and not to the commissioner's personal account.</li></ul><p class="fine">This summarizes how LeagueSafe describes itself. Plans, fees and rules are LeagueSafe's and can change, so read them on LeagueSafe before you collect or pay anything. LeagueSafe says it is free to use apart from standard card and bank processing fees. Cooperstown Cash is not affiliated with LeagueSafe, gets nothing from it, and cannot see or verify payments. Keep your own records: you are responsible for any tax reporting and for following the laws where you live.</p></div></details>${live ? `<a class="btn btn-main" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Set up your league on LeagueSafe &#8599;</a>` : `<a class="btn btn-main" href="https://www.leaguesafe.com/" target="_blank" rel="noopener noreferrer">Open LeagueSafe &#8599;</a>`}</div>`; }
+  function moneyPanelM(l, live) { return `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${leagueMoney(l, false, live)}${MONEY_EXAMPLE}<details><summary>If your league plays for dues: what you need to do</summary><div class="guide"><ol><li>Your commissioner sets the league up on LeagueSafe, an independent dues service. LeagueSafe then sends you an invite and a payment link.</li><li>Pay through that invite, by credit or debit card or by e-check. Never pay Cooperstown Cash, and not the commissioner's personal account.</li><li>Wait until everyone has paid. Your commissioner locks rosters and starts the season here.</li><li>When the season ends, your commissioner pays out through LeagueSafe.</li></ol><p class="fine">LeagueSafe is an independent company. Its plans, fees and rules are its own and can change, so read them on LeagueSafe before you pay. Cooperstown Cash is not affiliated with it, gets nothing from it, and cannot see or verify payments. You are responsible for following the laws where you live.</p></div></details></div>`; }
+  // ---------- the invite email: what a manager can expect ----------
+  function inviteEmail(l) {
+    const buy = l.buy_in_dollars || 0, sh = Array.isArray(l.payout_split) ? l.payout_split : [60, 25, 15], link = inviteUrl(l.invite_code), pot = buy * 10, amt = p => usd(pot * p / 100);
+    const cap = l.salary_cap != null ? '$' + Number(l.salary_cap) + ' million' : 'a salary cap';
+    const spots = [['champion', sh[0]], ['runner-up', sh[1]], ['best regular-season record', sh[2]]].filter(x => x[1] > 0).map(x => `${x[0]} ${amt(x[1])}`).join(', ');
+    const moneyLines = buy > 0 ? [
+      `- Buy-in: ${usd(buy)} each.`,
+      `- If all 10 managers join, the pot is ${usd(pot)}: ${spots}.`,
+      "- If we don't fill all ten seats, computer-run clubs take the empty ones. They pay nothing, so the pot is just the real managers' buy-ins.",
+      '- After I approve you, LeagueSafe, an independent service, collects and holds the buy-ins and pays out the winners. You never pay the site or me directly, and the site never touches the money.'] : ['- There is no buy-in. This league is just for fun.'];
+    const body = ['Hi,', '', `I'm starting a baseball league called ${l.name} and I'd like you in it. It's a simulation game with real player stats and dice, and I'm only inviting people I know.`, '',
+      buy > 0 ? 'The money' : 'The cost', ...moneyLines, '',
+      'The game',
+      `- You build a 25-player roster of real player-seasons from baseball history, under a ${cap} salary cap. An AI scout gives advice if you want it.`,
+      "- It's a 27-game season, then playoffs for the top four. I'll pick the pace, from one game day a day (about 4 weeks) to three a day (about 9 days).",
+      '- You roll the dice on your game days, or have the site play your game for you. If you miss a deadline, the site plays it for you. It takes a few minutes a day.',
+      "- The standings, and who is in the money, are on the league page all season.", '',
+      'How to join',
+      `1. Open this link: ${link}`, '2. Sign in with your email (no password) and name your club.', "3. Confirm you're 18 or older, and sign the short league agreement.",
+      buy > 0 ? '4. I approve you, then send you the LeagueSafe link to pay your buy-in.' : '4. I approve you, and you can build your roster.', '',
+      'Reply to this email with any questions.', '', '[your name]'].join('\n');
+    const subject = `Join my baseball dice league: ${l.name}${buy > 0 ? ` (${usd(buy)} buy-in)` : ''}`;
+    const text = `I'm running a baseball dice league, ${l.name}${buy > 0 ? `: ${usd(buy)} buy-in, ${usd(pot)} pot if we fill up` : ', just for fun'}. I approve everyone myself. Details and sign-up: ${link}`;
+    return { subject, body, text };
+  }
+  function inviteKit(l, members, pending) {
+    const link = inviteUrl(l.invite_code), d = S.edraft[l.id] || {}, e = inviteEmail(l), subj = d.subj != null ? d.subj : e.subject, body = d.body != null ? d.body : e.body;
+    return `<div class="invite"><b>Your invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval and must confirm they're 18 or older.</span><code>${esc(link)}</code><button class="btn btn-alt" data-copy="${esc(link)}">Copy link</button></div>
+      <div class="kit"><b>Your invite email</b><p class="note" style="margin:2px 0 6px">This is what your managers will read, so they know what to expect. Change anything you like and add your name at the bottom. Put everyone in the BCC line so nobody's address is shared.</p>
+        <label for="ek-${l.id}-subj">Subject</label><input class="ek" id="ek-${l.id}-subj" data-lid="${l.id}" data-k="subj" type="text" value="${esc(subj)}">
+        <label for="ek-${l.id}-body">Message</label><textarea class="ek" id="ek-${l.id}-body" data-lid="${l.id}" data-k="body" rows="18">${esc(body)}</textarea>
+        <div class="row"><button class="btn btn-main" type="button" data-email-open="${l.id}">Open in my email app</button><button class="btn btn-alt" type="button" data-email-copy="${l.id}">Copy email</button><button class="btn btn-alt" type="button" data-text-copy="${l.id}">Copy short text</button><button class="btn btn-alt" type="button" data-email-reset="${l.id}">Start over</button></div>
+        <p class="msg" id="emsg-${l.id}" role="status"></p></div>
+      <h4 style="margin:14px 0 4px">Who's in so far</h4><ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>
+      ${pending.length ? `<h4 style="margin:14px 0 4px">Waiting for your approval</h4><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and were invited by someone they know</span><p class="note" style="margin:2px 0 0">How they know the league: ${esc(r.relationship || 'not given')}</p>${aiNote(r)}<div class="row"><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></div></li>`).join('')}</ul>` : ''}`;
+  }
+  // ---------- the commissioner's five steps ----------
+  function hqSteps(l, members, pending, mySeat) {
+    const n = members.length, set = l.buy_in_dollars != null, fee = active(l), all = n >= 2 && !members.some(x => !x.ready);
+    const paid = store.get('cc-paid-' + l.id) === '1';
+    // keep recruiting until the league is full or everyone in has a roster, then collect the buy-ins, then start
+    const next = !fee ? 'fee' : !set ? 'money' : (n < 2 || pending.length) ? 'invite' : (!all && n < 10) ? 'invite' : (l.buy_in_dollars > 0 && !paid) ? 'collect' : 'start';
+    const mline = !set ? '' : l.buy_in_dollars === 0 ? 'No buy-in: just for fun.' : (() => { const m = moneyFor(l); return `${usd(m.buy)} buy-in, split ${m.sh.join(' / ')}. With all 10: pot ${usd(l.buy_in_dollars * 10)}.`; })();
+    const steps = [
+      { id: 'created', title: 'League created', state: 'done', sum: `You're in seat ${mySeat ? mySeat.seat_no : 1}.` },
+      { id: 'money', title: 'Set your buy-in and split', state: set ? 'done' : next === 'money' ? 'now' : 'todo', sum: mline || 'Do this first, so your invite can tell people what they are joining.', body: leagueMoney(l, true, true, true) },
+      { id: 'invite', title: 'Invite your managers', state: n >= 10 ? 'done' : next === 'invite' ? 'now' : 'todo', sum: `${n} of 10 seats filled${pending.length ? `, ${pending.length} waiting for your approval` : ''}.`, badge: pending.length, body: !fee ? '<p class="note">Activate your league first (see above). Your invite switches on once the hosting fee is received.</p>' : !set ? '<p class="note">Set your buy-in and split first (step 2), so your invite email can tell people what they are joining.</p>' : inviteKit(l, members, pending) },
+      { id: 'collect', title: 'Collect buy-ins on LeagueSafe', state: (set && l.buy_in_dollars === 0) || paid ? 'done' : next === 'collect' ? 'now' : 'todo', sum: set && l.buy_in_dollars === 0 ? 'Not needed, there is no buy-in.' : paid ? 'You marked everyone as paid.' : 'Wait until everyone has paid before you start.', body: (set && l.buy_in_dollars > 0 ? `<label class="check paidbox"><input type="checkbox" data-paid="${l.id}" ${paid ? 'checked' : ''}> Everyone has paid on LeagueSafe</label><p class="note" style="margin:0 0 6px">This is only your own reminder, kept on this device. Cooperstown Cash can't see who has paid.</p>` : '') + moneyExplainC(l, true, false) },
+      { id: 'start', title: 'Start the season', state: next === 'start' ? 'now' : 'todo', sum: `${members.filter(x => x.ready).length} of ${n} rosters submitted.`, body: (mySeat ? rosterBar(l, members) : '') + startPanel(l, members, set) }
+    ];
+    const ico = { done: '&#10003;', now: '&#9679;', todo: '&#9675;' };
+    return `<ol class="steps">${steps.map((s, i) => {
+      const key = l.id + ':' + s.id, def = (s.id === next || (s.id === 'invite' && pending.length > 0)) && !!s.body, o = S.open[key] != null ? S.open[key] : def;
+      return `<li class="stp ${s.state}"><details data-step="${key}" data-def="${def ? 1 : 0}" ${o && s.body ? 'open' : ''}><summary><span class="ico" aria-hidden="true">${ico[s.state]}</span><span class="ttl"><b>${i + 1}. ${s.title}</b>${s.badge ? ` <span class="badge-n">${s.badge} waiting</span>` : ''}<span class="sm">${s.sum}</span></span></summary>${s.body ? `<div class="stp-body">${s.body}</div>` : ''}</details></li>`;
+    }).join('')}</ol>`;
+  }
   function leagueCard(l) {
-    const me = window.CC.user.id, isC = l.commissioner_id === me, live = l.status === 'open' || l.status === 'full', started = l.status === 'started', money = live || started || l.status === 'complete';
+    const me = window.CC.user.id, isC = l.commissioner_id === me, live = l.status === 'open' || l.status === 'full', started = l.status === 'started', over = l.status === 'complete', money = live || started || over;
     const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
     const pending = S.reqs.filter(r => r.league_id === l.id && r.status === 'pending' && r.user_id !== me);
     const mySeat = S.seats.find(s => s.league_id === l.id);
-    const champ = (S.board.get(l.id) || []).find(m => m.seat_no === l.champion_seat), status = l.status === 'complete' ? (champ ? `The season is over. Champions: ${esc(champ.club_name)}.` : 'This league has ended.') : l.status === 'started' ? (l.phase === 'playoffs' ? 'The playoffs are on.' : `Season underway: game day ${dayNow(l)} of 27.`) : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
-    return `<article class="card lg" data-id="${l.id}"><header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>
+    const champ = (S.board.get(l.id) || []).find(m => m.seat_no === l.champion_seat), status = over ? (champ ? `The season is over. Champions: ${esc(champ.club_name)}.` : 'This league has ended.') : started ? (l.phase === 'playoffs' ? 'The playoffs are on.' : `Season underway: game day ${dayNow(l)} of 27.`) : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
+    const head = `<header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>`;
+    const memberList = `<ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>`;
+    const ends = `<div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && (live || started) ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>`;
+    if (isC && live) return `<article class="card lg" data-id="${l.id}">${head}${feeBlock(l)}${hqSteps(l, members, pending, mySeat)}${ends}</article>`;
+    return `<article class="card lg" data-id="${l.id}">${head}
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
-      <ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>
-      ${mySeat && live ? rosterBar(l, members) : ''}
-      ${isC && (l.status === 'open' || l.status === 'full') ? startPanel(l, members) : ''}
       ${started ? seasonBar(l) : ''}
-      ${started || l.status === 'complete' ? moneyBoard(l) : ''}
-      ${isC && feeBlock(l)}
-      ${isC && l.status === 'open' && active(l) ? `<div class="invite"><b>Invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval.</span><code>${esc(inviteUrl(l.invite_code))}</code><button class="btn btn-alt" data-copy="${esc(inviteUrl(l.invite_code))}">Copy link</button></div>` : ''}
-      ${isC && pending.length ? `<h3 style="margin-top:16px;font-size:19px">Waiting for your approval</h3><ul class="reqs">${pending.map(r => `<li><b>${esc(r.club_name)}</b> <span class="note">confirmed they're 18+ and were invited by someone they know</span><p class="note" style="margin:2px 0 0">How they know the league: ${esc(r.relationship || 'not given')}</p>${aiNote(r)}<div class="row"><button class="btn btn-main" data-review="${r.id}" data-yes="1">Approve</button><button class="btn btn-alt" data-review="${r.id}" data-yes="0">Decline</button></div></li>`).join('')}</ul>` : ''}
-      ${isC && money ? `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${leagueMoney(l, true, live)}${MONEY_EXAMPLE}<details><summary>How to set up LeagueSafe, step by step</summary><div class="guide"><h4>What you need before you start</h4><ul><li>A free LeagueSafe account. You create it in the first step.</li><li>Your league's entry fee, and how the pot will be paid out (for example winner takes all, or first, second and third).</li><li>Your members' details, such as their email addresses, ready for when LeagueSafe asks who is in your league.</li><li>Every member must be 18 or older.</li></ul><h4>What to do</h4><ol><li>Tap the LeagueSafe button below. LeagueSafe opens in a new tab.</li><li>Create your account, then <b>choose a plan</b>. LeagueSafe offers <b>Express</b> (leagues of up to 24 players, the simplest), <b>Traditional</b> (adds payment reminders and a choice between commissioner control or member voting on payouts), and <b>Pools &amp; Playoffs</b> (for pools and shorter playoff seasons). A ten-club league fits Express or Traditional.</li><li>Enter your <b>league info</b>: a name (your Cooperstown Cash league name works), the entry fee, and how the pot is split.</li><li>Follow LeagueSafe's next steps to <b>add your members</b>, pick a trophy, and <b>notify them</b>. Each member gets an invite and a payment link.</li><li><b>Wait until everyone has paid</b> before you lock rosters and start the season here. Cooperstown Cash cannot see who has paid, so check on LeagueSafe.</li><li>Play the season. When it ends, use the champion and final standings on your league's page here to <b>pay out on LeagueSafe</b>. LeagueSafe says winnings go out within hours, and if your league uses its voting, members vote on the payout split first.</li></ol><h4>What your members do</h4><ul><li>Open the invite LeagueSafe sends and pay by credit or debit card or by e-check.</li><li>Pay only through LeagueSafe: never to Cooperstown Cash, and not to the commissioner's personal account.</li></ul><p class="fine">This summarizes how LeagueSafe describes itself. Plans, fees and rules are LeagueSafe's and can change, so read them on LeagueSafe before you collect or pay anything. LeagueSafe says it is free to use apart from standard card and bank processing fees. Cooperstown Cash is not affiliated with LeagueSafe, gets nothing from it, and cannot see or verify payments. Keep your own records: you are responsible for any tax reporting and for following the laws where you live.</p></div></details>${live ? `<a class="btn btn-main" href="${LEAGUESAFE}" target="_blank" rel="noopener noreferrer">Set up your league on LeagueSafe &#8599;</a>` : `<a class="btn btn-main" href="https://www.leaguesafe.com/" target="_blank" rel="noopener noreferrer">Open LeagueSafe &#8599;</a>`}</div>` : ''}
-      ${mySeat && !isC && money ? `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${leagueMoney(l, false, live)}${MONEY_EXAMPLE}<details><summary>If your league plays for dues: what you need to do</summary><div class="guide"><ol><li>Your commissioner sets the league up on LeagueSafe, an independent dues service. LeagueSafe then sends you an invite and a payment link.</li><li>Pay through that invite, by credit or debit card or by e-check. Never pay Cooperstown Cash, and not the commissioner's personal account.</li><li>Wait until everyone has paid. Your commissioner locks rosters and starts the season here.</li><li>When the season ends, your commissioner pays out through LeagueSafe.</li></ol><p class="fine">LeagueSafe is an independent company. Its plans, fees and rules are its own and can change, so read them on LeagueSafe before you pay. Cooperstown Cash is not affiliated with it, gets nothing from it, and cannot see or verify payments. You are responsible for following the laws where you live.</p></div></details></div>` : ''}
+      ${started || over ? moneyBoard(l) : ''}
+      ${isC && money ? `<details class="mp"><summary><b>Money and payouts</b></summary>${moneyExplainC(l, false, true)}</details>` : ''}
+      ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
+      ${!started && !over ? memberList : ''}
+      ${mySeat && live ? rosterBar(l, members) : ''}
       ${supportCard(l)}
-      <div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && (live || started) ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>
+      ${ends}
     </article>`;
   }
   function render() {
     const me = signedIn() ? window.CC.user.id : null;
+    document.querySelectorAll('details[data-step]').forEach(d => { // keep a step you opened or closed yourself, but not the page's own default
+      if (d.open === (d.dataset.def === '1')) delete S.open[d.dataset.step]; else S.open[d.dataset.step] = d.open; });
     const waiting = S.reqs.filter(r => r.user_id === me && r.status === 'pending');
     const declined = S.reqs.filter(r => r.user_id === me && r.status === 'declined');
     let html = '';
@@ -450,6 +549,9 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (declined.length) html += `<div class="pad"><h2>Request declined</h2><p>A commissioner declined ${declined.length === 1 ? 'a request' : declined.length + ' requests'} from you.</p></div>`;
     html += S.leagues.map(leagueCard).join('');
     $('mine').innerHTML = html;
+    // the landing block: a pitch for someone with no league, a quiet header for someone running one, the old intro for someone who was invited
+    const has = S.leagues.length > 0; $('hero').dataset.mode = joinCode() ? 'invite' : has ? 'has' : 'new';
+    $('startCard').classList.toggle('has', has); if (S.hadLeagues !== has) { $('startDet').open = !has; S.hadLeagues = has; }
     $('joinCard').hidden = !joinCode();
     if (joinCode()) $('joinNote').textContent = signedIn() ? 'Name your club, tell the commissioner how you know the league, and confirm two things. You will sign the league agreement, then the commissioner will review your request.' : 'Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there is no password.';
     document.querySelectorAll('[data-recheck]').forEach(b => b.onclick = () => { S.sig = ''; load(); });
@@ -461,6 +563,12 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     document.querySelectorAll('[data-money-save]').forEach(b => b.onclick = () => saveMoney(b.dataset.moneySave));
     document.querySelectorAll('.mf').forEach(i => i.oninput = () => moneyInput(i));
     document.querySelectorAll('.mset').forEach(el => moneyCheck(el.dataset.lid));
+    document.querySelectorAll('[data-paid]').forEach(i => i.onchange = () => { store.set('cc-paid-' + i.dataset.paid, i.checked ? '1' : ''); S.sig = ''; render(); });
+    document.querySelectorAll('.ek').forEach(i => i.oninput = () => { const lid = i.dataset.lid, d = S.edraft[lid] || (S.edraft[lid] = {}); d[i.dataset.k] = i.value; });
+    document.querySelectorAll('[data-email-open]').forEach(b => b.onclick = () => emailOpen(b.dataset.emailOpen));
+    document.querySelectorAll('[data-email-copy]').forEach(b => b.onclick = () => emailCopy(b.dataset.emailCopy));
+    document.querySelectorAll('[data-text-copy]').forEach(b => b.onclick = () => textCopy(b.dataset.textCopy));
+    document.querySelectorAll('[data-email-reset]').forEach(b => b.onclick = () => { delete S.edraft[b.dataset.emailReset]; S.sig = ''; load(); });
     document.querySelectorAll('[data-nosupport]').forEach(b => b.onclick = () => { store.set('cc-support-off-' + b.dataset.nosupport, '1'); render(); });
   }
 
@@ -476,6 +584,25 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (error) alert('Could not leave that league. Please try again.');
     S.sig = ''; load();
   }
+  function openMail(url) { const a = document.createElement('a'); a.href = url; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+  async function copyText(text) { try { await navigator.clipboard.writeText(text); return true; } catch (e) { window.prompt('Copy this:', text); return false; } }
+  function emailNow(lid) { // what is in the boxes right now, falling back to the suggested email
+    const l = S.leagues.find(x => x.id === lid), e = inviteEmail(l), d = S.edraft[lid] || {}, sEl = $('ek-' + lid + '-subj'), bEl = $('ek-' + lid + '-body');
+    return { subject: sEl ? sEl.value : d.subj != null ? d.subj : e.subject, body: bEl ? bEl.value : d.body != null ? d.body : e.body, text: e.text };
+  }
+  function emailReady(lid) { // the suggested email ends with a placeholder for the commissioner's name
+    const m = emailNow(lid); if (/\[your name\]/i.test(m.body)) { say('emsg-' + lid, 'Add your name at the bottom of the email first.', 'err'); const b = $('ek-' + lid + '-body'); if (b) b.focus(); return null; } return m;
+  }
+  async function emailCopy(lid) { const m = emailReady(lid); if (!m) return; await copyText(m.subject + '\n\n' + m.body); say('emsg-' + lid, 'Email copied. Paste it into a new message and add your managers in the BCC line.', 'ok'); }
+  async function emailOpen(lid) {
+    const m = emailReady(lid); if (!m) return; const crlf = s => s.replace(/\r?\n/g, '\r\n');
+    const full = `mailto:?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(crlf(m.body))}`;
+    if (full.length <= 1900) { say('emsg-' + lid, 'Your email app should open with the message ready. Add your managers in the BCC line.', 'ok'); openMail(full); return; }
+    await copyText(m.subject + '\n\n' + m.body); // long messages do not always fit in a link, so paste it instead
+    say('emsg-' + lid, 'Your email app is opening. This message is long, so it has been copied: paste it into the message and add your managers in the BCC line.', 'ok');
+    openMail(`mailto:?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent('Paste the invite email here. It was copied to your clipboard.')}`);
+  }
+  async function textCopy(lid) { const m = emailNow(lid); await copyText(m.text); say('emsg-' + lid, 'Short text copied. Send it only to people you know.', 'ok'); }
   const mval = (lid, k) => { const el = $('mb-' + lid + '-' + k); return el ? el.value.trim() : ''; };
   function moneyRead(lid) { const n = k => mval(lid, k) === '' ? NaN : Number(mval(lid, k)); return { buy: n('buy'), sh: [n('c'), n('r'), n('b')] }; }
   function moneyProblem(v) {
