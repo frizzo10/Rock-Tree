@@ -316,7 +316,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
     const pending = S.reqs.filter(r => r.league_id === l.id && r.status === 'pending' && r.user_id !== me);
     const mySeat = S.seats.find(s => s.league_id === l.id);
-    const champ = (S.board.get(l.id) || []).find(m => m.seat_no === l.champion_seat), status = l.status === 'complete' ? (champ ? `The season is over. Champions: ${champ.club_name}.` : 'This league has ended.') : l.status === 'started' ? (l.phase === 'playoffs' ? 'The playoffs are on.' : `Season underway: game day ${dayNow(l)} of 27.`) : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
+    const champ = (S.board.get(l.id) || []).find(m => m.seat_no === l.champion_seat), status = l.status === 'complete' ? (champ ? `The season is over. Champions: ${esc(champ.club_name)}.` : 'This league has ended.') : l.status === 'started' ? (l.phase === 'playoffs' ? 'The playoffs are on.' : `Season underway: game day ${dayNow(l)} of 27.`) : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
     return `<article class="card lg" data-id="${l.id}"><header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
       <ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>
