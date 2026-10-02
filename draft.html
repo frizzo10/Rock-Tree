@@ -596,6 +596,24 @@ body.war .dec { color: var(--wb-red); }
 .rc .blk b.g-A, .rc .blk b.g-B { color: var(--wb-green); }
 .rc .blk b.g-C { color: #B07D10; }
 .rc .blk b.g-D, .rc .blk b.g-F { color: var(--wb-red); }
+.rc2-top { display: flex; gap: 22px; align-items: flex-start; margin: 4px 0 12px; }
+.rc2-grade { font: 400 84px/1 var(--marker); min-width: 1.3ch; text-align: center; color: var(--wb-ink); }
+.rc2-grade.g-A, .rc2-grade.g-B { color: var(--wb-green); } .rc2-grade.g-C { color: #B07D10; } .rc2-grade.g-D, .rc2-grade.g-F { color: var(--wb-red); }
+.rc2-syn { flex: 1; min-width: 0; } .rc2-tag { margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #5A646E; }
+.rc2-text { margin: 0 0 6px; font-size: 18px; line-height: 1.5; color: #20262D; max-width: 62ch; }
+.rc2-note { margin: 4px 0; font-size: 15px; color: #4A5560; }
+.rc2-link { display: inline-block; background: none; border: 0; padding: 0 2px; margin: 0 0 6px; font: inherit; font-weight: 700; color: var(--wb-ink); text-decoration: underline; cursor: pointer; min-height: 44px; }
+.rc2-more { background: var(--wb-ink); color: #fff; border: 0; border-radius: 4px; padding: 11px 22px; font-weight: 600; cursor: pointer; margin: 4px 0 10px; min-height: 44px; }
+.rc2-more:hover { background: #17306E; }
+.rc2-h { font: 400 22px/1.1 var(--marker); color: var(--wb-ink); margin: 18px 0 6px; }
+ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; }
+.wk { background: #fff; border: 1px solid #D9DDE2; border-radius: 8px; padding: 10px 14px; }
+.wk-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.wk-n { font-weight: 700; } .wk-n small { font-weight: 400; color: #5A646E; font-size: 13px; }
+.wk-chip { padding: 2px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.wk-c-steal { background: #1E7B45; color: #fff; } .wk-c-missed { background: #F2B33D; color: #3A2E12; } .wk-c-auto { background: #6B747D; color: #fff; } .wk-c-biggest { background: #DCE3F2; color: #1F3F8F; } .wk-c-solid { background: #ECEFF2; color: #4A5560; }
+.wk-who { margin: 4px 0 2px; } .wk-note { margin: 2px 0 0; color: #20262D; } .wk-fact { margin: 3px 0 0; font-size: 14px; color: #5A646E; }
+@media (max-width: 700px) { .rc2-top { flex-direction: column; gap: 4px; } .rc2-grade { text-align: left; font-size: 72px; } .rc2-more { width: 100%; } }
 .rc-sub { margin: 0 0 10px; color: #3A434D; }
 .rc-table { border-collapse: collapse; width: 100%; max-width: 520px; font-size: 14.5px; margin: 6px 0 12px; }
 .rc-table th, .rc-table td { border-bottom: 1px solid #D9DDE2; padding: 5px 8px; text-align: center; }
@@ -2086,9 +2104,46 @@ body.war .dec { color: var(--wb-red); }
     save(); grading = false; justGraded = true;
     drawReportCard();
   }
-  function drawReportCard() {
-    const R = D.report; if (!R) return;
-    const g = R.grade, num = { A: 4, B: 3, C: 2, D: 1, F: 0 };
+  // ---------- the walkthrough: a grade and a short synopsis up front, every pick explained behind one button ----------
+  let rcOpen = false;
+  const an = g => /^[AF]/.test(g) ? 'an' : 'a';
+  const capLeft = () => D.cap ? Math.round((capOf('you') - payroll('you')) * 10) / 10 : 0;
+  const spotName = s => s.kind === 'H' ? (s.pos === 'dh' ? 'DH' : POSN[s.pos]) : s.role === 'SP' ? 'starting pitcher' : 'reliever';
+  // the best-value player (the biggest steal) still on the board for that spot at the moment you picked
+  function stealAt(e, skip) {
+    const s = SLOTS.find(x => x.id === e.slot), gone = new Set(D.log.filter(x => x.n < e.n).map(x => x.key));
+    let best = null, gap = 0;
+    for (const k of D.pool) {
+      if (gone.has(k) || k === e.key || skip.has(k)) continue; const g = STEAL.get(k); if (!g || g <= gap) continue;
+      const p = BY.get(k); if (!p || (p.legend && !legendsOpen()) || !strictFit(p, s) || (s.role === 'RP' && p.role !== 'RP')) continue;
+      best = p; gap = g;
+    }
+    return best ? { p: best, gap } : null;
+  }
+  function reviewPicks() {
+    const mine = D.log.filter(e => e.side === 'you'), top = Math.max(...mine.map(e => BY.get(e.key).sal)), raised = new Set();   // each missed player is raised once
+    return mine.map(e => {
+      const later = new Set(mine.filter(x => x.n > e.n).map(x => x.key));   // a player you took later was not missed
+      const p = BY.get(e.key), s = SLOTS.find(x => x.id === e.slot), mySteal = STEAL.get(e.key) || 0, alt = stealAt(e, new Set([...raised, ...later]));
+      const better = alt && alt.gap >= 2 && alt.gap - mySteal >= 1.5 ? { player: alt.p.name, season: alt.p.yr, price: alt.p.sal, under: Math.round(alt.gap * 10) / 10, key: alt.p.key } : null;
+      const big = p.sal === top, tag = e.auto ? 'auto' : mySteal > 0 ? 'steal' : better ? 'missed' : big ? 'biggest' : 'solid';
+      if (tag === 'missed') raised.add(better.key);
+      return { n: e.n, round: Math.ceil(e.n / 2), spot: spotName(s), slot: s.label, player: p.name, season: p.yr, price: p.sal, steal: Math.round(mySteal * 10) / 10, auto: !!e.auto, big, better, tag };
+    });
+  }
+  const CHIP = { steal: 'Steal', missed: 'Missed value', auto: 'Made for you', biggest: 'Biggest investment', solid: 'Fair price' };
+  const pickLine = p => p.tag === 'auto' ? 'The clock ran out, so the draft made this pick for you.'
+    : p.tag === 'steal' ? `Priced ${money(p.steal)} below what his season is worth.`
+    : p.tag === 'missed' ? `${p.better.player} (${p.better.season}) was still there at ${money(p.better.price)}, priced ${money(p.better.under)} under his worth.`
+    : p.tag === 'biggest' ? 'Your biggest investment of the draft.' : 'A fair price for what he gives you.';
+  function notablePicks(picks) {
+    const first = (list, n) => list.slice(0, n).map(p => p.n);
+    const set = new Set([...first(picks.filter(p => p.tag === 'steal').sort((a, b) => b.steal - a.steal), 2), ...first(picks.filter(p => p.tag === 'missed').sort((a, b) => b.better.under - a.better.under), 2), ...first(picks.filter(p => p.tag === 'auto'), 1), ...first(picks.filter(p => p.big), 1)]);
+    picks.slice().sort((a, b) => b.price - a.price).forEach(p => { if (set.size < 3) set.add(p.n); });
+    return picks.filter(p => set.has(p.n));
+  }
+  function strengths(R) {
+    const num = { A: 4, B: 3, C: 2, D: 1, F: 0 };
     const cats = R.gy.map(([name, mine], i) => ({ name, mine, theirs: R.gc[i][1], d: num[mine] - num[R.gc[i][1]] }));
     const best = cats.reduce((a, b) => b.d > a.d ? b : a);
     let worst = cats.filter(c => c.name !== 'Speed').reduce((a, b) => b.d < a.d ? b : a);
@@ -2104,18 +2159,70 @@ body.war .dec { color: var(--wb-red); }
       : best.d > 0 ? `You matched or beat the computer in every area, most of all ${line(best)}. Keep filling scarce spots early and watching the scout's needs list.`
       : worst.d < 0 ? `The computer was at least as good in every area, most of all ${line(worst)}. ${tips[worst.name]}`
       : 'The two teams are built almost the same way, so it comes down to the dice.';
-    const rows = cats.map(c => `<tr><td>${c.name}</td><td class="g-${c.mine}">${c.mine}</td><td class="g-${c.theirs}">${c.theirs}</td></tr>`).join('');
-    const margin = R.you - R.cpu;
-    $('reportCard').innerHTML = `<div class="rc">
-        <div class="blk"><b class="g-${g[0]}">${g}</b><small>Draft grade</small></div>
-        <div class="blk"><b class="score">${R.you.toFixed(1)} – ${R.cpu.toFixed(1)}</b><small>Projected score: you, then the computer</small></div>
-        <div class="blk"><b>${Math.round(R.p * 100)}%</b><small>chance of winning a game against the computer</small></div></div>
-      <p class="rc-sub">${margin >= 0 ? 'Your team is projected to win by' : 'The computer is projected to win by'} ${Math.abs(margin).toFixed(1)} runs a game. In a best-of-7 series you would win about ${Math.round(R.bo7 * 100)}% of the time.</p>
-      <table class="rc-table"><thead><tr><th>Team strengths</th><th>You</th><th>Computer</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="rc-verdict"><b>Scout's verdict:</b> ${esc(verdict)}</p>
-      <p class="rc-fine">Projected score is the average result of 1,000 simulated games between the two teams, and your grade is based on your chance of winning one. Strength grades compare each team's players with the rest of the pool.</p>`;
-    if (justGraded) { justGraded = false; $('donePanel').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); }
+    return { cats, best, worst, verdict };
   }
+  function reviewSynopsis(R, picks, st) {
+    const s = [`You earned ${an(R.grade)} ${R.grade}: your team is projected to win ${Math.round(R.p * 100)}% of its games against the computer.`], { best, worst } = st;
+    if (best.d > 0 && worst.d < 0) s.push(`Your strongest area was ${best.name.toLowerCase()}, and ${worst.name.toLowerCase()} held you back.`);
+    else if (best.d > 0) s.push(`You matched or beat the computer everywhere, most of all on ${best.name.toLowerCase()}.`);
+    else if (worst.d < 0) s.push(`You didn't beat the computer in any single area, and ${worst.name.toLowerCase()} was your weakest spot.${R.p > 0.5 ? ' Even so, your team comes out ahead in the simulated games.' : ''}`);
+    else s.push('You and the computer built almost the same team, so it comes down to the dice.');
+    const steal = picks.filter(p => p.steal > 0 && !p.auto).sort((a, b) => b.steal - a.steal)[0], autos = picks.filter(p => p.auto).length, left = capLeft();
+    if (steal) s.push(`Your best value was ${steal.player} (${steal.season}), priced ${money(steal.steal)} under his worth.`);
+    else if (left >= 3) s.push(`You left ${money(left)} of cap space unused.`);
+    else if (autos) s.push(`${autos === 1 ? 'One pick was' : autos + ' picks were'} made for you when the clock ran out.`);
+    return s.join(' ');
+  }
+  // everything the AI scout may say comes from here: the game's own numbers
+  function reviewFacts() {
+    const R = D.report, picks = reviewPicks(), st = strengths(R), notable = notablePicks(picks);
+    return { grade: R.grade, winPercent: Math.round(R.p * 100), bestOfSevenPercent: Math.round(R.bo7 * 100), projectedScore: { you: Math.round(R.you * 10) / 10, computer: Math.round(R.cpu * 10) / 10 },
+      draftType: D.cap ? 'payroll cap' : 'classic', capSpaceLeftMillions: D.cap ? capLeft() : null, picksMadeForYouWhenTheClockRanOut: picks.filter(p => p.auto).length,
+      teamStrengths: st.cats.map(c => ({ area: c.name, you: c.mine, computer: c.theirs })), strongestArea: st.best.d > 0 ? st.best.name : null, weakestArea: st.worst.d < 0 ? st.worst.name : null,
+      notable: notable.map(p => ({ n: p.n, round: p.round, spot: p.spot, player: p.player, season: p.season, priceMillions: p.price, kind: CHIP[p.tag], belowWorthMillions: p.steal || null,
+        passedOn: p.better ? { player: p.better.player, season: p.better.season, priceMillions: p.better.price, belowWorthMillions: p.better.under } : null })) };
+  }
+  // The AI scout puts the walkthrough into words. If it isn't available for any reason, the card keeps the version the game wrote.
+  async function reviewAI() {
+    const R = D && D.report, cc = window.CC; if (!R || R.ai || R.aiTried || R.aiState === 'loading' || !cc || !cc.client || !cc.user || !cc.client.functions) return;
+    R.aiState = 'loading'; drawReportCard();
+    let review = null;
+    try { const { data, error } = await cc.client.functions.invoke('scout-ai', { body: { kind: 'review', facts: reviewFacts() } }); review = !error && data && data.review && data.review.synopsis ? data.review : null; } catch (e) { review = null; }
+    R.aiTried = true; R.aiState = 'done'; if (review) R.ai = review; save(); if (D && D.report === R) drawReportCard();
+  }
+  function drawReportCard() {
+    const R = D.report; if (!R) return;
+    const st = strengths(R), picks = reviewPicks(), ai = R.ai, margin = R.you - R.cpu, g = R.grade;
+    const cc = window.CC, canAI = !!(cc && cc.client && cc.client.functions), signedIn = !!(cc && cc.user);
+    const syn = ai ? ai.synopsis : reviewSynopsis(R, picks, st);
+    const aiLine = R.aiState === 'loading' ? '<p class="rc2-note">The scout is writing his critique…</p>' : ai || !canAI ? '' : !signedIn ? '<div><p class="rc2-note">Sign in free and the scout will write you a personal critique of your picks.</p><button type="button" class="rc2-link" id="rcSign">Sign in</button></div>' : '';
+    const rows = st.cats.map(c => `<tr><td>${c.name}</td><td class="g-${c.mine}">${c.mine}</td><td class="g-${c.theirs}">${c.theirs}</td></tr>`).join('');
+    const walk = picks.map(p => `<li class="wk"><div class="wk-top"><span class="wk-n">Pick ${p.n}<small> · round ${p.round}</small></span><span class="wk-chip wk-c-${p.tag}">${CHIP[p.tag]}</span></div><div class="wk-who"><b>${esc(p.player)}</b> (${p.season}) at ${esc(p.spot)} · ${money(p.price)}</div><p class="wk-note">${esc(ai && ai.picks && ai.picks[p.n] ? ai.picks[p.n] : pickLine(p))}</p>${ai && ai.picks && ai.picks[p.n] ? `<p class="wk-fact">${esc(pickLine(p))}</p>` : ''}</li>`).join('');
+    const retry = R.aiTried && !ai && signedIn && canAI ? '<div><p class="rc2-note">The scout could not write his critique this time.</p><button type="button" class="rc2-link" id="rcAgain">Ask again</button></div>' : '';
+    $('reportCard').innerHTML = `<div class="rc2">
+        <div class="rc2-top">
+          <div class="rc2-grade g-${g[0]}" role="img" aria-label="Draft grade ${g}">${g}</div>
+          <div class="rc2-syn"><p class="rc2-tag">${ai ? "The scout's synopsis" : 'Synopsis'}</p><p class="rc2-text" id="rcSyn">${esc(syn)}</p>${aiLine}</div>
+        </div>
+        <button type="button" class="rc2-more" id="rcMore" aria-expanded="${rcOpen}" aria-controls="rcDetail">${rcOpen ? 'Hide the walkthrough' : 'See the full walkthrough'}</button>
+        <div id="rcDetail" ${rcOpen ? '' : 'hidden'}>
+          <div class="rc">
+            <div class="blk"><b class="score">${R.you.toFixed(1)} – ${R.cpu.toFixed(1)}</b><small>Projected score: you, then the computer</small></div>
+            <div class="blk"><b>${Math.round(R.p * 100)}%</b><small>chance of winning a game against the computer</small></div></div>
+          <p class="rc-sub">${margin >= 0 ? 'Your team is projected to win by' : 'The computer is projected to win by'} ${Math.abs(margin).toFixed(1)} runs a game. In a best-of-7 series you would win about ${Math.round(R.bo7 * 100)}% of the time.</p>
+          <table class="rc-table"><thead><tr><th>Team strengths</th><th>You</th><th>Computer</th></tr></thead><tbody>${rows}</tbody></table>
+          <h4 class="rc2-h">Pick by pick</h4><ol class="walk">${walk}</ol>
+          <h4 class="rc2-h">What to try next time</h4><p class="rc-verdict">${esc(ai && ai.next ? ai.next : st.verdict)}</p>${retry}
+          <p class="rc-fine">Projected score is the average result of 1,000 simulated games between the two teams, and your grade is based on your chance of winning one. Strength grades compare each team's players with the rest of the pool. "Priced under his worth" compares a player's price with what his real season says he is worth.</p>
+        </div>
+      </div>`;
+    $('rcMore').onclick = () => { rcOpen = !rcOpen; $('rcDetail').hidden = !rcOpen; $('rcMore').setAttribute('aria-expanded', String(rcOpen)); $('rcMore').textContent = rcOpen ? 'Hide the walkthrough' : 'See the full walkthrough'; };
+    if ($('rcSign')) $('rcSign').onclick = () => window.CC.requireSignIn("Sign in to get the scout's critique");
+    if ($('rcAgain')) $('rcAgain').onclick = () => { R.aiTried = false; reviewAI(); };
+    if (justGraded) { justGraded = false; $('donePanel').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); }
+    reviewAI();
+  }
+  window.addEventListener('cc-auth', () => { if (D && D.done && D.report) drawReportCard(); });
 
   function drawRoom() {
     const m = MODES.find(x => x.id === D.mode);
