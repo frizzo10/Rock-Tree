@@ -247,7 +247,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
-  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {}, invite: null, legends: null };
+  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {}, invite: null, legends: null, endv: new Map() };
   const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
   const signedIn = () => !!(window.CC && window.CC.user);
   const client = () => window.CC && window.CC.client;
@@ -371,9 +371,14 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       if (g.error || s.error) return;
       S.results.set(l.id, { games: g.data || [], series: (s.data || []).slice().sort((a, b) => a.series - b.series), done: l.status === 'complete' }); S.resultsAt.set(l.id, Date.now());
     }));
-    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data, [...S.signed], S.rosters, [...S.results]]);
+    // how many managers have voted to end each started league early (a season that has begun can only end that way)
+    const endv = new Map();
+    await Promise.all(leagues.filter(l => l.status === 'started' && (ms.data || []).some(s => s.league_id === l.id)).map(async l => {
+      const { data, error } = await c.rpc('end_vote_status', { p_league_id: l.id }); if (!error && data) endv.set(l.id, data);
+    }));
+    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data, [...S.signed], S.rosters, [...S.results], [...endv]]);
     if (sig === S.sig) return;
-    S.sig = sig; S.leagues = leagues; S.board = board; S.seats = ms.data || []; S.reqs = rq.data || []; render();
+    S.sig = sig; S.leagues = leagues; S.board = board; S.seats = ms.data || []; S.reqs = rq.data || []; S.endv = endv; render();
   }
 
   function aiNote(r) {
@@ -545,6 +550,20 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       return `<li class="stp ${s.state}"><details data-step="${key}" data-def="${def ? 1 : 0}" ${o && s.body ? 'open' : ''}><summary><span class="ico" aria-hidden="true">${ico[s.state]}</span><span class="ttl"><b>${i + 1}. ${s.title}</b>${s.badge ? ` <span class="badge-n">${s.badge} waiting</span>` : ''}<span class="sm">${s.sum}</span></span></summary>${s.body ? `<div class="stp-body">${s.body}</div>` : ''}</details></li>`;
     }).join('')}</ol>`;
   }
+  // once a season has started nobody can end it alone, not even the commissioner: most of the managers have to vote
+  function endVoteBlock(l) {
+    const ev = S.endv.get(l.id); if (!ev || l.status !== 'started') return '';
+    return `<details class="mp" data-step="${l.id}:endvote" data-def="0" ${S.open[l.id + ':endvote'] ? 'open' : ''}><summary><b>Ending the league early</b></summary><div class="ls"><p class="note" style="margin:4px 0">Once a season has started, nobody can end it alone, not even the commissioner. It ends early only if most of the managers vote to end it. <b>${ev.votes} of the ${ev.needed} votes needed</b> (${ev.managers} managers) are in${ev.mine ? ', and one of them is yours' : ''}.</p><div class="row"><button class="btn btn-alt" type="button" data-endvote="${l.id}" data-on="${ev.mine ? 0 : 1}">${ev.mine ? 'Take back my vote' : 'Vote to end the league'}</button></div><p class="msg" id="evmsg-${l.id}" role="status"></p></div></details>`;
+  }
+  async function castEndVote(id, on) {
+    const ev = S.endv.get(id); if (!ev) return;
+    if (on && ev.votes + 1 >= ev.needed && !confirm('Your vote would be the one that ends this league for everyone, and it cannot be undone. End the league?')) return;
+    const { data, error } = await client().rpc(on ? 'vote_end_league' : 'withdraw_end_vote', { p_league_id: id });
+    if (error) return say('evmsg-' + id, error.message, 'err');
+    if (data && data.ended) { S.sig = ''; return load(); }
+    if (data) S.endv.set(id, { ...ev, votes: data.votes, needed: data.needed, managers: data.managers, mine: !!data.mine });
+    S.sig = ''; await load(); say('evmsg-' + id, on ? 'Your vote is in.' : 'Your vote is taken back.', 'ok');
+  }
   function leagueCard(l) {
     const me = window.CC.user.id, isC = l.commissioner_id === me, live = l.status === 'open' || l.status === 'full', started = l.status === 'started', over = l.status === 'complete', money = live || started || over;
     const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
@@ -553,17 +572,18 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const champ = (S.board.get(l.id) || []).find(m => m.seat_no === l.champion_seat), status = over ? (champ ? `The season is over. Champions: ${esc(champ.club_name)}.` : 'This league has ended.') : started ? (l.phase === 'playoffs' ? 'The playoffs are on.' : `Season underway: game day ${dayNow(l)} of 27.`) : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
     const head = `<header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>`;
     const memberList = `<ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>`;
-    const ends = `<div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && (live || started) ? `<button class="btn btn-alt" data-end="${l.id}">End this league</button>` : ''}</div>`;
+    const ends = `<div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && live ? `<button class="btn btn-alt" data-end="${l.id}">Cancel this league</button>` : ''}</div>`;
     if (isC && live) return `<article class="card lg" data-id="${l.id}">${head}${feeBlock(l)}${hqSteps(l, members, pending, mySeat)}${ends}</article>`;
     return `<article class="card lg" data-id="${l.id}">${head}
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
       ${started ? seasonBar(l) : ''}
       ${started || over ? moneyBoard(l) : ''}
-      ${isC && money ? `<details class="mp"><summary><b>Money and payouts</b></summary>${moneyExplainC(l, false, true)}</details>` : ''}
+      ${isC && money ? `<details class="mp" data-step="${l.id}:moneypanel" data-def="0" ${S.open[l.id + ':moneypanel'] ? 'open' : ''}><summary><b>Money and payouts</b></summary>${moneyExplainC(l, false, true)}</details>` : ''}
       ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
       ${!started && !over ? memberList : ''}
       ${mySeat && live ? rosterBar(l, members) : ''}
       ${supportCard(l)}
+      ${endVoteBlock(l)}
       ${ends}
     </article>`;
   }
@@ -622,6 +642,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     document.querySelectorAll('[data-review]').forEach(b => b.onclick = () => review(+b.dataset.review, b.dataset.yes === '1', b));
     document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => leave(b.dataset.leave));
     document.querySelectorAll('[data-end]').forEach(b => b.onclick = () => endLeague(b.dataset.end));
+    document.querySelectorAll('[data-endvote]').forEach(b => b.onclick = () => castEndVote(b.dataset.endvote, b.dataset.on === '1'));
     document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startSeason(b.dataset.start));
     document.querySelectorAll('[data-money-save]').forEach(b => b.onclick = () => saveMoney(b.dataset.moneySave));
     document.querySelectorAll('.mf').forEach(i => i.oninput = () => moneyInput(i));
@@ -697,7 +718,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     S.sig = ''; load();
   }
   async function endLeague(id) {
-    if (!confirm('End this league? Members will no longer be able to join or leave, and this cannot be undone.')) return;
+    if (!confirm('Cancel this league? Nobody will be able to join, and this cannot be undone.')) return;
     const { error } = await client().rpc('complete_league', { p_league_id: id });
     if (error) alert(error.message);
     S.sig = ''; load();
