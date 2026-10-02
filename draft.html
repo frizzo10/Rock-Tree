@@ -261,6 +261,7 @@ footer p { margin: 0 0 6px; }
 @keyframes drop { from { transform: translate(-50%, -80%) scale(1.2); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
 .spot.filled b { display: block; font: 700 15px/1.05 var(--display); }
 .spot.filled span { font-size: 11.5px; color: #55534B; }
+.spot .pl .px { font: 700 12px var(--text); font-style: normal; color: #1E7B45; margin-left: 3px; }
 .spot .pl { font: 700 11px var(--text); color: var(--lamp); }
 .spot.filled .pl { color: #6D6A60; }
 .staff { margin-top: 12px; }
@@ -280,6 +281,11 @@ footer p { margin: 0 0 6px; }
 .ptools input { flex: 1 1 150px; }
 .afford { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; min-height: 44px; cursor: pointer; }
 .afford input { width: 18px; height: 18px; flex: none; padding: 0; }
+.rosterlist { margin: 6px 0 4px; } .rosterlist table { width: 100%; border-collapse: collapse; background: #fff; font-size: 15px; color: #20262D; }
+.rosterlist th, .rosterlist td { padding: 6px 10px; border-bottom: 1px solid #DDE1E4; text-align: left; }
+.rosterlist thead th { font-size: 13px; color: #4A5560; background: #F5F6F8; } .rosterlist tr.grp th { background: #E8ECF3; color: #1F3F8F; font: 400 18px/1.2 var(--marker); }
+.rosterlist .cost { text-align: right; white-space: nowrap; font-weight: 700; } .rosterlist .pos { width: 3.4em; font-weight: 700; color: #4A5560; } .rosterlist small { color: #5A646E; font-weight: 400; }
+.rosterlist tfoot td { font-weight: 700; border-top: 2px solid #8C959E; }
 .tightnote { background: #FFF4CF; border: 1px solid #C69A2B; border-radius: 6px; padding: 8px 12px 2px; margin: 0 0 8px; color: #3A2E12; } .tightnote p { margin: 0 0 2px; }
 .plist { max-height: 560px; overflow-y: auto; border-top: 1px solid var(--rule); }
 .prow { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 7px 2px; border-bottom: 1px solid var(--rule); }
@@ -728,6 +734,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
       <section class="paper pool desk" aria-label="Player pool">
         <div class="pool-head"><h2 id="poolTitle">Player pool</h2><button class="btn btn-scout" id="scoutBtn">Ask the scout</button></div>
         <p class="tip" id="poolTip"></p>
+        <div class="rosterlist" id="rosterList" hidden></div>
         <div id="report"></div>
         <div id="advice" aria-live="polite"></div>
         <div id="preview"></div>
@@ -1354,8 +1361,9 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
 
   // ---------- draft state ----------
   let D = store.get('gts-draft', null);
+  if (D && D.mode !== 'payroll') { D = null; store.set('gts-draft', null); }   // only the payroll draft can be started now; an older saved draft in another mode would show rules and wording that no longer exist
   const save = () => store.set('gts-draft', D);
-  let lastCap = {}, mode = 'payroll', view = 'you', selSlot = null, previewKey = null, fresh = null, busyCpu = false;
+  let lastCap = {}, mode = 'payroll', view = 'you', selSlot = null, selByUser = false, previewKey = null, fresh = null, busyCpu = false;   // selByUser: you tapped a spot yourself, as opposed to the page highlighting your next open one
 
   function poolFor(m, param) {
     let list;
@@ -1482,7 +1490,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     if (!D || D.done || whoPicks(D.pick) !== 'you' || busyCpu) return;
     if (selSlot && !D.teams.you[selSlot]) return;
     const next = SLOTS.find(s => !D.teams.you[s.id]);
-    if (next) { selSlot = next.id; syncPosFilter(); }
+    if (next) { selSlot = next.id; selByUser = false; syncPosFilter(); }
   }
 
   function draft(p, side) {
@@ -1493,7 +1501,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     D.log.push({ side, key: p.key, slot: s.id, n: D.pick + 1, auto: side === 'you' && autoPicked });
     autoPicked = false;
     D.pick++; fresh = { side, slot: s.id }; advice = null;
-    if (side === 'you') { selSlot = null; previewKey = null; stuckNote = ''; $('plist').scrollTop = 0; }
+    if (side === 'you') { selSlot = null; selByUser = false; previewKey = null; stuckNote = ''; $('plist').scrollTop = 0; }
     if (D.pick >= TOTAL) D.done = true;
     save();
     if (side === 'you') {
@@ -1753,7 +1761,8 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
       return pool[Math.min(pool.length - 1, demand(s) - 1)];
     };
     // If you've highlighted an open spot, the scout advises for that spot only.
-    const want = selSlot && myOpen.find(s => s.id === selSlot) || null;
+    // advise for the whole board (which spot to fill now, and with whom) unless you tapped a spot yourself
+    const want = selByUser && selSlot && myOpen.find(s => s.id === selSlot) || null;
     const build = wantSlot => {
       const short = new Map();
       if (wantSlot) draftable.filter(p => strictFit(p, wantSlot)).sort((a, b) => runs(b) - runs(a)).slice(0, 40).forEach(p => short.set(p.key, p));
@@ -1787,6 +1796,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     let balance = '';
     if (pitOpen >= 7 && roundsLeft <= 12) balance = `Heads up: you still have ${pitOpen} pitching spots open. The good arms go fast.`;
     else if (hitOpen >= 7 && roundsLeft <= 12) balance = `Heads up: you still have ${hitOpen} lineup spots open.`;
+    if (!want && selSlot && top.s.id !== selSlot) why.unshift(`This is not the spot highlighted on your field. The scout looked at every open spot, and this is the one to fill first.`);
     return { top, alts: cands.slice(1, 3).filter(a => a.gain >= 1), why, balance };
   }
 
@@ -1807,8 +1817,8 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     const cc = window.CC; if (!adv || !cc || !cc.client || !cc.user || !cc.client.functions) return;
     adv.aiState = 'loading'; drawAdvice();
     const t = adv.top, myOpen = openSlots('you');
-    const facts = { draftType: D.cap ? 'payroll cap' : 'classic', yourBestPick: { player: t.p.name, season: t.p.yr, spot: t.s.label, edgeInRunsOverWhatWouldBeLeft: Math.round(t.gain), whatWouldBeLeft: t.nb ? `${t.nb.name} (${t.nb.yr})` : null },
-      alsoGood: adv.alts.map(a => ({ player: a.p.name, season: a.p.yr, spot: a.s.label, edgeInRuns: Math.round(a.gain) })),
+    const facts = { draftType: 'payroll cap', yourBestPick: { player: t.p.name, season: t.p.yr, spot: t.s.label, priceMillions: t.p.sal, edgeInRunsOverWhatWouldBeLeft: Math.round(t.gain), whatWouldBeLeft: t.nb ? `${t.nb.name} (${t.nb.yr})` : null },
+      alsoGood: adv.alts.map(a => ({ player: a.p.name, season: a.p.yr, spot: a.s.label, priceMillions: a.p.sal, edgeInRuns: Math.round(a.gain) })),
       yourOpenSpots: myOpen.length, picksBeforeYourNextTurn: picksUntilMyNext(), budgetLeftMillions: D.cap ? Math.round((D.cap - payroll('you')) * 10) / 10 : null,
       headsUp: adv.balance || null, scoutsNotes: adv.why };
     let text = null;
@@ -1827,9 +1837,9 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     $('scoutBtn').hidden = D.done; $('scoutBtn').disabled = !yourTurn || scouting;
     if (!advice) { if (!scouting) $('advice').innerHTML = ''; return; }
     const { top, alts, why, balance } = advice;
-    $('advice').innerHTML = `<div class="advice"><h3>Scout says: take ${esc(top.p.name)} (${top.p.yr}) at ${top.s.label}</h3>
+    $('advice').innerHTML = `<div class="advice"><h3>Scout says: take ${esc(top.p.name)} (${top.p.yr}) at ${top.s.label}${D.cap ? ` for ${money(top.p.sal)}` : ''}</h3>
       ${aiBlock(advice)}<p${advice.ai ? ' class="thin"' : ''}>${advice.ai ? '<b>The numbers:</b> ' : ''}${esc(why.join(' '))}</p>${balance ? `<p>${esc(balance)}</p>` : ''}
-      ${alts.length ? `<ul>${alts.map(a => `<li>Also good: <b>${esc(a.p.name)}</b> (${a.p.yr}) at ${a.s.label}, about ${Math.round(a.gain)} runs over what's left there.</li>`).join('')}</ul>` : ''}
+      ${alts.length ? `<ul>${alts.map(a => `<li>Also good: <b>${esc(a.p.name)}</b> (${a.p.yr}) at ${a.s.label}${D.cap ? ` for ${money(a.p.sal)}` : ''}, about ${Math.round(a.gain)} runs over what's left there.</li>`).join('')}</ul>` : ''}
       <div class="acts"><button class="btn btn-scout" id="takeTip">Draft ${esc(top.p.name.split(' ').slice(-1)[0])}</button><button class="btn btn-alt" id="readTip">Read his card</button><button class="btn btn-alt" id="hideTip">Dismiss</button></div></div>`;
     $('takeTip').onclick = () => { if (!canDraft(top.p, 'you')) { selSlot = top.s.id; draft(top.p, 'you'); } };
     $('readTip').onclick = () => { previewKey = top.p.key; drawPreview(); };
@@ -1851,7 +1861,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
   function spotHtml(s, key, side, absolute) {
     const p = key && BY.get(key), st = absolute ? `style="left:${COORD[s.id][0]}%;top:${COORD[s.id][1]}%"` : '';
     const isFresh = fresh && fresh.side === side && fresh.slot === s.id;
-    if (p) return `<button class="spot filled ${isFresh ? 'fresh' : ''}" data-key="${p.key}" style="${absolute ? `left:${COORD[s.id][0]}%;top:${COORD[s.id][1]}%;` : ''}--mag:${side === 'you' ? 'var(--wb-green)' : 'var(--wb-red)'}"><span class="pl">${s.label}</span><b>${esc(p.name)}</b><span>${p.yr} ${esc(p.fr)}</span></button>`;
+    if (p) return `<button class="spot filled ${isFresh ? 'fresh' : ''}" data-key="${p.key}" style="${absolute ? `left:${COORD[s.id][0]}%;top:${COORD[s.id][1]}%;` : ''}--mag:${side === 'you' ? 'var(--wb-green)' : 'var(--wb-red)'}"><span class="pl">${s.label}${D && D.cap ? ` <i class="px">${money(p.sal)}</i>` : ''}</span><b>${esc(p.name)}</b><span>${p.yr} ${esc(p.fr)}</span></button>`;
     const mine = side === 'you';
     return `<button class="spot open ${selSlot === s.id && mine ? 'sel' : ''}" ${st} ${mine ? `data-slot="${s.id}"` : 'disabled'}><span class="pl">${s.label}</span><b>${!mine ? 'Open' : s.kind === 'H' ? 'Pick a ' + POSN[s.pos] : s.role === 'SP' ? 'Starter' : 'Reliever'}</b></button>`;
   }
@@ -1881,7 +1891,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
         <path d="M50 86 L4 42 Q50 -12 96 42 Z"/><path d="M50 82 L76 58 L50 34 L24 58 Z"/><circle cx="50" cy="59" r="2.6"/></svg>${hit}</div>
       <p class="wb-key"><span><i style="background:var(--wb-green)"></i>Your picks</span><span><i style="background:var(--wb-red)"></i>Computer's picks</span></p>
       <div class="staff"><h3>Rotation</h3><div class="row">${sp}</div><h3>Bullpen</h3><div class="row pen">${rp}</div></div>`;
-    $('fieldHost').querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { selSlot = selSlot === b.dataset.slot ? null : b.dataset.slot; syncPosFilter(); drawRoom(); if (phone() && selSlot) glideTo('.pool.desk'); });
+    $('fieldHost').querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { selSlot = selSlot === b.dataset.slot ? null : b.dataset.slot; selByUser = !!selSlot; syncPosFilter(); drawRoom(); if (phone() && selSlot) glideTo('.pool.desk'); });
     $('fieldHost').querySelectorAll('[data-key]').forEach(b => b.onclick = () => { previewKey = b.dataset.key; drawPool(); });
     fresh = null;
   }
@@ -1948,12 +1958,19 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     $('sheetTabs').innerHTML = tabs.map(([k, l]) => `<button role="tab" aria-selected="${sheet === k}" data-sheet="${k}">${l}</button>`).join('');
     $('sheetTabs').querySelectorAll('[data-sheet]').forEach(b => b.onclick = () => { sheet = b.dataset.sheet; if (!COLS[sheet].some(c => c[0] === sortKey) && !['Runs+', '$M', 'Player'].includes(sortKey)) sortKey = 'Runs+'; drawPool(); });
     const s = selSlot && SLOTS.find(x => x.id === selSlot);
-    $('poolTitle').textContent = s ? `Pick a ${s.kind === 'H' ? POSN[s.pos] : POSN[s.role]}` : 'Player pool';
+    $('poolTitle').textContent = D.done ? 'Your roster' : s ? `Pick a ${s.kind === 'H' ? POSN[s.pos] : POSN[s.role]}` : 'Player pool';
     drawAdvice();
-    $('poolTip').textContent = D.done ? 'Every spot is filled.' :
+    $('poolTip').textContent = D.done ? 'Every pick is made. Here is your roster by position, with what each player cost.' :
       (yourTurn ? `You're on the clock${s ? ` for your ${s.kind === 'H' ? (s.pos === 'dh' ? 'DH' : POSN[s.pos]) : POSN[s.role]} (flashing on the board). Tap another open spot to switch` : ''}. Click a name to read his card. Runs+ is how many runs his season is worth above an average player.` : 'The computer is picking.') +
       (D.cap ? ` Payroll ${money(payroll('you'))} of ${money(D.cap)}.` : '') + (sheet === 'RP' ? ' Starters can pitch in relief too.' : '');
-    drawPreview();
+    drawPreview(); drawRosterList();
+  }
+  function drawRosterList() {
+    const box = $('rosterList'); box.hidden = !D.done; if (!D.done) { box.innerHTML = ''; return; }
+    const groups = [['Lineup', s => s.kind === 'H'], ['Rotation', s => s.kind === 'P' && s.role === 'SP'], ['Bullpen', s => s.kind === 'P' && s.role !== 'SP']];
+    const row = s => { const k = D.teams.you[s.id], p = k && BY.get(k); return `<tr><td class="pos">${s.label}</td><td>${p ? `<b>${esc(p.name)}</b> <small>${p.yr} ${esc(p.fr)}</small>` : '<small>Left open: counts as an average player</small>'}</td><td class="cost">${p ? money(p.sal) : '&mdash;'}</td></tr>`; };
+    const pay = payroll('you'), left = D.cap ? Math.round((D.cap - pay) * 10) / 10 : 0;
+    box.innerHTML = `<table><thead><tr><th>Spot</th><th>Player</th><th class="cost">Cost</th></tr></thead><tbody>${groups.map(([name, f]) => `<tr class="grp"><th colspan="3">${name}</th></tr>${SLOTS.filter(f).map(row).join('')}`).join('')}</tbody><tfoot><tr><td colspan="2">Total payroll</td><td class="cost">${money(Math.round(pay * 10) / 10)}</td></tr>${D.cap ? `<tr><td colspan="2">Cap space left unspent, of ${money(D.cap)}</td><td class="cost">${money(left)}</td></tr>` : ''}</tfoot></table>`;
   }
 
   function drawPreview() {
@@ -1977,7 +1994,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
 
   function drawLog() {
     $('log').innerHTML = [...D.log].reverse().map(l => { const p = BY.get(l.key);
-      return `<p class="${l.side}">Pick ${l.n}: <b>${l.side === 'you' ? 'You' : 'Computer'}</b> took ${esc(p.name)} (${p.yr} ${esc(p.fr)}) at ${SLOTS.find(s => s.id === l.slot).label}${l.auto ? ' (scout, time ran out)' : ''}</p>`; }).join('');
+      return `<p class="${l.side}">Pick ${l.n}: <b>${l.side === 'you' ? 'You' : 'Computer'}</b> took ${esc(p.name)} (${p.yr} ${esc(p.fr)}) at ${SLOTS.find(s => s.id === l.slot).label}${D.cap ? ` for ${money(p.sal)}` : ''}${l.auto ? ' (scout, time ran out)' : ''}</p>`; }).join('');
   }
 
 
@@ -2193,7 +2210,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
   function reviewFacts() {
     const R = D.report, picks = reviewPicks(), st = strengths(R), notable = notablePicks(picks);
     return { grade: R.grade, winPercent: Math.round(R.p * 100), bestOfSevenPercent: Math.round(R.bo7 * 100), projectedScore: { you: Math.round(R.you * 10) / 10, computer: Math.round(R.cpu * 10) / 10 },
-      draftType: D.cap ? 'payroll cap' : 'classic', capSpaceLeftMillions: D.cap ? capLeft() : null, picksMadeForYouWhenTheClockRanOut: picks.filter(p => p.auto).length,
+      draftType: 'payroll cap', capSpaceLeftMillions: D.cap ? capLeft() : null, picksMadeForYouWhenTheClockRanOut: picks.filter(p => p.auto).length,
       teamStrengths: st.cats.map(c => ({ area: c.name, you: c.mine, computer: c.theirs })), strongestArea: st.best.d > 0 ? st.best.name : null, weakestArea: st.worst.d < 0 ? st.worst.name : null,
       notable: notable.map(p => ({ n: p.n, round: p.round, spot: p.spot, player: p.player, season: p.season, priceMillions: p.price, kind: CHIP[p.tag], belowWorthMillions: p.steal || null,
         passedOn: p.better ? { player: p.better.player, season: p.better.season, priceMillions: p.better.price, belowWorthMillions: p.better.under } : null })) };
@@ -2223,13 +2240,14 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
         <button type="button" class="rc2-more" id="rcMore" aria-expanded="${rcOpen}" aria-controls="rcDetail">${rcOpen ? 'Hide the walkthrough' : 'See the full walkthrough'}</button>
         <div id="rcDetail" ${rcOpen ? '' : 'hidden'}>
           <div class="rc">
-            <div class="blk"><b class="score">${R.you.toFixed(1)} – ${R.cpu.toFixed(1)}</b><small>Projected score: you, then the computer</small></div>
-            <div class="blk"><b>${Math.round(R.p * 100)}%</b><small>chance of winning a game against the computer</small></div></div>
+            <div class="blk"><b>${R.you.toFixed(1)}</b><small>runs a game scored by your team</small></div>
+            <div class="blk"><b>${R.cpu.toFixed(1)}</b><small>runs a game scored by the computer</small></div>
+            <div class="blk"><b>${Math.round(R.p * 100)}%</b><small>chance your team wins a game</small></div></div>
           <p class="rc-sub">${margin >= 0 ? 'Your team is projected to win by' : 'The computer is projected to win by'} ${Math.abs(margin).toFixed(1)} runs a game. In a best-of-7 series you would win about ${Math.round(R.bo7 * 100)}% of the time.</p>
           <table class="rc-table"><thead><tr><th>Team strengths</th><th>You</th><th>Computer</th></tr></thead><tbody>${rows}</tbody></table>
           <h4 class="rc2-h">Pick by pick</h4><ol class="walk">${walk}</ol>
           <h4 class="rc2-h">What to try next time</h4><p class="rc-verdict">${esc(ai && ai.next ? ai.next : st.verdict)}</p>${retry}
-          <p class="rc-fine">Projected score is the average result of 1,000 simulated games between the two teams, and your grade is based on your chance of winning one. Strength grades compare each team's players with the rest of the pool. "Priced under his worth" compares a player's price with what his real season says he is worth.</p>
+          <p class="rc-fine">Runs a game is the average over 1,000 simulated games between the two teams, and your grade is based on your chance of winning one. Strength grades compare each team's players with the rest of the pool. "Priced under his worth" compares a player's price with what his real season says he is worth.</p>
         </div>
       </div>`;
     $('rcMore').onclick = () => { rcOpen = !rcOpen; $('rcDetail').hidden = !rcOpen; $('rcMore').setAttribute('aria-expanded', String(rcOpen)); $('rcMore').textContent = rcOpen ? 'Hide the walkthrough' : 'See the full walkthrough'; };
@@ -2291,7 +2309,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
   $('resume').onclick = enterRoom;
   $('showYou').onclick = () => { view = 'you'; drawRoom(); };
   $('showCpu').onclick = () => { view = 'cpu'; drawRoom(); };
-  $('search').oninput = drawPool; $('posFilter').onchange = () => { selSlot = null; drawPool(); drawField(); };
+  $('search').oninput = drawPool; $('posFilter').onchange = () => { selSlot = null; selByUser = false; drawPool(); drawField(); };
   $('affordOnly').onchange = () => { affordOnly = $('affordOnly').checked; drawPool(); };
   const toSetup = () => { $('notebook').hidden = true; paused = false; stopClock(); document.body.classList.add('war'); $('setup').hidden = false; $('room').hidden = true; $('playSec').hidden = true; $('projWrap').hidden = true; $('gameBoard').hidden = true; drawSetup(); window.scrollTo(0, 0); };
   $('redraft').onclick = toSetup; $('newDraft2').onclick = toSetup;
