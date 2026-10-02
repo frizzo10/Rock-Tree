@@ -40,6 +40,16 @@ button { font: inherit; }
 .cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
 /* ---------- live strip ---------- */
+.doors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 26px 0 0; }
+.door { display: flex; flex-direction: column; gap: 6px; padding: 16px 22px 14px; background: #12291F; color: #F3EAD3; border-radius: 4px; text-decoration: none; box-shadow: inset 0 0 0 3px #1F4A36, 0 3px 0 rgba(0,0,0,.25); }
+.door:hover { background: #163427; }
+.door .k { font: 400 26px/1.1 var(--marker); color: var(--lamp); letter-spacing: .03em; } .door .d { font-size: 17px; line-height: 1.4; } .door .go { margin-top: auto; padding-top: 6px; font-weight: 700; color: var(--lamp); font-size: 17px; }
+.invitebar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 22px; background: #12291F; color: #F3EAD3; border-radius: 4px; box-shadow: inset 0 0 0 3px #1F4A36, 0 3px 0 rgba(0,0,0,.25); }
+.invitebar b { font: 400 22px var(--marker); color: var(--lamp); } .invitebar span.t { font-size: 16px; }
+.invitebar .ib { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; background: #F3EAD3; color: #12291F; border: 0; border-radius: 4px; font: 700 16px var(--text); text-decoration: none; cursor: pointer; } .invitebar .ib:hover { background: #fff; }
+.invitebar .msg { font-size: 15px; color: var(--lamp); }
+.live.slim { margin-top: 12px; padding: 8px 18px; font-size: 15px; } .live.slim .k { font-size: 16px; } .live.slim b { font-size: 19px; }
+@media (max-width: 720px) { .doors { grid-template-columns: 1fr; } }
 .live { display: flex; align-items: center; gap: 12px 22px; flex-wrap: wrap; margin: 26px 0 0; padding: 12px 20px; background: #12291F; color: #F3EAD3; border-radius: 4px; text-decoration: none; box-shadow: inset 0 0 0 3px #1F4A36, 0 3px 0 rgba(0,0,0,.25); font-size: 16px; }
 .live:hover { background: #163427; }
 .live .lamp { width: 12px; height: 12px; border-radius: 50%; background: var(--lamp); box-shadow: 0 0 10px var(--lamp); flex: none; }
@@ -84,6 +94,8 @@ button { font: inherit; }
 .card .stats div { background: rgba(31,63,143,.08); border-radius: 5px; padding: 5px 0 4px; }
 .card .stats b { display: block; font: 400 24px/1.1 var(--marker); color: var(--wb-ink); }
 .card .stats small { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #6B5A2C; }
+.card .gl { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #1E7B45; }
+.card .stats.game { margin: 4px 0 10px; } .card .stats.game div { background: rgba(30,123,69,.12); } .card .stats.game b { color: #17603A; font-size: 21px; }
 .card .txt { font-size: 13.5px; line-height: 1.4; margin: 0 0 10px; }
 .card .foot { margin-top: auto; border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
 .card .foot.open { color: var(--wb-green); }
@@ -227,8 +239,14 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     </li>
   </ol>
 
-  <a class="live side-door reveal" id="live" href="lobby.html" hidden>
-    <span class="lamp" aria-hidden="true"></span><span class="k">Live at the tables</span>
+  <section class="doors reveal" aria-label="Ways to play">
+    <a class="door" href="play.html"><span class="k">Play solo</span><span class="d">Take on the computer. Pick a classic club and play a game right now, no sign-in needed.</span><span class="go">Play a game &rarr;</span></a>
+    <a class="door" href="private.html"><span class="k">Play with friends</span><span class="d">Start a league, invite your friends by email, and run the whole season together.</span><span class="go">Start a league &rarr;</span></a>
+    <div class="invitebar" id="invitebar"><b>Invite a friend</b><span class="t">Know someone who would love this? Send them a link.</span><button class="ib" id="invCopy" type="button">Copy link</button><a class="ib" id="invMail" href="mailto:">Email a friend</a><button class="ib" id="invShare" type="button" hidden>Share</button><span class="msg" id="invMsg" role="status"></span></div>
+  </section>
+
+  <a class="live slim side-door reveal" id="live" href="lobby.html" hidden>
+    <span class="lamp" aria-hidden="true"></span><span class="k">Or sit at a free table with other managers</span>
     <span><b id="lt">0</b> free tables open</span><span><b id="ls">0</b> seats available</span><span class="go">Sit down &rarr;</span>
   </a>
 
@@ -278,7 +296,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
   // ----- cards from the vault: a new four each day, plus a button to deal more -----
-  const CARDS = [{"n": "Babe Ruth", "y": 1920, "t": "New York Yankees", "p": "RF", "s": [["AVG", ".376"], ["HR", "54"], ["RBI", "137"]], "x": "25-year-old right fielder who led the AL with 54 home runs, 35 more than anyone else, and led the league with 137 RBI for the 95-59 New York Yankees. His 54 homers were more than any other AL team hit."}, {"n": "Barry Bonds", "y": 2001, "t": "San Francisco Giants", "p": "LF", "s": [["AVG", ".328"], ["HR", "73"], ["RBI", "137"]], "x": "37-year-old left fielder who led the NL with 73 home runs, 9 more than anyone else for the 90-72 San Francisco Giants."}, {"n": "Ted Williams", "y": 1957, "t": "Boston Red Sox", "p": "LF", "s": [["AVG", ".388"], ["HR", "38"], ["RBI", "87"]], "x": "39-year-old left fielder who won the batting title at .388 for the 82-72 Boston Red Sox."}, {"n": "Pedro Martinez", "y": 2000, "t": "Boston Red Sox", "p": "P", "s": [["ERA", "1.74"], ["W-L", "18-6"], ["K", "284"]], "x": "29-year-old starter who won the ERA title at 1.74, and led the league with 284 strikeouts for the 85-77 Boston Red Sox."}, {"n": "Willie Mays", "y": 1965, "t": "San Francisco Giants", "p": "CF", "s": [["AVG", ".317"], ["HR", "52"], ["RBI", "112"]], "x": "34-year-old center fielder who led the NL with 52 home runs, 13 more than anyone else for the 95-67 San Francisco Giants."}, {"n": "Honus Wagner", "y": 1908, "t": "Pittsburgh Pirates", "p": "SS", "s": [["AVG", ".354"], ["HR", "10"], ["RBI", "109"]], "x": "34-year-old shortstop who won the batting title at .354, led the league with 109 RBI, and led the league with 53 steals for the 98-56 Pittsburgh Pirates."}, {"n": "Ty Cobb", "y": 1911, "t": "Detroit Tigers", "p": "CF", "s": [["AVG", ".420"], ["HR", "8"], ["RBI", "127"]], "x": "25-year-old center fielder who won the batting title at .420, led the league with 127 RBI, and led the league with 83 steals for the 89-65 Detroit Tigers."}, {"n": "Greg Maddux", "y": 1995, "t": "Atlanta Braves", "p": "P", "s": [["ERA", "1.63"], ["W-L", "19-2"], ["K", "181"]], "x": "29-year-old starter who led the NL with 19 wins, and won the ERA title at 1.63 for the World Series champion Atlanta Braves."}, {"n": "Hank Aaron", "y": 1971, "t": "Atlanta Braves", "p": "1B", "s": [["AVG", ".327"], ["HR", "47"], ["RBI", "118"]], "x": "37-year-old first baseman who hit .327 with 47 homers and 118 RBI for the 82-80 Atlanta Braves."}, {"n": "Mickey Mantle", "y": 1956, "t": "New York Yankees", "p": "CF", "s": [["AVG", ".353"], ["HR", "52"], ["RBI", "130"]], "x": "25-year-old center fielder who led the AL with 52 home runs, 20 more than anyone else, won the batting title at .353, and led the league with 130 RBI for the World Series champion New York Yankees."}, {"n": "Nap Lajoie", "y": 1901, "t": "Philadelphia Athletics", "p": "2B", "s": [["AVG", ".426"], ["HR", "14"], ["RBI", "125"]], "x": "27-year-old second baseman who led the AL with 14 home runs, won the batting title at .426, and led the league with 125 RBI for the 74-62 Philadelphia Athletics."}, {"n": "Jake Arrieta", "y": 2015, "t": "Chicago Cubs", "p": "P", "s": [["ERA", "1.77"], ["W-L", "22-6"], ["K", "236"]], "x": "29-year-old starter who led the NL with 22 wins for the 97-65 Chicago Cubs."}];
+  const CARDS = [{"n": "Babe Ruth", "y": 1920, "t": "New York Yankees", "p": "RF", "s": [["AVG", ".376"], ["HR", "54"], ["RBI", "137"]], "x": "25-year-old right fielder who led the AL with 54 home runs, 35 more than anyone else, and led the league with 137 RBI for the 95-59 New York Yankees. His 54 homers were more than any other AL team hit.", "g": [["Runs+", "81"], ["OBP", ".528"], ["Cap price", "$18M"]]}, {"n": "Barry Bonds", "y": 2001, "t": "San Francisco Giants", "p": "LF", "s": [["AVG", ".328"], ["HR", "73"], ["RBI", "137"]], "x": "37-year-old left fielder who led the NL with 73 home runs, 9 more than anyone else for the 90-72 San Francisco Giants.", "g": [["Runs+", "71"], ["OBP", ".515"], ["Cap price", "$16M"]]}, {"n": "Ted Williams", "y": 1957, "t": "Boston Red Sox", "p": "LF", "s": [["AVG", ".388"], ["HR", "38"], ["RBI", "87"]], "x": "39-year-old left fielder who won the batting title at .388 for the 82-72 Boston Red Sox.", "g": [["Runs+", "62"], ["OBP", ".526"], ["Cap price", "$14M"]]}, {"n": "Pedro Martinez", "y": 2000, "t": "Boston Red Sox", "p": "P", "s": [["ERA", "1.74"], ["W-L", "18-6"], ["K", "284"]], "x": "29-year-old starter who won the ERA title at 1.74, and led the league with 284 strikeouts for the 85-77 Boston Red Sox.", "g": [["Runs+", "48"], ["WHIP", "0.74"], ["Cap price", "$13.5M"]]}, {"n": "Willie Mays", "y": 1965, "t": "San Francisco Giants", "p": "CF", "s": [["AVG", ".317"], ["HR", "52"], ["RBI", "112"]], "x": "34-year-old center fielder who led the NL with 52 home runs, 13 more than anyone else for the 95-67 San Francisco Giants.", "g": [["Runs+", "52"], ["OBP", ".397"], ["Cap price", "$12M"]]}, {"n": "Honus Wagner", "y": 1908, "t": "Pittsburgh Pirates", "p": "SS", "s": [["AVG", ".354"], ["HR", "10"], ["RBI", "109"]], "x": "34-year-old shortstop who won the batting title at .354, led the league with 109 RBI, and led the league with 53 steals for the 98-56 Pittsburgh Pirates.", "g": [["Runs+", "50"], ["OBP", ".406"], ["Cap price", "$11.5M"]]}, {"n": "Ty Cobb", "y": 1911, "t": "Detroit Tigers", "p": "CF", "s": [["AVG", ".420"], ["HR", "8"], ["RBI", "127"]], "x": "25-year-old center fielder who won the batting title at .420, led the league with 127 RBI, and led the league with 83 steals for the 89-65 Detroit Tigers.", "g": [["Runs+", "50"], ["OBP", ".459"], ["Cap price", "$11.5M"]]}, {"n": "Greg Maddux", "y": 1995, "t": "Atlanta Braves", "p": "P", "s": [["ERA", "1.63"], ["W-L", "19-2"], ["K", "181"]], "x": "29-year-old starter who led the NL with 19 wins, and won the ERA title at 1.63 for the World Series champion Atlanta Braves.", "g": [["Runs+", "40"], ["WHIP", "0.81"], ["Cap price", "$11.5M"]]}, {"n": "Hank Aaron", "y": 1971, "t": "Atlanta Braves", "p": "1B", "s": [["AVG", ".327"], ["HR", "47"], ["RBI", "118"]], "x": "37-year-old first baseman who hit .327 with 47 homers and 118 RBI for the 82-80 Atlanta Braves.", "g": [["Runs+", "55"], ["OBP", ".410"], ["Cap price", "$12.5M"]]}, {"n": "Mickey Mantle", "y": 1956, "t": "New York Yankees", "p": "CF", "s": [["AVG", ".353"], ["HR", "52"], ["RBI", "130"]], "x": "25-year-old center fielder who led the AL with 52 home runs, 20 more than anyone else, won the batting title at .353, and led the league with 130 RBI for the World Series champion New York Yankees.", "g": [["Runs+", "55"], ["OBP", ".463"], ["Cap price", "$12.5M"]]}, {"n": "Nap Lajoie", "y": 1901, "t": "Philadelphia Athletics", "p": "2B", "s": [["AVG", ".426"], ["HR", "14"], ["RBI", "125"]], "x": "27-year-old second baseman who led the AL with 14 home runs, won the batting title at .426, and led the league with 125 RBI for the 74-62 Philadelphia Athletics.", "g": [["Runs+", "50"], ["OBP", ".462"], ["Cap price", "$11.5M"]]}, {"n": "Jake Arrieta", "y": 2015, "t": "Chicago Cubs", "p": "P", "s": [["ERA", "1.77"], ["W-L", "22-6"], ["K", "236"]], "x": "29-year-old starter who led the NL with 22 wins for the 97-65 Chicago Cubs.", "g": [["Runs+", "38"], ["WHIP", "0.86"], ["Cap price", "$11M"]]}];
   let start = Math.floor(Date.now() / 86400000) % CARDS.length;
   const tilts = [-2.2, 1.6, -1.2, 2.3];
   function deal() {
@@ -286,11 +304,21 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
       const c = CARDS[(start + k) % CARDS.length];
       return `<article class="card" style="--r:${tilts[k]}deg"><div class="in"><div class="yr">${c.y}</div><div class="nm">${esc(c.n)}</div><div class="meta">${esc(c.p)} &middot; ${esc(c.t)}</div>
         <div class="stats">${c.s.map(s => `<div><b>${esc(s[1])}</b><small>${esc(s[0])}</small></div>`).join('')}</div>
+        <p class="gl">In the game</p><div class="stats game">${c.g.map(s => `<div><b>${esc(s[1])}</b><small>${esc(s[0])}</small></div>`).join('')}</div>
         <p class="txt">${esc(c.x)}</p><div class="foot ${unlocked ? 'open' : ''}">${unlocked ? 'Legend card: unlocked for you' : 'Legend card: win 3 games to unlock'}</div></div></article>`;
     }).join('');
   }
   $('shuffle').onclick = () => { start = (start + 4) % CARDS.length; deal(); };
   deal();
+
+  // ----- invite a friend: copy a link, email it, or use the phone's share sheet -----
+  (() => {
+    const url = location.origin + '/', subject = 'Come play baseball with me on Cooperstown Cash';
+    const body = `I found a baseball dice game that uses real stats from baseball history. You draft a team and play it, and you can try it free for as long as you like. Take a look: ${url}`;
+    $('invMail').href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    $('invCopy').onclick = async () => { try { await navigator.clipboard.writeText(url); $('invMsg').textContent = 'Link copied. Paste it into a message to your friend.'; } catch (e) { window.prompt('Copy this link:', url); } };
+    if (navigator.share) { $('invShare').hidden = false; $('invShare').onclick = () => navigator.share({ title: subject, text: body, url }).catch(() => {}); }
+  })();
 
   // ----- live at the tables -----
   function paintLive(t, s) {
