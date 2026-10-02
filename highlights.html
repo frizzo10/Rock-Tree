@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: The greatest seasons ever played</title>
+<meta name="description" content="Real seasons from baseball history, built from the real stats. Bonds in 2001, Gibson in 1968, Ruth in 1927. Draft any of them in a Cooperstown Cash league.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.png">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+button { font: inherit; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 18px 16px 48px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; }
+.crumbs .badge img { width: 100%; height: 100%; }
+.wb { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 24px 30px; }
+.wb h1 { font: 400 clamp(30px, 5.5vw, 48px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.wb p { margin: 0 0 8px; max-width: 66ch; color: #3A434D; font-size: 18px; }
+.wb p.fine { font-size: 14px; color: #5A646E; }
+.card { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 24px 24px; margin-top: 18px; }
+.card h2 { font: 400 clamp(24px, 4vw, 30px)/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.card .blurb { margin: 0 0 14px; font-size: 18px; font-weight: 600; max-width: 70ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 285px), 1fr)); gap: 14px; }
+.sc { position: relative; background: #FBF5E3; border: 3px solid #B79F6B; border-radius: 10px; padding: 12px 14px 14px; box-shadow: 0 3px 0 rgba(0,0,0,.14); display: flex; flex-direction: column; }
+.sc.is-legend { border-color: #C69A2B; background: #FFF4CF; }
+.sc .yr { font: 400 40px/1 var(--marker); color: var(--wb-red); }
+.sc h3 { font: 400 23px/1.1 var(--marker); color: var(--wb-ink); margin: 2px 0 2px; }
+.sc .who { margin: 0 0 8px; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #6B5A2C; }
+.sc .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+.sc .st.hi { grid-column: 1 / -1; background: #F2B33D; } .sc .st.hi b { font-size: 26px; } .sc .st.hi span { color: #3A2E12; }
+.sc .st { background: #F0E6C5; border-radius: 6px; text-align: center; padding: 6px 2px 4px; }
+.sc .st b { display: block; font: 400 21px/1.1 var(--marker); color: var(--wb-ink); }
+.sc .st span { display: block; font-size: 12px; font-weight: 600; color: #6B5A2C; letter-spacing: .05em; }
+.sc .note { margin: 0 0 8px; font-size: 15px; color: #3A434D; flex: 1; }
+.sc .cost { margin: 0; font-size: 13px; font-weight: 600; color: var(--wb-green); }
+.sc .lgdtag { position: absolute; top: 10px; right: 10px; background: #C69A2B; color: #3A2E12; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 9px; border-radius: 10px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.tab { border: 2px solid #8C959E; background: #fff; color: #20262D; border-radius: 22px; padding: 8px 16px; font-weight: 600; cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--wb-ink); border-color: var(--wb-ink); color: #fff; }
+.more { display: none; }
+@media (max-width: 700px) { .grid.trim .sc:nth-child(n+4) { display: none; } .more { display: inline-flex; align-items: center; justify-content: center; margin-top: 12px; min-height: 44px; padding: 0 18px; border: 2px solid var(--wb-ink); border-radius: 22px; background: #fff; color: var(--wb-ink); font-weight: 600; cursor: pointer; } }
+.cta { text-align: center; }
+.cta p { margin: 0 auto 12px; max-width: 56ch; font-size: 18px; }
+.cta .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: center; }
+.btn { border: 0; border-radius: 4px; padding: 12px 22px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+.btn-main { background: var(--wb-ink); color: #fff; } .btn-main:hover { background: #17306E; }
+.cta a.txt { color: var(--wb-ink); font-weight: 600; display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; }
+.msg { margin: 8px 0 0; font-weight: 600; }
+footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
+</style>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a></nav>
+
+  <header class="wb">
+    <h1>The greatest seasons ever played</h1>
+    <p>Every card on this page is a real season from baseball history, built from the real stats. In a Cooperstown Cash league, you can draft any of them.</p>
+    <p class="fine" id="scope">Loading the record books...</p>
+  </header>
+
+  <div id="chapters"></div>
+
+  <section class="card" id="era" aria-labelledby="eraH" hidden>
+    <h2 id="eraH">Pick an era</h2>
+    <p class="blurb">The most valuable seasons from each decade.</p>
+    <div class="tabs" id="tabs" role="group" aria-label="Choose a decade"></div>
+    <div class="grid" id="eraGrid" aria-live="polite"></div>
+  </section>
+
+  <section class="card cta" id="cta" hidden>
+    <h2 id="ctaH"></h2>
+    <p id="ctaP"></p>
+    <div class="row" id="ctaRow"></div>
+  </section>
+
+  <p class="msg" id="err" role="status" hidden>The record books didn't load. Check your connection and reload the page.</p>
+
+  <footer>
+    <p>Prototype for testing. Cooperstown Cash is not affiliated with Major League Baseball or any team. Statistics from the Lahman Baseball Database by Sean Lahman, used under CC BY-SA 3.0.</p>
+    <p><a href="terms.html" style="color:inherit;font-weight:600">Terms of Service</a> &middot; <a href="privacy.html" style="color:inherit;font-weight:600">Privacy Policy</a></p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = n => '$' + (Number.isInteger(+n) ? +n : (+n).toFixed(1)) + 'M';
+  // a stat line like ".328 · 73 HR · 137 RBI" or "1.74 ERA · 18-6 · 284 K" becomes three tiles
+  function tiles(line) {
+    return line.split(' · ').map(t => {
+      if (/^\.\d+$/.test(t)) return ['AVG', t];
+      if (/^\d+-\d+$/.test(t)) return ['W-L', t];
+      const m = t.match(/^([\d.]+)\s+(.+)$/); return m ? [m[2], m[1]] : ['', t];
+    }).map(([label, value]) => `<div class="st"><b>${esc(value)}</b><span>${esc(label)}</span></div>`).join('');
+  }
+  const card = c => `<article class="sc${c.legend ? ' is-legend' : ''}">${c.legend ? '<span class="lgdtag">Legend</span>' : ''}<div class="yr">${esc(c.yr)}</div><h3>${esc(c.name)}</h3><p class="who">${esc(c.pos ? c.pos + ' · ' : '')}${esc(c.team)}</p><div class="stats">${c.hi ? `<div class="st hi"><b>${esc(c.hi[0])}</b><span>${esc(c.hi[1])}</span></div>` : ''}${tiles(c.line)}</div><p class="note">${esc(c.note)}</p><p class="cost">Costs ${money(c.cost)} on the salary cap</p></article>`;
+  fetch('highlights.json').then(r => { if (!r.ok) throw new Error('bad'); return r.json(); }).then(d => {
+    $('scope').textContent = `These are the best of the ${d.drafts.toLocaleString('en-US')} seasons in the game, and ${d.legends.length} of them are legends.`;
+    $('chapters').innerHTML = d.sections.map(s => `<section class="card" aria-labelledby="h-${esc(s.id)}"><h2 id="h-${esc(s.id)}">${esc(s.title)}</h2><p class="blurb">${esc(s.blurb)}</p><div class="grid${s.items.length > 3 ? ' trim' : ''}" id="g-${esc(s.id)}">${s.items.map(card).join('')}</div>${s.items.length > 3 ? `<button class="more" type="button" data-more="${esc(s.id)}" aria-expanded="false" aria-controls="g-${esc(s.id)}">Show all ${s.items.length}</button>` : ''}</section>`).join('');
+    document.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { const g = $('g-' + b.dataset.more), open = g.classList.toggle('trim') === false; b.setAttribute('aria-expanded', String(open)); b.textContent = open ? 'Show fewer' : 'Show all ' + g.children.length; });
+    const decs = Object.keys(d.decades).sort(), show = dec => { $('eraGrid').innerHTML = d.decades[dec].map(card).join(''); document.querySelectorAll('#tabs .tab').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dec === dec))); };
+    $('tabs').innerHTML = decs.map(x => `<button class="tab" type="button" data-dec="${esc(x)}" aria-pressed="false">${esc(x)}s</button>`).join('');
+    document.querySelectorAll('#tabs .tab').forEach(b => b.onclick = () => show(b.dataset.dec));
+    $('era').hidden = false; show(decs.includes('1920') ? '1920' : decs[0]);
+    // where to send them next: back to their invitation if they came from one, otherwise into the game
+    let code = ''; try { code = localStorage.getItem('cc-join') || ''; } catch (e) {}
+    const invited = /^[a-z0-9]{6,24}$/i.test(code), row = $('ctaRow');
+    if (invited) {
+      $('ctaH').textContent = 'Ready to play?'; $('ctaP').textContent = 'These seasons are waiting for your draft. Head back to your invitation and ask for a seat.';
+      row.innerHTML = `<a class="btn btn-main" href="private.html?join=${esc(code)}">Back to my invitation</a><a class="txt" href="draft.html">Try a free mock draft first</a><a class="txt" href="play.html">Play a quick game</a>`;
+    } else {
+      $('ctaH').textContent = 'Draft your favorites'; $('ctaP').textContent = 'Build a team from any of these seasons. The mock draft and quick games are free.';
+      row.innerHTML = '<a class="btn btn-main" href="draft.html">Try a free mock draft</a><a class="txt" href="play.html">Play a quick game</a><a class="txt" href="private.html">Run a league with friends</a>';
+    }
+    $('cta').hidden = false;
+  }).catch(() => { $('err').hidden = false; $('scope').textContent = ''; });
+})();
+</script>
+</body>
+</html>
