@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Is it rigged? How the dice work and how to check us</title>
+<meta name="description" content="How Cooperstown Cash rolls its dice, what the game engine is and is not told, what we measured, and what we cannot prove yet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.png">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 18px 16px 48px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; }
+.crumbs .badge img { width: 100%; height: 100%; }
+.wb, .card { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 24px 30px; }
+.card { box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 26px 24px; margin-top: 18px; }
+.wb h1 { font: 400 clamp(30px, 5.5vw, 46px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.wb p { margin: 0 0 8px; max-width: 66ch; color: #3A434D; font-size: 18px; }
+.card h2 { font: 400 clamp(24px, 4vw, 30px)/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.card p, .card li { font-size: 17px; max-width: 70ch; }
+.card ul, .card ol { padding-left: 22px; margin: 6px 0 10px; }
+.card li { margin: 8px 0; }
+.card .fine { font-size: 14px; color: #5A646E; }
+.tw { overflow-x: auto; margin: 10px 0; }
+table { border-collapse: collapse; width: 100%; background: #fff; font-size: 16px; }
+@media (max-width: 600px) { thead { display: none; } table, tbody, tr, td { display: block; width: 100%; } tr { border: 1px solid #DDE1E4; margin-bottom: 10px; padding: 4px 0; } td { border: 0; padding: 6px 12px; } td::before { content: attr(data-l); display: block; font-size: 13px; font-weight: 600; color: #4A5560; } }
+th, td { padding: 9px 12px; border-bottom: 1px solid #DDE1E4; text-align: left; vertical-align: top; }
+th { font-size: 13px; color: #4A5560; background: #F5F6F8; }
+td.n { white-space: nowrap; font-weight: 700; color: var(--wb-ink); }
+.soon { background: #FFF4CF; border: 2px solid #C69A2B; border-radius: 8px; padding: 12px 16px; }
+.soon b.t { font: 400 20px/1.1 var(--marker); color: #6B5A2C; display: block; margin-bottom: 4px; }
+.cta { text-align: center; }
+.cta .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: center; margin-top: 10px; }
+.btn { border: 0; border-radius: 4px; padding: 12px 22px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; background: var(--wb-ink); color: #fff; }
+.btn:hover { background: #17306E; }
+.cta a.txt { color: var(--wb-ink); font-weight: 600; display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; }
+a { color: var(--wb-ink); }
+footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
+</style>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a></nav>
+
+  <header class="wb">
+    <h1>Is it rigged? Here's how to check.</h1>
+    <p>If real money is on a baseball game decided by dice, you should know exactly how the dice work, what the game is told, and what you are trusting us for. This page says all of it, including what we cannot prove yet.</p>
+  </header>
+
+  <section class="card" aria-labelledby="short">
+    <h2 id="short">The short answer</h2>
+    <ul>
+      <li><b>We have no reason to rig it.</b> Cooperstown Cash never holds league money and never sets a prize. Our only possible charge is a flat fee paid by a commissioner, the same whoever wins.</li>
+      <li><b>No player or commissioner can change a result.</b> The game server plays every game. A manager can only ask to finish a game the server already played: there is no way to send in a score or edit one.</li>
+      <li><b>Nobody can end a started season alone.</b> Once games begin, even the commissioner can end a league early only if most of its managers vote to.</li>
+      <li><b>Every roll is recorded.</b> For each at-bat, both 20-sided dice and the 1-to-100 roll are saved with the game, and the game screen shows them as each play is revealed. The league can read the saved record of any finished game.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="how">
+    <h2 id="how">How an at-bat works</h2>
+    <ol>
+      <li><b>Every player has a card built from his real season,</b> adjusted for his era, so a hitter from 1968 is measured against the pitching of 1968. His card splits 100 slots among the things he really did: strikeout, walk, single, double, triple, home run, and the different kinds of outs.</li>
+      <li><b>Two 20-sided dice are rolled, one for the batter and one for the pitcher.</b> The higher die wins the duel and decides whose card is used for this at-bat. A tie is simply rolled again.</li>
+      <li><b>One roll from 1 to 100 reads the winner's card.</b> That roll is the play: a home run, a strikeout, a groundout.</li>
+    </ol>
+    <p>The dice come from the computer's secure random source, the same kind used for encryption, so nobody can predict a roll or steer one.</p>
+  </section>
+
+  <section class="card" aria-labelledby="told">
+    <h2 id="told">What the game is told, and what it is not</h2>
+    <p>To play a game, the engine is given only:</p>
+    <ul>
+      <li>the two clubs' rosters,</li>
+      <li>each manager's own settings: batting order, starting rotation, how long to leave a starter in, and his pick for that day's starter,</li>
+      <li>and the day of the schedule, which decides the starting pitchers.</li>
+    </ul>
+    <p>It is never told who owns a club, who the commissioner is, what the league's buy-in is, or what the standings are. It has no way to favor anyone, because it doesn't know there is anyone to favor.</p>
+  </section>
+
+  <section class="card" aria-labelledby="measured">
+    <h2 id="measured">What we measured</h2>
+    <p>On October 2, 2026, we ran the game's own engine and looked for bias toward the home side, the away side, the batter or the pitcher.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Test</th><th>What a perfectly even game shows</th><th>What we measured</th></tr></thead>
+      <tbody>
+        <tr><td data-l="The test">The same club on both sides, 20,000 games: how often the home side won</td><td data-l="What a perfectly even game shows">50%, give or take 0.7 points</td><td class="n" data-l="What we measured">49.78%</td></tr>
+        <tr><td data-l="The test">Who won the dice duel, across about 1.5 million at-bats</td><td data-l="What a perfectly even game shows">50% each</td><td class="n" data-l="What we measured">Batter 49.98%<br>Pitcher 50.02%</td></tr>
+        <tr><td data-l="The test">Two different clubs trading home and away, 10,000 games each way: one club's win rate</td><td data-l="What a perfectly even game shows">The same both ways, give or take 1.4 points</td><td class="n" data-l="What we measured">53.75% at home<br>53.04% on the road</td></tr>
+      </tbody>
+    </table></div>
+    <p>Being the home team or the road team makes no difference to who wins. The game has no home-field advantage built in, which is different from real baseball.</p>
+    <p class="fine">These checks show the game doesn't favor a side. They don't prove every card matches history to the decimal, and we will add more tests over time. They measure bias in the dice, not the quality of your roster: in the third test, one club won about 53% of its games overall because its roster was a little stronger, which is exactly what you'd want.</p>
+  </section>
+
+  <section class="card" aria-labelledby="read">
+    <h2 id="read">Read the engine yourself</h2>
+    <p>The engine's source code is public on this site: <a href="engine.js">engine.js</a> and <a href="dice-engine.js">dice-engine.js</a>. Our game server is built from identical copies. We compared their fingerprints on October 2, 2026, and they matched exactly.</p>
+  </section>
+
+  <section class="card" aria-labelledby="cant">
+    <h2 id="cant">What we can't prove yet</h2>
+    <div class="soon">
+      <b class="t">Honest answer</b>
+      <p style="margin:0">Today you can read every roll of every finished game, but you can't re-run a game yourself. So for the dice themselves, you are relying on us, and on the fact that we make no money from who wins.</p>
+    </div>
+    <p>We're working on a way to check every game on your own. Before a game is played, we would publish a fingerprint of a secret number. After it, we would reveal the number, so anyone can replay the game and confirm it matches. <b>That isn't live yet.</b> We won't claim it until it is.</p>
+  </section>
+
+  <section class="card cta" aria-labelledby="try">
+    <h2 id="try">Try it free, as long as you like</h2>
+    <p>The mock draft, the quick game, and a private league with no buy-in all run the same engine you've just read about. Play until you're comfortable.</p>
+    <div class="row"><a class="btn" href="draft.html">Try a free mock draft</a><a class="txt" href="play.html">Play a quick game</a><a class="txt" href="private.html">Start a free league with friends</a></div>
+  </section>
+
+  <footer>
+    <p>Prototype for testing. Cooperstown Cash is not affiliated with Major League Baseball or any team. Statistics from the Lahman Baseball Database by Sean Lahman, used under CC BY-SA 3.0.</p>
+    <p><a href="terms.html" style="color:inherit;font-weight:600">Terms of Service</a> &middot; <a href="privacy.html" style="color:inherit;font-weight:600">Privacy Policy</a></p>
+  </footer>
+</div>
+</body>
+</html>
