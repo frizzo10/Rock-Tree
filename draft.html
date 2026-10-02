@@ -278,6 +278,9 @@ footer p { margin: 0 0 6px; }
 .ptools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .ptools input, .ptools select { padding: 8px 9px; background: var(--page); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; }
 .ptools input { flex: 1 1 150px; }
+.afford { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; min-height: 44px; cursor: pointer; }
+.afford input { width: 18px; height: 18px; flex: none; padding: 0; }
+.tightnote { background: #FFF4CF; border: 1px solid #C69A2B; border-radius: 6px; padding: 8px 12px 2px; margin: 0 0 8px; color: #3A2E12; } .tightnote p { margin: 0 0 2px; }
 .plist { max-height: 560px; overflow-y: auto; border-top: 1px solid var(--rule); }
 .prow { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 7px 2px; border-bottom: 1px solid var(--rule); }
 .prow .who { cursor: pointer; background: none; border: 0; padding: 0; text-align: left; color: var(--ink); }
@@ -733,6 +736,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
           <div class="ptools">
             <input id="search" type="search" placeholder="Search name, team or year" aria-label="Search players">
             <select id="posFilter" aria-label="Position"></select>
+            <label class="afford" id="affordWrap" hidden><input type="checkbox" id="affordOnly"> Only players I can afford</label>
           </div>
           <div class="sheet" id="plist"></div>
           <div class="sheettabs" role="tablist" id="sheetTabs"></div>
@@ -1406,6 +1410,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     const param = mode === 'decade' ? $('decadeSel').value : mode === 'franchise' ? $('franchSel').value : null;
     const youFirst = Math.random() < 0.5;
     const showReport = !store.get('gts-report-seen', false); store.set('gts-report-seen', true); // the full report opens on your very first draft only
+    affordOnly = false;
     D = { showReport, handicap: $('rookieOpt').checked ? 20 : 0, mode, param, cap: m.cap || null, pool: poolFor(mode, param), teams: { you: {}, cpu: {} }, pick: 0, youFirst, log: [], done: false, clock: $('clockOpt').checked };
     save(); warRoomEntrance(enterRoom);
   }
@@ -1432,6 +1437,9 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     if (m.res[k] != null) return m.res[k];
     return (m.res[k] = reserveCalc(side, exceptSlot));
   }
+  // how much room is left above the cheapest way to fill every open spot; a small number means the cap is tight
+  const TIGHT = 4;
+  const capSlack = side => D.cap ? Math.round((capOf(side) - payroll(side) - reserve(side, null)) * 10) / 10 : null;
   function reserveCalc(side, exceptSlot) {
     const left = D.pool.filter(k => !taken().has(k)).map(k => BY.get(k));
     return openSlots(side).filter(s => s.id !== exceptSlot).reduce((n, s) => {
@@ -1581,12 +1589,12 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     const dock = $('dock'), sum = $('teamSum'), live = !!D && !D.done && !$('room').hidden;
     document.body.classList.toggle('indraft', live && phone()); dock.hidden = !live;
     if (D) { // the summary stays right after the draft ends too, when the bar has gone
-      const mineNow = Object.keys(D.teams.you).length, label = `<span><b>Your team</b>: ${mineNow} of ${SLOTS.length} spots filled${D.cap ? ` &middot; ${money(Math.round((D.cap - payroll('you')) * 10) / 10)} left` : ''}</span><span class="chev" aria-hidden="true">&#9662;</span>`;
+      const mineNow = Object.keys(D.teams.you).length, label = `<span><b>Your team</b>: ${mineNow} of ${SLOTS.length} spots filled${D.cap ? ` &middot; ${money(Math.round((D.cap - payroll('you')) * 10) / 10)} left${mineNow < SLOTS.length && capSlack('you') < TIGHT ? ' &middot; tight' : ''}` : ''}</span><span class="chev" aria-hidden="true">&#9662;</span>`;
       if (sum.dataset.k !== label) { sum.dataset.k = label; sum.innerHTML = label; }
     }
     if (!live) { document.documentElement.style.scrollPaddingBottom = ''; document.body.classList.remove('cardopen'); return; }
     const left = clockLeft(), yourTurn = whoPicks(D.pick) === 'you' && !busyCpu;
-    const cap = D.cap ? `Cap left <b>${money(Math.round((D.cap - payroll('you')) * 10) / 10)}</b>` : '';
+    const cap = D.cap ? `Cap left <b>${money(Math.round((D.cap - payroll('you')) * 10) / 10)}</b>${openSlots('you').length && capSlack('you') < TIGHT ? ' &middot; tight' : ''}` : '';
     const line = yourTurn ? (left != null ? `${paused ? 'Paused' : 'On the clock'} ${fmtClock(left)}` : 'Your pick') : 'Computer is picking…';
     const html = `${line}${cap ? `<small>${cap}</small>` : ''}`, info = $('dockInfo');
     if (info.dataset.k !== html) { info.dataset.k = html; info.innerHTML = html; }
@@ -1668,7 +1676,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     // best available with a little randomness, nudged toward whatever the roster is short of
     const score = p => p.sal * (0.85 + Math.random() * 0.3) * (p.kind === 'H' ? (hitNeed >= pitNeed ? 1.08 : 0.95) : (pitNeed > hitNeed ? 1.08 : 0.95));
     cands.sort((a, b) => score(b) - score(a));
-    if (cands[0]) draft(cands[0], 'cpu'); else { busyCpu = false; cpuPhase = null; D.pick++; if (D.pick >= TOTAL) D.done = true; save(); view = 'you'; drawRoom(); project(); if (!D.done) startClock(); }
+    if (cands[0]) draft(cands[0], 'cpu'); else { busyCpu = false; cpuPhase = null; D.pick++; if (D.pick >= TOTAL) D.done = true; save(); view = 'you'; previewKey = null; autoNext(); drawRoom(); project(); if (!D.done) startClock(); }
   }
 
   // ---------- projections (fast engine, average players in open spots) ----------
@@ -1864,7 +1872,8 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
       const left = Math.round((capOf(side) - payroll(side)) * 10) / 10, flash = lastCap[side] != null && lastCap[side] !== left;
       lastCap[side] = left;
       const openN = openSlots(side).length, per = openN ? left / openN : 0, base = capOf(side) / SLOTS.length;
-      const pace = !openN ? '' : per < base * .55 ? ['tight', 'Tight: pick cheaper'] : per >= base * 1.4 ? ['room', 'Room to spend'] : ['', 'On pace'];
+      const slack = capSlack(side);
+      const pace = !openN ? '' : slack < TIGHT ? ['tight', slack <= 0 ? `Tight: nothing to spare above the cheapest way to fill your ${openN} open spot${openN === 1 ? '' : 's'}` : `Tight: only ${money(slack)} to spare above the cheapest way to fill your ${openN} open spot${openN === 1 ? '' : 's'}`] : per < base * .55 ? ['tight', 'Tight: pick cheaper'] : per >= base * 1.4 ? ['room', 'Room to spend'] : ['', 'On pace'];
       capBar = `<p class="capbar${flash ? ' flash' : ''}" id="capBar"><span>${side === 'you' ? 'Your' : "Computer's"} cap space left <small>of ${money(capOf(side))}</small>${pace ? `<small class="pace ${pace[0]}">${money(Math.round(per * 10) / 10)} per open spot &middot; ${pace[1]}</small>` : ''}</span><b>${money(left)}</b></p>`;
     }
     $('fieldHost').innerHTML = banner + capBar + `<div class="park" role="group" aria-label="${side === 'you' ? 'Your' : "Computer's"} lineup">
@@ -1879,7 +1888,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
 
   const posOpts = [['', 'All positions'], ...['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf'].map(p => [p, p.toUpperCase()])];
   $('posFilter').innerHTML = posOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
-  let sheet = 'H', sortKey = 'Runs+', sortDir = -1;
+  let sheet = 'H', sortKey = 'Runs+', sortDir = -1, affordOnly = false;
   function syncPosFilter() {
     const s = selSlot && SLOTS.find(x => x.id === selSlot);
     if (!s) { $('posFilter').value = ''; return; }
@@ -1897,9 +1906,12 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
   function drawPool() {
     const yourTurn = !D.done && whoPicks(D.pick) === 'you' && !busyCpu && !paused;
     const q = $('search').value.trim().toLowerCase(), pf = $('posFilter').value;
-    $('posFilter').hidden = sheet !== 'H';
+    $('posFilter').hidden = sheet !== 'H'; $('affordWrap').hidden = !D.cap; $('affordOnly').checked = affordOnly;
     let list = D.pool.map(k => BY.get(k)).filter(p => !taken().has(p.key));
-    list = sheet === 'H' ? list.filter(p => p.kind === 'H' && (!pf || p.pos === pf)) : list.filter(p => p.kind === 'P' && p.role === sheet);
+    // with the switch on, show everyone who can fill the selected spot and fits the budget, including players whose main position is elsewhere
+    const aff = affordOnly && D.cap && yourTurn, slotSel = selSlot && SLOTS.find(x => x.id === selSlot);
+    list = sheet === 'H' ? list.filter(p => p.kind === 'H' && (aff ? (!slotSel || strictFit(p, slotSel)) : (!pf || p.pos === pf))) : list.filter(p => p.kind === 'P' && p.role === sheet);
+    if (aff) list = list.filter(p => !canDraft(p, 'you'));
     if (q) list = list.filter(p => `${p.name} ${p.tm} ${p.yr}`.toLowerCase().includes(q));
     const cols = COLS[sheet];
     const extra = [['Runs+', p => runs(p), x => Math.round(x)]];
@@ -1922,8 +1934,12 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
         ${allCols.map((c, i) => `<td class="${c[3] ? 'key' : ''}${optOf(i)}">${c[2](c[1](p))}</td>`).join('')}
         <td><button class="btn btn-draft" data-draft="${p.key}" ${!yourTurn || why ? `disabled title="${esc(why || 'Wait for your pick')}"` : ''}>Draft</button></td></tr>`;
     }).join('');
-    $('plist').innerHTML = list.length ? `<table><thead>${head}</thead><tbody>${rows}</tbody></table>` + (list.length > shown.length ? `<p class="more">Showing the top 150 of ${list.length}. Search or sort to find more.</p>` : '')
-      : '<p class="more">No available players match. Clear the search or change the position.</p>';
+    // when your budget is tight the best players on screen can all be out of reach: say so, and say where to look
+    const nothingHere = yourTurn && D.cap && !aff && shown.length > 0 && shown.every(p => canDraft(p, 'you')), canElsewhere = nothingHere ? D.pool.filter(k => !canDraft(BY.get(k), 'you')).length : 0;
+    const tightNote = canElsewhere ? `<div class="tightnote"><p>Nobody in this list fits your budget right now, but ${canElsewhere} player${canElsewhere === 1 ? '' : 's'} in the pool do.</p><button type="button" class="rc2-link" id="affordGo">Show me who I can afford</button></div>` : '';
+    $('plist').innerHTML = list.length ? tightNote + `<table><thead>${head}</thead><tbody>${rows}</tbody></table>` + (list.length > shown.length ? `<p class="more">Showing the top 150 of ${list.length}. Search or sort to find more.</p>` : '')
+      : aff ? '<p class="more">Nobody left for this spot fits your budget. Try another spot, or turn off "Only players I can afford".</p>' : '<p class="more">No available players match. Clear the search or change the position.</p>';
+    if ($('affordGo')) $('affordGo').onclick = () => { affordOnly = true; drawPool(); };
     $('plist').querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { const k = b.dataset.sort; sortDir = sortKey === k ? -sortDir : (k === 'Player' ? 1 : -1); sortKey = k; drawPool(); });
     $('plist').querySelectorAll('[data-draft]').forEach(b => b.onclick = () => draft(BY.get(b.dataset.draft), 'you'));
     $('plist').querySelectorAll('[data-star]').forEach(b => b.onclick = () => toggleTarget(b.dataset.star));
@@ -2276,6 +2292,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
   $('showYou').onclick = () => { view = 'you'; drawRoom(); };
   $('showCpu').onclick = () => { view = 'cpu'; drawRoom(); };
   $('search').oninput = drawPool; $('posFilter').onchange = () => { selSlot = null; drawPool(); drawField(); };
+  $('affordOnly').onchange = () => { affordOnly = $('affordOnly').checked; drawPool(); };
   const toSetup = () => { $('notebook').hidden = true; paused = false; stopClock(); document.body.classList.add('war'); $('setup').hidden = false; $('room').hidden = true; $('playSec').hidden = true; $('projWrap').hidden = true; $('gameBoard').hidden = true; drawSetup(); window.scrollTo(0, 0); };
   $('redraft').onclick = toSetup; $('newDraft2').onclick = toSetup;
   $('backRoom').onclick = enterRoom;
