@@ -256,6 +256,22 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const fromUrl = new URLSearchParams(location.search).get('join');
   if (fromUrl) { store.set('cc-join', fromUrl.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20)); history.replaceState(null, '', location.pathname); }
   const joinCode = () => store.get('cc-join') || '';
+  // what someone typed before they went to their inbox to sign in, kept on this device for a day so it is waiting when they come back
+  const pend = {
+    get() { try { const v = JSON.parse(store.get('cc-pending') || 'null'); return v && Date.now() - v.at < 864e5 ? v : null; } catch (e) { return null; } },
+    set(kind, vals, resume) { store.set('cc-pending', JSON.stringify({ kind, vals, at: Date.now(), resume: !!resume })); },
+    clear() { store.del('cc-pending'); }
+  };
+  function restorePending() {
+    const v = pend.get(); if (!v || !window.CC || !window.CC.user) return;
+    if (v.kind === 'start' && v.resume) {   // only after a trip to the inbox, not for leftovers
+      if (!$('lgName').value && !$('lgClub').value) { $('lgName').value = v.vals.name || ''; $('lgClub').value = v.vals.club || ''; }
+      $('startDet').open = true; S.keepStartOpen = true; v.resume = false; store.set('cc-pending', JSON.stringify(v)); say('startMsg', "You're signed in. Picking up where you left off…"); setTimeout(() => $('startForm').requestSubmit(), 60);
+    } else if (v.kind === 'join' && joinCode()) {   // the two confirmations (18 or older, invited by someone they know) are never pre-ticked or sent for them
+      if (!$('joinClub').value && !$('joinRel').value) { $('joinClub').value = v.vals.club || ''; $('joinRel').value = v.vals.rel || ''; }
+      say('joinMsg', $('att1').checked && $('att2').checked ? "You're signed in. Press Ask to join to send your request." : "You're signed in. Your answers are filled in. Tick the two boxes and press Ask to join.");
+    }
+  }
   const inviteUrl = code => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}private.html?join=${code}`;
   const LEAGUESAFE = 'https://www.leaguesafe.com/createleague';
   const MONEY_HOW = 'Leagues that play for money can collect dues through LeagueSafe, an independent service that holds the dues and pays out the winners. Cooperstown Cash never touches league money and takes no share of it. It is not affiliated with LeagueSafe, gets nothing from it, and cannot see or verify payments.';
@@ -597,7 +613,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     $('mine').innerHTML = html;
     // the landing block: a pitch for someone with no league, a quiet header for someone running one, the old intro for someone who was invited
     const has = S.leagues.length > 0; $('hero').dataset.mode = joinCode() ? 'invite' : has ? 'has' : 'new';
-    $('startCard').classList.toggle('has', has); if (S.hadLeagues !== has) { $('startDet').open = !has; S.hadLeagues = has; }
+    $('startCard').classList.toggle('has', has); if (S.hadLeagues !== has) { $('startDet').open = !has || !!S.keepStartOpen; S.hadLeagues = has; }
     $('joinCard').hidden = !joinCode();
     renderInvite();
     if (joinCode()) $('joinNote').textContent = signedIn() ? 'Name your club, tell the commissioner how you know the league, and confirm two things. You will sign the league agreement, then the commissioner will review your request.' : 'Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there is no password.';
@@ -690,7 +706,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   $('startForm').onsubmit = async e => {
     e.preventDefault();
     if (!client()) return say('startMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
-    if (!window.CC.requireSignIn('Create your free account to start a league')) return;
+    if (!window.CC.requireSignIn('Create your free account to start a league')) { pend.set('start', { name: $('lgName').value.trim(), club: $('lgClub').value.trim() }, true); return; }
     const name = $('lgName').value.trim(), club = $('lgClub').value.trim();
     if (name.length < 3) return say('startMsg', 'League names are 3 to 40 characters.', 'err');
     if (club.length < 2) return say('startMsg', 'Club names are 2 to 24 characters.', 'err');
@@ -700,14 +716,14 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const { error } = await client().rpc('create_private_league', { p_name: name, p_club: club });
     $('startGo').disabled = false;
     if (error) return say('startMsg', error.message, 'err');
-    $('lgName').value = ''; $('lgClub').value = ''; say('startMsg', 'Your league is ready. Copy the invite link above and share it with people you know.', 'ok');
+    pend.clear(); S.keepStartOpen = false; $('lgName').value = ''; $('lgClub').value = ''; say('startMsg', 'Your league is ready. Copy the invite link above and share it with people you know.', 'ok');
     S.sig = ''; load();
   };
 
   $('joinForm').onsubmit = async e => {
     e.preventDefault();
     if (!client()) return say('joinMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
-    if (!window.CC.requireSignIn('Create your free account to join this league')) return;
+    if (!window.CC.requireSignIn('Create your free account to join this league')) { pend.set('join', { club: $('joinClub').value.trim(), rel: $('joinRel').value.trim() }, false); return; }
     const club = $('joinClub').value.trim(), rel = $('joinRel').value.trim();
     if (club.length < 2) return say('joinMsg', 'Club names are 2 to 24 characters.', 'err');
     if (rel.length < 10) return say('joinMsg', 'Tell the commissioner how you know the people in this league (at least 10 characters).', 'err');
@@ -718,7 +734,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const { data, error } = await client().rpc('request_to_join', { p_code: joinCode(), p_club: club, p_attest: true, p_relationship: rel });
     $('joinGo').disabled = false;
     if (error) return say('joinMsg', error.message, 'err');
-    store.del('cc-join');
+    store.del('cc-join'); pend.clear();
     // ask the server to screen the request with AI; the commissioner sees the result as advice
     if (data && data.request_id && client().functions) { try { client().functions.invoke('vet-request', { body: { request_id: data.request_id } }).catch(() => {}); } catch (e) {} }
     say('joinMsg', `Request sent. The commissioner of ${data && data.league_name ? data.league_name : 'the league'} will review it, and you'll see the league here once you're approved.`, 'ok');
@@ -727,7 +743,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   };
   $('joinCancel').onclick = () => { store.del('cc-join'); $('joinCard').hidden = true; };
 
-  window.addEventListener('cc-auth', () => { S.sig = ''; load(); loadInvite(); });
+  window.addEventListener('cc-auth', () => { S.sig = ''; load(); loadInvite(); restorePending(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('agrDlg').open) load(); });
   setInterval(() => { if (!document.hidden && !$('agrDlg').open) load(); }, 8000);
   render();

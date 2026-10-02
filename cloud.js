@@ -87,6 +87,15 @@
     else { const bar = document.createElement('nav'); bar.className = 'acctbar'; bar.appendChild(host); const w = document.querySelector('.wrap') || document.body; w.insertBefore(bar, w.firstChild); }
     render();
   }
+  let pendingEmail = '';
+  // sign in with the code from the email: it works even if the email's link goes somewhere unexpected, and it keeps you on this page
+  async function verifyCode(email, raw) {
+    const token = String(raw || '').replace(/\D/g, '');
+    if (!/^\d{6,10}$/.test(token)) return 'Type the code exactly as it appears in the email.';
+    const { error } = await client.auth.verifyOtp({ email, token, type: 'email' });
+    if (!error) return '';
+    return /expired|invalid/i.test(error.message) ? "That code didn't work. Check it, or ask for a new email." : 'We could not check the code. Try again in a moment.';
+  }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function render() {
     if (!host) return;
@@ -99,7 +108,7 @@
       host.querySelector('#accCancel').onclick = () => { mode = 'idle'; status = ''; render(); };
       host.querySelector('#accForm').onsubmit = async e => {
         e.preventDefault();
-        const email = host.querySelector('#accEmail').value.trim();
+        const email = host.querySelector('#accEmail').value.trim(); pendingEmail = email;
         setStatus('Sending…');
         const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
         if (error) setStatus(/rate/i.test(error.message) ? 'Too many sign-in emails right now. Try again in a few minutes.' : 'Could not send the email. Check the address and try again.');
@@ -107,7 +116,8 @@
       };
       host.querySelector('#accEmail').focus();
     } else if (mode === 'sent') {
-      host.innerHTML = `<span>Check your email for the sign-in link. It opens this page and saves your progress.</span>`;
+      host.innerHTML = `<span>Check your email for the sign-in link. It opens this page and saves your progress.</span> <form id="accCodeForm"><label class="msg" for="accCode">Or, if the email has a code, type it here:</label><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button class="go" type="submit">Sign in</button></form><span class="msg" id="accCodeMsg" role="alert"></span>`;
+      host.querySelector('#accCodeForm').onsubmit = async e => { e.preventDefault(); const m = host.querySelector('#accCodeMsg'); m.textContent = 'Checking…'; m.textContent = await verifyCode(pendingEmail, host.querySelector('#accCode').value); };
     } else {
       host.innerHTML = `<button class="lnk" id="accIn">Sign in or create a free account</button>`;
       host.querySelector('#accIn').onclick = () => { mode = 'form'; status = ''; render(); };
@@ -141,9 +151,9 @@
     let body;
     if (gateState === 'checking') body = `${head}<h2 id="ccgT">Cooperstown Cash</h2><p>One moment…</p>`;
     else if (gateState === 'offline') body = `${head}<h2 id="ccgT">We couldn't reach sign-in</h2><p>Check your connection and refresh the page. You need a free account to play.</p>`;
-    else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play.</p><p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">try a different email</button>.</p>`;
+    else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play.</p><form id="ccgCodeForm"><label for="ccgCode">Or, if the email has a code, type it here</label><input id="ccgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button type="submit" id="ccgCodeGo">Sign in with the code</button></form>${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">try a different email</button>.</p>`;
     else body = `${head}<h2 id="ccgT">${esc(gateHead || 'Create your free account to play')}</h2><p>Play for fun or learn strategy. Your drafts, wins and unlocks are saved to your account. Just your email, no password.</p>
-      <form id="ccgForm"><label for="ccgEmail">Email</label><input id="ccgEmail" type="email" required autocomplete="email" placeholder="you@example.com"><button type="submit" id="ccgGo">Email me a sign-in link</button></form>
+      <form id="ccgForm"><label for="ccgEmail">Email</label><input id="ccgEmail" type="email" required autocomplete="email" placeholder="you@example.com" value="${esc(pendingEmail)}"><button type="submit" id="ccgGo">Email me a sign-in link</button></form>
       ${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Already have an account? Use the same email and we'll send you a fresh link.</p>${forced && !GATED ? '<p class="small"><button type="button" id="ccgClose" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">Not now</button></p>' : ''}`;
     gateEl.innerHTML = `<div class="ccgate-card">${body}</div>`;
     const form = gateEl.querySelector('#ccgForm');
@@ -151,13 +161,15 @@
       gateEl.querySelector('#ccgEmail').focus();
       form.onsubmit = async e => {
         e.preventDefault();
-        const btn = gateEl.querySelector('#ccgGo'); btn.disabled = true; btn.textContent = 'Sending…';
+        const btn = gateEl.querySelector('#ccgGo'); btn.disabled = true; btn.textContent = 'Sending…'; pendingEmail = gateEl.querySelector('#ccgEmail').value.trim();
         const { error } = await client.auth.signInWithOtp({ email: gateEl.querySelector('#ccgEmail').value.trim(), options: { emailRedirectTo: location.origin + location.pathname } });
         if (error) { gateMsg = /rate|limit/i.test(error.message) ? 'Too many sign-in emails right now. Please try again in a few minutes.' : 'We could not send the email. Check the address and try again.'; gateState = 'form'; }
         else { gateMsg = ''; gateState = 'sent'; }
         drawGate();
       };
     }
+    const cf = gateEl.querySelector('#ccgCodeForm');
+    if (cf) { gateEl.querySelector('#ccgCode').focus(); cf.onsubmit = async e => { e.preventDefault(); const b = gateEl.querySelector('#ccgCodeGo'); b.disabled = true; b.textContent = 'Checking…'; const bad = await verifyCode(pendingEmail, gateEl.querySelector('#ccgCode').value); if (bad) { gateMsg = bad; drawGate(); } }; }
     const closeBtn = gateEl.querySelector('#ccgClose'); if (closeBtn) closeBtn.onclick = () => { forced = false; openGate(); };
     const again = gateEl.querySelector('#ccgAgain'); if (again) again.onclick = () => { gateState = 'form'; gateMsg = ''; drawGate(); };
   }
