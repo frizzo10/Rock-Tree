@@ -139,6 +139,12 @@ footer p { margin: 0 0 6px; }
   .steps > li + li { margin-top: 40px; } .steps > li + li::before { top: -33px; }
   .board { padding: 10px 2px 2px; }
 }
+
+/* ---------- step 3 is the cash step ---------- */
+.folder .cashbar { align-self: flex-start; display: inline-block; margin: 0 0 10px; padding: 5px 12px; border-radius: 4px; background: #1E7B45; color: #fff; font-weight: 700; font-size: 13px; line-height: 1.2; letter-spacing: .09em; text-transform: uppercase; }
+.moneybox { margin: 16px 0 18px; padding: 14px 16px; border-left: 6px solid var(--lamp); border-radius: 4px; background: rgba(255, 255, 255, .55); }
+.moneybox p { margin: 0 0 4px; } .moneybox .small { margin: 2px 0 0; font-size: 14px; color: #5B4A1F; }
+a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; text-decoration: underline; color: var(--wb-ink); }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -154,7 +160,7 @@ footer p { margin: 0 0 6px; }
     <div>
     <h1>Cooperstown Cash</h1>
     <p class="tag">Historical simulation leagues</p>
-    <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Here's the path: build a team with an AI scout and get graded, play it out and see how it plays, then take it to a league of your own. A free account is just your email, no password.</p>
+    <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Here's the path: build a team with an AI scout and get graded, play it out and see how it plays, then take it to a cash league of your own. A free account is just your email, no password.</p>
     <div class="cta"><a class="btn btn-main" id="heroMain" href="draft.html">Build your first team</a><a class="btn btn-alt" id="heroSkip" href="private.html">Already know the game? Start a private league</a></div>
     <p class="rec" id="rec" hidden></p>
     </div>
@@ -199,19 +205,20 @@ footer p { margin: 0 0 6px; }
     <li class="step goal reveal" id="step3">
       <section class="folder" aria-labelledby="leagueH">
         <span class="tab" aria-hidden="true">People you know</span><span class="num" aria-hidden="true">3</span>
-        <h2 id="leagueH">Play a real league <span class="chip" id="chip3"></span></h2>
-        <p>Ready for the real thing? Start a private league with people you know, or join one you've been invited to. You're the commissioner: you invite and approve every member.</p>
+        <p class="cashbar">Played for cash</p>
+        <h2 id="leagueH">Play for cash with people you know <span class="chip" id="chip3"></span></h2>
+        <p>This is the real thing: a league of real managers playing for a cash pot. Your league sets the dues and how the pot is paid out. You're the commissioner, and you invite and approve every member.</p>
         <ul>
-          <li>Invite-only, and every member is approved by the commissioner</li>
-          <li>Ten clubs, a salary cap, a 27-game season and playoffs. Empty seats are filled with computer clubs, so two of you can start.</li>
-          <li>If your league plays for dues, you handle them yourselves through a service like LeagueSafe. We never touch or take a share of league money.</li>
-          <li>Or sit at a free public table with other managers</li>
+          <li>Real managers in every seat you fill. The computer only fills seats nobody takes.</li>
+          <li>Ten clubs, a salary cap, a 27-game season and playoffs.</li>
+          <li>Adults only: you must be 18 or older.</li>
         </ul>
-        <div class="go">
-          <a class="btn btn-main" href="private.html">Start a private league</a>
-          <a class="btn btn-alt" href="lobby.html">Find a free table</a>
-          <a class="btn btn-alt" href="league.html" id="leagueGo">Practice league vs the computer</a>
+        <div class="moneybox">
+          <p><b>How the money works.</b> Leagues that play for money can collect dues through LeagueSafe, an independent service that holds the dues and pays out the winners. Cooperstown Cash never touches league money and takes no share of it.</p>
+          <a class="lslink" href="https://www.leaguesafe.com" target="_blank" rel="noopener noreferrer">Set up your league's dues on LeagueSafe &#8599;</a>
+          <p class="small">LeagueSafe is not affiliated with Cooperstown Cash, and its own terms apply.</p>
         </div>
+        <div class="go"><a class="btn btn-main" href="private.html">Start a private league</a></div>
       </section>
     </li>
   </ol>
@@ -242,15 +249,7 @@ footer p { margin: 0 0 6px; }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // ----- your saved progress (unchanged behaviour) -----
-  const d = get('gts-draft'), pr = get('gts-progress'), lg = get('cc-league-v1');
-  if (lg) {
-    const go = $('leagueGo');
-    const where = { draft: `in the draft, round ${Math.floor(lg.pick / 10) + 1} of 25`, season: `day ${lg.day} of 27`, playoffs: 'in the playoffs', final: 'season complete' }[lg.phase] || '';
-    go.textContent = lg.phase === 'final' ? 'See your practice league' : 'Resume your practice league';
-    go.href = 'league.html' + (lg.phase === 'draft' ? '#/draft' : lg.phase === 'final' || lg.phase === 'playoffs' ? '#/playoffs' : '#/standings');
-    const note = document.createElement('p'); note.style.cssText = 'margin:8px 0 0;font-size:14px;width:100%';
-    note.textContent = `${lg.name}: ${where}.`; go.parentNode.appendChild(note);
-  }
+  const d = get('gts-draft'), pr = get('gts-progress');
   if (d && !d.done && d.pick > 0) { const r = $('resume'); r.hidden = false; r.textContent = `Resume your mock draft (round ${Math.floor(d.pick / 2) + 1} of 18)`; }
   if (pr && pr.games > 0) {
     const rec = $('rec'); rec.hidden = false;
