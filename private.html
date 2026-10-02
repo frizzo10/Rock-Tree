@@ -259,7 +259,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const inviteUrl = code => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}private.html?join=${code}`;
   const LEAGUESAFE = 'https://www.leaguesafe.com/createleague';
   const MONEY_HOW = 'Leagues that play for money can collect dues through LeagueSafe, an independent service that holds the dues and pays out the winners. Cooperstown Cash never touches league money and takes no share of it. It is not affiliated with LeagueSafe, gets nothing from it, and cannot see or verify payments.';
-  const MONEY_EXAMPLE = `<h4>An example, so the math is clear</h4><p class="note" style="margin:2px 0 6px">Say all 10 members each pay a $100 buy-in (the entry fee). Computer-run clubs pay nothing, so a league with fewer real members has a smaller pot.</p><table class="eg"><thead><tr><th>What</th><th>How it works out</th><th class="n">Amount</th></tr></thead><tbody><tr><td>The pot</td><td>10 members &times; $100</td><td class="n">$1,000</td></tr><tr><td>Champion</td><td>60% of the pot</td><td class="n">$600</td></tr><tr><td>Runner-up</td><td>25% of the pot</td><td class="n">$250</td></tr><tr><td>Best regular-season record</td><td>15% of the pot</td><td class="n">$150</td></tr><tr class="tot"><td>Paid out</td><td>all of the pot</td><td class="n">$1,000</td></tr></tbody></table><ul class="eg-notes"><li>Leagues split pots many ways and there is no single standard. This top-heavy three-way split, 60/25/15, is a typical choice. Your league chooses its own buy-in, split and who gets paid, and Cooperstown Cash does not set, offer or guarantee any prize.</li><li>Agree in advance what happens if a computer-run club finishes in a paying spot (for example, the prize goes to the best-finishing member).</li><li>Payment companies charge their own processing fees, so the pot can be a little smaller than the buy-ins added up. Check LeagueSafe's current fees.</li><li>Cooperstown Cash's only charge is a flat hosting fee, if one applies, paid by the commissioner from their own funds. It is the same however many members join, it never comes out of the pot, and members pay nothing.</li></ul>`;
+  const MONEY_EXAMPLE = `<h4>An example, so the math is clear</h4><p class="note" style="margin:2px 0 6px">Say all 10 members each pay a $100 buy-in (the entry fee). Computer-run clubs pay nothing, so a league with fewer real members has a smaller pot.</p><table class="eg"><thead><tr><th>What</th><th>How it works out</th><th class="n">Amount</th></tr></thead><tbody><tr><td>The pot</td><td>10 members &times; $100</td><td class="n">$1,000</td></tr><tr><td>Champion</td><td>60% of the pot</td><td class="n">$600</td></tr><tr><td>Runner-up</td><td>25% of the pot</td><td class="n">$250</td></tr><tr><td>Best regular-season record</td><td>15% of the pot</td><td class="n">$150</td></tr><tr class="tot"><td>Paid out</td><td>all of the pot</td><td class="n">$1,000</td></tr></tbody></table><ul class="eg-notes"><li>Leagues split pots many ways and there is no single standard. This top-heavy three-way split, 60/25/15, is a typical choice. Your league chooses its own buy-in, split and who gets paid, and Cooperstown Cash does not set, offer or guarantee any prize.</li><li>Agree in advance what happens if a computer-run club finishes in a paying spot (for example, the prize goes to the best-finishing member).</li><li>Payment companies charge their own processing fees, so the pot can be a little smaller than the buy-ins added up. Check LeagueSafe's current fees.</li><li>If your commissioner plays free, the pot is one buy-in smaller. The numbers shown for your own league above already account for that.</li><li>Cooperstown Cash's only charge is a flat hosting fee, if one applies, paid by the commissioner from their own funds. It is the same however many members join, it never comes out of the pot, and members pay nothing.</li></ul>`;
 
   // ---------- the agreement ----------
   async function loadAgreement() {
@@ -331,7 +331,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (!signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.signed = new Set(); S.sig = ''; return render(); }
     const [lg, ms, rq, sg, rst] = await Promise.all([
       // (rosters: only your own row matters here)
-      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at,buy_in_dollars,payout_split,cpu_seats,playoff_seeds,salary_cap').eq('is_public', false).order('created_at', { ascending: true }),
+      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at,buy_in_dollars,payout_split,cpu_seats,playoff_seeds,salary_cap,commish_free').eq('is_public', false).order('created_at', { ascending: true }),
       c.from('seats').select('league_id,seat_no,club_name'),
       c.from('league_requests').select('id,league_id,user_id,club_name,relationship,ai_review,status,created_at').order('created_at', { ascending: true }),
       S.agr ? c.from('agreement_signatures').select('role,version') : Promise.resolve({ data: [] }),
@@ -376,8 +376,8 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const humansIn = l => Math.max(0, (S.board.get(l.id) || []).length - (l.cpu_seats || []).length);
   function moneyFor(l) {
     if (!(l.buy_in_dollars > 0) || !Array.isArray(l.payout_split) || l.payout_split.length !== 3) return null;
-    const humans = humansIn(l), pot = humans * l.buy_in_dollars, sh = l.payout_split, amt = p => pot * p / 100;
-    return { buy: l.buy_in_dollars, humans, pot, sh, champ: amt(sh[0]), runner: amt(sh[1]), best: amt(sh[2]) };
+    const humans = humansIn(l), free = !!l.commish_free, payers = Math.max(0, humans - (free ? 1 : 0)), pot = payers * l.buy_in_dollars, sh = l.payout_split, amt = p => pot * p / 100;   // a commissioner who plays free adds no buy-in
+    return { buy: l.buy_in_dollars, humans, payers, free, pot, sh, champ: amt(sh[0]), runner: amt(sh[1]), best: amt(sh[2]) };
   }
   // the same order the server uses to seed the playoffs: win percentage, then run difference, then runs scored, then seat number
   function standingsFor(l) {
@@ -427,13 +427,14 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function leagueMoney(l, isC, live, bare) {
     const m = moneyFor(l), free = l.buy_in_dollars === 0, set = l.buy_in_dollars != null;
     let html = bare ? '' : '<h4>This league\'s money</h4>';
-    if (m) html += `<p class="note" style="margin:2px 0 6px">Buy-in: <b>${usd(m.buy)}</b> per member. Split: champion <b>${m.sh[0]}%</b>, runner-up <b>${m.sh[1]}%</b>, best regular-season record <b>${m.sh[2]}%</b>. With ${m.humans} member${m.humans === 1 ? '' : 's'} in the league right now, the pot is <b>${usd(m.pot)}</b>: champion ${usd(m.champ)}, runner-up ${usd(m.runner)}, best record ${usd(m.best)}.</p><p class="note" style="margin:2px 0 6px">${live ? 'The commissioner can change these until the season starts, then they lock.' : 'The commissioner set these before the season started, and they are locked.'} They are shown for everyone to see. Cooperstown Cash does not set, hold, pay or guarantee any prize.</p>`;
+    if (m) html += `<p class="note" style="margin:2px 0 6px">Buy-in: <b>${usd(m.buy)}</b> per member${m.free ? ', except the commissioner, who plays free' : ''}. Split: champion <b>${m.sh[0]}%</b>, runner-up <b>${m.sh[1]}%</b>, best regular-season record <b>${m.sh[2]}%</b>. With ${m.humans} member${m.humans === 1 ? '' : 's'} in the league right now${m.free ? ` (${m.payers} paying)` : ''}, the pot is <b>${usd(m.pot)}</b>: champion ${usd(m.champ)}, runner-up ${usd(m.runner)}, best record ${usd(m.best)}.</p><p class="note" style="margin:2px 0 6px">${live ? 'The commissioner can change these until the season starts, then they lock.' : 'The commissioner set these before the season started, and they are locked.'} They are shown for everyone to see. Cooperstown Cash does not set, hold, pay or guarantee any prize.</p>`;
     else if (free) html += '<p class="note" style="margin:2px 0 6px">The commissioner set no buy-in, so this league plays for fun.</p>';
     else if (!(bare && isC && live)) html += `<p class="note" style="margin:2px 0 6px">${isC && live ? 'Set your league\'s buy-in and split below, so every member sees the same numbers.' : live ? 'The commissioner has not set a buy-in yet.' : 'No buy-in was set for this league.'}</p>`;
     if (isC && live) {
       const d = S.mdraft[l.id] || {}, sp = l.payout_split || [60, 25, 15], v = (k, saved) => esc(d[k] != null ? d[k] : saved == null ? '' : saved);
       const f = (k, label, saved) => `<div><label for="mb-${l.id}-${k}">${label}</label><input class="mf" id="mb-${l.id}-${k}" data-lid="${l.id}" data-k="${k}" type="number" min="0" max="${k === 'buy' ? 10000 : 100}" step="1" inputmode="numeric" value="${v(k, saved)}"></div>`;
-      html += `<div class="mset" data-lid="${l.id}"><b>${set ? 'Change' : 'Set'} your league's buy-in and split</b><div class="mrow">${f('buy', 'Buy-in per member ($)', l.buy_in_dollars)}${f('c', 'Champion %', sp[0])}${f('r', 'Runner-up %', sp[1])}${f('b', 'Best record %', sp[2])}</div><p class="note" id="mchk-${l.id}" style="margin:4px 0"></p><div class="row" style="margin-top:6px"><button class="btn btn-main" type="button" data-money-save="${l.id}">Save for the league</button></div><p class="msg" id="mmsg-${l.id}" role="status"></p></div>`;
+      const fr = d.free != null ? d.free : !!l.commish_free;
+      html += `<div class="mset" data-lid="${l.id}"><b>${set ? 'Change' : 'Set'} your league's buy-in and split</b><div class="mrow">${f('buy', 'Buy-in per member ($)', l.buy_in_dollars)}${f('c', 'Champion %', sp[0])}${f('r', 'Runner-up %', sp[1])}${f('b', 'Best record %', sp[2])}</div><label class="check freebox"><input class="mf" id="mb-${l.id}-free" data-lid="${l.id}" data-k="free" type="checkbox" ${fr ? 'checked' : ''}> I'm playing free. The other managers' buy-ins cover my seat, and everyone is told.</label><p class="note" id="mchk-${l.id}" style="margin:4px 0"></p><div class="row" style="margin-top:6px"><button class="btn btn-main" type="button" data-money-save="${l.id}">Save for the league</button></div><p class="msg" id="mmsg-${l.id}" role="status"></p></div>`;
     }
     return html;
   }
@@ -473,12 +474,12 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function moneyPanelM(l, live) { return `<div class="ls"><b>How the money works</b><p class="note" style="margin:4px 0">${MONEY_HOW}</p>${leagueMoney(l, false, live)}${MONEY_EXAMPLE}<details><summary>If your league plays for dues: what you need to do</summary><div class="guide"><ol><li>Your commissioner sets the league up on LeagueSafe, an independent dues service. LeagueSafe then sends you an invite and a payment link.</li><li>Pay through that invite, by credit or debit card or by e-check. Never pay Cooperstown Cash, and not the commissioner's personal account.</li><li>Wait until everyone has paid. Your commissioner locks rosters and starts the season here.</li><li>When the season ends, your commissioner pays out through LeagueSafe.</li></ol><p class="fine">LeagueSafe is an independent company. Its plans, fees and rules are its own and can change, so read them on LeagueSafe before you pay. Cooperstown Cash is not affiliated with it, gets nothing from it, and cannot see or verify payments. You are responsible for following the laws where you live.</p></div></details></div>`; }
   // ---------- the invite email: what a manager can expect ----------
   function inviteEmail(l) {
-    const buy = l.buy_in_dollars || 0, sh = Array.isArray(l.payout_split) ? l.payout_split : [60, 25, 15], link = inviteUrl(l.invite_code), pot = buy * 10, amt = p => usd(pot * p / 100);
+    const buy = l.buy_in_dollars || 0, free = !!l.commish_free && buy > 0, sh = Array.isArray(l.payout_split) ? l.payout_split : [60, 25, 15], link = inviteUrl(l.invite_code), pot = buy * (10 - (free ? 1 : 0)), amt = p => usd(pot * p / 100);
     const cap = l.salary_cap != null ? '$' + Number(l.salary_cap) + ' million' : 'a salary cap';
     const spots = [['champion', sh[0]], ['runner-up', sh[1]], ['best regular-season record', sh[2]]].filter(x => x[1] > 0).map(x => `${x[0]} ${amt(x[1])}`).join(', ');
     const moneyLines = buy > 0 ? [
-      `- Buy-in: ${usd(buy)} each.`,
-      `- If all 10 managers join, the pot is ${usd(pot)}: ${spots}.`,
+      free ? `- Buy-in: ${usd(buy)} each, except me. I'm the commissioner and I'm playing free, so the other managers' buy-ins cover my seat.` : `- Buy-in: ${usd(buy)} each.`,
+      `- If all 10 managers join, ${free ? `nine buy-ins make a pot of ${usd(pot)}` : `the pot is ${usd(pot)}`}: ${spots}.`,
       "- If we don't fill all ten seats, computer-run clubs take the empty ones. They pay nothing, so the pot is just the real managers' buy-ins.",
       '- After I approve you, LeagueSafe, an independent service, collects and holds the buy-ins and pays out the winners. You never pay the site or me directly, and the site never touches the money.'] : ['- There is no buy-in. This league is just for fun.'];
     const body = ['Hi,', '', `I'm starting a baseball league called ${l.name} and I'd like you in it. It's a simulation game with real player stats and dice, and I'm only inviting people I know.`, '',
@@ -514,12 +515,12 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const paid = store.get('cc-paid-' + l.id) === '1';
     // keep recruiting until the league is full or everyone in has a roster, then collect the buy-ins, then start
     const next = !fee ? 'fee' : !set ? 'money' : (n < 2 || pending.length) ? 'invite' : (!all && n < 10) ? 'invite' : (l.buy_in_dollars > 0 && !paid) ? 'collect' : 'start';
-    const mline = !set ? '' : l.buy_in_dollars === 0 ? 'No buy-in: just for fun.' : (() => { const m = moneyFor(l); return `${usd(m.buy)} buy-in, split ${m.sh.join(' / ')}. With all 10: pot ${usd(l.buy_in_dollars * 10)}.`; })();
+    const mline = !set ? '' : l.buy_in_dollars === 0 ? 'No buy-in: just for fun.' : (() => { const m = moneyFor(l); return `${usd(m.buy)} buy-in, split ${m.sh.join(' / ')}. With all 10${l.commish_free ? ' (you play free)' : ''}: pot ${usd(l.buy_in_dollars * (10 - (l.commish_free ? 1 : 0)))}.`; })();
     const steps = [
       { id: 'created', title: 'League created', state: 'done', sum: `You're in seat ${mySeat ? mySeat.seat_no : 1}.` },
       { id: 'money', title: 'Set your buy-in and split', state: set ? 'done' : next === 'money' ? 'now' : 'todo', sum: mline || 'Do this first, so your invite can tell people what they are joining.', body: leagueMoney(l, true, true, true) },
       { id: 'invite', title: 'Invite your managers', state: n >= 10 ? 'done' : next === 'invite' ? 'now' : 'todo', sum: `${n} of 10 seats filled${pending.length ? `, ${pending.length} waiting for your approval` : ''}.`, badge: pending.length, body: !fee ? '<p class="note">Activate your league first (see above). Your invite switches on once the hosting fee is received.</p>' : !set ? '<p class="note">Set your buy-in and split first (step 2), so your invite email can tell people what they are joining.</p>' : inviteKit(l, members, pending) },
-      { id: 'collect', title: 'Collect buy-ins on LeagueSafe', state: (set && l.buy_in_dollars === 0) || paid ? 'done' : next === 'collect' ? 'now' : 'todo', sum: set && l.buy_in_dollars === 0 ? 'Not needed, there is no buy-in.' : paid ? 'You marked everyone as paid.' : 'Wait until everyone has paid before you start.', body: (set && l.buy_in_dollars > 0 ? `<label class="check paidbox"><input type="checkbox" data-paid="${l.id}" ${paid ? 'checked' : ''}> Everyone has paid on LeagueSafe</label><p class="note" style="margin:0 0 6px">This is only your own reminder, kept on this device. Cooperstown Cash can't see who has paid.</p>` : '') + moneyExplainC(l, true, false) },
+      { id: 'collect', title: 'Collect buy-ins on LeagueSafe', state: (set && l.buy_in_dollars === 0) || paid ? 'done' : next === 'collect' ? 'now' : 'todo', sum: set && l.buy_in_dollars === 0 ? 'Not needed, there is no buy-in.' : paid ? 'You marked everyone as paid.' : 'Wait until everyone has paid before you start.', body: (set && l.buy_in_dollars > 0 ? `<label class="check paidbox"><input type="checkbox" data-paid="${l.id}" ${paid ? 'checked' : ''}> ${l.commish_free ? 'Every other manager has paid on LeagueSafe' : 'Everyone has paid on LeagueSafe'}</label><p class="note" style="margin:0 0 6px">This is only your own reminder, kept on this device. Cooperstown Cash can't see who has paid.</p>` : '') + moneyExplainC(l, true, false) },
       { id: 'start', title: 'Start the season', state: next === 'start' ? 'now' : 'todo', sum: `${members.filter(x => x.ready).length} of ${n} rosters submitted.`, body: (mySeat ? rosterBar(l, members) : '') + startPanel(l, members, set) }
     ];
     const ico = { done: '&#10003;', now: '&#9679;', todo: '&#9675;' };
@@ -569,13 +570,14 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const d = inv.data, why = { full: 'This league is full.', underway: "This league's season has already started.", closed: 'This league has closed.', inactive: "This league isn't open for new members yet." };
     if (!d) { box.innerHTML = "<h2>This invitation link doesn't work</h2><p>It may have been copied wrong, or the league may have closed. Ask the person who invited you to send it again.</p>"; $('joinCard').hidden = true; return; }
     if (!d.open) { box.innerHTML = `<h2>${esc(d.name)}</h2><p><b>${esc(why[d.reason] || 'This league is not taking new members.')}</b> ${d.reason === 'inactive' ? 'The commissioner is still setting it up, so check back soon.' : "Ask the person who invited you if there's another way in."}</p>`; $('joinCard').hidden = true; return; }
-    const buy = d.buy_in, sh = Array.isArray(d.split) ? d.split : null, free = buy === 0, set = buy != null, pot = set ? buy * 10 : 0, cap = d.salary_cap != null ? '$' + Number(d.salary_cap) + ' million' : 'a';
+    const buy = d.buy_in, sh = Array.isArray(d.split) ? d.split : null, free = buy === 0, set = buy != null, pot = set ? buy * (10 - (d.commish_free && buy > 0 ? 1 : 0)) : 0, cap = d.salary_cap != null ? '$' + Number(d.salary_cap) + ' million' : 'a';
     const spots = sh && buy > 0 ? [['champion', sh[0]], ['runner-up', sh[1]], ['best regular-season record', sh[2]]].filter(x => x[1] > 0).map(x => `${x[0]} ${usd(pot * x[1] / 100)}`).join(', ') : '';
     const tile = (k, v) => `<div class="tile"><span>${k}</span><b>${v}</b></div>`;
     const lg = (S.legends || []).map(c => `<article class="mini"><div class="y">${esc(c.yr)}</div><h4>${esc(c.name)}</h4><p>${esc(c.line)}</p></article>`).join('');
     box.innerHTML = `<h2>${esc(d.name)}</h2><p class="lede">A baseball dice league with real stats from baseball history. You're here because someone who knows you asked you to play.</p>
       <div class="tiles">${tile('Buy-in', !set ? 'To be announced' : free ? 'None: just for fun' : usd(buy))}${buy > 0 ? tile('Pot if all 10 join', usd(pot)) : ''}${tile('Seats open', `${d.seats_left} of 10`)}</div>
       ${spots ? `<p class="pay"><b>Payouts if the league fills up:</b> ${esc(spots)}.</p>` : ''}
+      ${d.commish_free && buy > 0 ? '<p class="note">The commissioner is playing free, so a full league\'s pot is nine buy-ins.</p>' : ''}
       ${lg ? `<h3>Seasons you could be drafting</h3><div class="minis">${lg}</div>` : ''}
       <p><a class="btn btn-main" href="highlights.html">See the greatest seasons ever played</a></p>
       <h3>What you'll do</h3><ul class="doing"><li>Build a 25-player roster of real seasons from baseball history, under ${cap === 'a' ? 'a' : cap} salary cap. An AI scout helps if you want it.</li><li>Play a 27-game season, then playoffs for the top four. Roll the dice on your game days, or let the site play for you if you miss one.</li><li>${buy > 0 ? 'Watch the standings, and who is in the money, all season.' : 'Watch the standings all season.'}</li></ul>
@@ -649,7 +651,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   }
   async function textCopy(lid) { const m = emailNow(lid); await copyText(m.text); say('emsg-' + lid, 'Short text copied. Send it only to people you know.', 'ok'); }
   const mval = (lid, k) => { const el = $('mb-' + lid + '-' + k); return el ? el.value.trim() : ''; };
-  function moneyRead(lid) { const n = k => mval(lid, k) === '' ? NaN : Number(mval(lid, k)); return { buy: n('buy'), sh: [n('c'), n('r'), n('b')] }; }
+  function moneyRead(lid) { const n = k => mval(lid, k) === '' ? NaN : Number(mval(lid, k)), fe = $('mb-' + lid + '-free'); return { buy: n('buy'), sh: [n('c'), n('r'), n('b')], free: !!(fe && fe.checked) }; }
   function moneyProblem(v) {
     if (!Number.isInteger(v.buy) || v.buy < 0 || v.buy > 10000) return 'The buy-in must be a whole number of dollars from 0 to 10,000.';
     if (v.sh.some(x => !Number.isInteger(x) || x < 0 || x > 100)) return 'Each share must be a whole percentage from 0 to 100.';
@@ -660,14 +662,14 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const el = $('mchk-' + lid); if (!el) return; const v = moneyRead(lid), bad = moneyProblem(v), l = S.leagues.find(x => x.id === lid);
     if (mval(lid, 'buy') === '') { el.textContent = 'Enter the buy-in each member pays, for example 100.'; return; }
     if (bad) { el.textContent = bad; return; }
-    const humans = l ? humansIn(l) : 0, pot = humans * v.buy, amt = p => usd(pot * p / 100);
-    el.textContent = v.buy === 0 ? 'A $0 buy-in means no money is shown for this league.' : `With ${humans} member${humans === 1 ? '' : 's'} right now: pot ${usd(pot)}. Champion ${amt(v.sh[0])}, runner-up ${amt(v.sh[1])}, best record ${amt(v.sh[2])}.`;
+    const humans = l ? humansIn(l) : 0, payers = Math.max(0, humans - (v.free && v.buy > 0 ? 1 : 0)), pot = payers * v.buy, amt = p => usd(pot * p / 100);
+    el.textContent = v.buy === 0 ? 'A $0 buy-in means no money is shown for this league.' : `With ${humans} member${humans === 1 ? '' : 's'} right now${v.free ? ` (${payers} paying)` : ''}: pot ${usd(pot)}. Champion ${amt(v.sh[0])}, runner-up ${amt(v.sh[1])}, best record ${amt(v.sh[2])}.`;
   }
-  function moneyInput(i) { const lid = i.dataset.lid; S.mdraft[lid] = { buy: mval(lid, 'buy'), c: mval(lid, 'c'), r: mval(lid, 'r'), b: mval(lid, 'b') }; moneyCheck(lid); }
+  function moneyInput(i) { const lid = i.dataset.lid, fe = $('mb-' + lid + '-free'); S.mdraft[lid] = { buy: mval(lid, 'buy'), c: mval(lid, 'c'), r: mval(lid, 'r'), b: mval(lid, 'b'), free: !!(fe && fe.checked) }; moneyCheck(lid); }
   async function saveMoney(lid) {
     const v = moneyRead(lid), bad = moneyProblem(v); if (bad) return say('mmsg-' + lid, bad, 'err');
     say('mmsg-' + lid, 'Saving...');
-    const { error } = await client().rpc('set_league_money', { p_league_id: lid, p_buy_in: v.buy, p_split: v.sh });
+    const { error } = await client().rpc('set_league_money', { p_league_id: lid, p_buy_in: v.buy, p_split: v.sh, p_commish_free: v.free });
     if (error) return say('mmsg-' + lid, error.message, 'err');
     delete S.mdraft[lid]; S.sig = ''; await load(); say('mmsg-' + lid, 'Saved. Everyone in the league can see these numbers now.', 'ok');
   }
