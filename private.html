@@ -179,7 +179,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     <p class="h-new"><a class="btn btn-main" href="#startCard" id="heroGo">Start your league</a></p>
     <div class="pad">
       <h2>About money</h2>
-      <p>Cooperstown Cash never touches, holds or takes a share of your league's money. If your league plays for dues, that's between you and your league. The only thing we may charge is a flat hosting fee, paid by the commissioner from their own funds, never by members and never from dues. <button class="linkbtn" id="readAgr" type="button">Read the full league agreement</button></p>
+      <p>Cooperstown Cash never touches, holds or takes a share of your league's money. If your league plays for dues, that's between you and your league. The only thing we may charge is a hosting fee for each seat held by a person, paid by the commissioner from their own funds when the season starts, never by members and never from dues. <button class="linkbtn" id="readAgr" type="button">Read the full league agreement</button></p>
     </div>
   </header>
 
@@ -247,7 +247,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
-  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {}, invite: null, legends: null, endv: new Map() };
+  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, seat: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {}, invite: null, legends: null, endv: new Map() };
   const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
   const signedIn = () => !!(window.CC && window.CC.user);
   const client = () => window.CC && window.CC.client;
@@ -275,7 +275,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const inviteUrl = code => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}private.html?join=${code}`;
   const LEAGUESAFE = 'https://www.leaguesafe.com/createleague';
   const MONEY_HOW = 'Leagues that play for money can collect dues through LeagueSafe, an independent service that holds the dues and pays out the winners. Cooperstown Cash never touches league money and takes no share of it. It is not affiliated with LeagueSafe, gets nothing from it, and cannot see or verify payments. The commissioner always plays free: there is no buy-in for the commissioner\'s own seat.';
-  function moneyExample() { const B = 100, payers = 9, pot = B * payers, sh = [60, 25, 15], m = { buy: B, humans: 10, payers, free: true, pot, sh, champ: pot * sh[0] / 100, runner: pot * sh[1] / 100, best: pot * sh[2] / 100, fee: ((S.fee && S.fee.cents) || 0) / 100 }; return `<h4>An example, so the math is clear</h4><p class="note" style="margin:2px 0 6px">Say all ten seats are real managers: the commissioner, who always plays free, and nine members who each pay a $100 buy-in (the entry fee). Computer-run clubs pay nothing, so a league with fewer real members has a smaller pot.</p>${ledgerHtml(m)}<ul class="eg-notes"><li>Leagues split pots many ways and there is no single standard. This top-heavy three-way split, 60/25/15, is a typical choice. Your league chooses its own buy-in, split and who gets paid, and Cooperstown Cash does not set, offer or guarantee any prize.</li><li>Agree in advance what happens if a computer-run club finishes in a paying spot (for example, the prize goes to the best-finishing member).</li><li>Payment companies charge their own processing fees, so the pot can be a little smaller than the buy-ins added up. Check LeagueSafe's current fees.</li><li>The commissioner always plays free, so the pot is one buy-in smaller than the number of real members. The numbers shown for your own league above already account for that.</li><li>Cooperstown Cash's only charge is a flat hosting fee, if one applies, paid by the commissioner from their own funds. It is the same however many members join, it never comes out of the pot, and members pay nothing.</li></ul>`; }
+  function moneyExample() { const B = 100, payers = 9, pot = B * payers, sh = [60, 25, 15], m = { buy: B, humans: 10, payers, free: true, pot, sh, champ: pot * sh[0] / 100, runner: pot * sh[1] / 100, best: pot * sh[2] / 100, seats: 10, seatFee: ((S.fee && S.fee.seat) || 0) / 100, fee: Math.round(((S.fee && S.fee.seat) || 0) * 10) / 100 }; return `<h4>An example, so the math is clear</h4><p class="note" style="margin:2px 0 6px">Say all ten seats are real managers: the commissioner, who always plays free, and nine members who each pay a $100 buy-in (the entry fee). Computer-run clubs pay nothing, so a league with fewer real members has a smaller pot.</p>${ledgerHtml(m)}<ul class="eg-notes"><li>Leagues split pots many ways and there is no single standard. This top-heavy three-way split, 60/25/15, is a typical choice. Your league chooses its own buy-in, split and who gets paid, and Cooperstown Cash does not set, offer or guarantee any prize.</li><li>Agree in advance what happens if a computer-run club finishes in a paying spot (for example, the prize goes to the best-finishing member).</li><li>Payment companies charge their own processing fees, so the pot can be a little smaller than the buy-ins added up. Check LeagueSafe's current fees.</li><li>The commissioner always plays free, so the pot is one buy-in smaller than the number of real members. The numbers shown for your own league above already account for that.</li><li>Cooperstown Cash's only charge is a hosting fee for each seat held by a person (computer-run clubs are free), if one applies, paid by the commissioner from their own funds when the season starts. It never comes out of the pot, and members pay nothing.</li></ul>`; }
 
   // ---------- the agreement ----------
   async function loadAgreement() {
@@ -290,11 +290,11 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   }
   async function loadConfig() {
     const c = client(); if (!c) return;
-    const cfg = await c.from('site_config').select('key,value').in('key', ['support_url', 'hosting_fee_cents', 'hosting_fee_pay_url']);
+    const cfg = await c.from('site_config').select('key,value').in('key', ['support_url', 'hosting_fee_cents', 'hosting_fee_pay_url', 'seat_fee_cents']);
     const kv = Object.fromEntries((cfg.data || []).map(r => [r.key, r.value]));
     S.support = /^https:\/\//i.test(kv.support_url || '') ? kv.support_url : '';
-    S.fee = { cents: /^[0-9]+$/.test(kv.hosting_fee_cents || '') ? +kv.hosting_fee_cents : 0, url: /^https:\/\//i.test(kv.hosting_fee_pay_url || '') ? kv.hosting_fee_pay_url : '' };
-    const fn = $('feeNote'); if (fn) fn.textContent = S.fee.cents ? ` A flat hosting fee of ${money(S.fee.cents)} applies to each league. You pay it from your own funds, never from dues, and members pay us nothing.` : '';
+    S.fee = { seat: /^[0-9]+$/.test(kv.seat_fee_cents || '') ? +kv.seat_fee_cents : 0, cents: /^[0-9]+$/.test(kv.hosting_fee_cents || '') ? +kv.hosting_fee_cents : 0, url: /^https:\/\//i.test(kv.hosting_fee_pay_url || '') ? kv.hosting_fee_pay_url : '' };
+    const fn = $('feeNote'); if (fn) fn.textContent = S.fee.seat ? ` A hosting fee of ${money(S.fee.seat)} applies for each seat held by a person, and computer-run clubs are free. You pay it from your own funds when the season starts, never from dues, and members pay us nothing.` : (S.fee.cents ? ` A flat hosting fee of ${money(S.fee.cents)} applies to each league. You pay it from your own funds, never from dues, and members pay us nothing.` : '');
   }
   const money = c => '$' + (c % 100 ? (c / 100).toFixed(2) : (c / 100));
   const hasSigned = role => role === 'member' ? (S.signed.has('member') || S.signed.has('commissioner')) : S.signed.has('commissioner');
@@ -398,7 +398,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function moneyFor(l) {
     if (!(l.buy_in_dollars > 0) || !Array.isArray(l.payout_split) || l.payout_split.length !== 3) return null;
     const humans = humansIn(l), free = true, payers = Math.max(0, humans - (free ? 1 : 0)), pot = payers * l.buy_in_dollars, sh = l.payout_split, amt = p => pot * p / 100;   // a commissioner who plays free adds no buy-in
-    return { buy: l.buy_in_dollars, humans, payers, free, pot, sh, champ: amt(sh[0]), runner: amt(sh[1]), best: amt(sh[2]), fee: ((S.fee && S.fee.cents) || 0) / 100 };
+    return { buy: l.buy_in_dollars, humans, payers, free, pot, sh, champ: amt(sh[0]), runner: amt(sh[1]), best: amt(sh[2]), seats: humans, seatFee: ((S.fee && S.fee.seat) || 0) / 100, fee: Math.round(((S.fee && S.fee.seat) || 0) * humans) / 100 };
   }
   // the same order the server uses to seed the playoffs: win percentage, then run difference, then runs scored, then seat number
   function standingsFor(l) {
@@ -448,11 +448,11 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function ledgerHtml(m) {
     const r2 = x => Math.round(x * 100) / 100, prizes = [['Champion', m.sh[0], m.champ], ['Runner-up', m.sh[1], m.runner], ['Best regular-season record', m.sh[2], m.best]].filter(p => p[1] > 0);
     const inn = [[`${m.payers} paying member${m.payers === 1 ? '' : 's'} &times; ${usd(m.buy)}, paid to LeagueSafe`, m.pot]], out = prizes.map(p => [`${p[0]}, ${p[1]}% of the pot, paid out by LeagueSafe`, p[2]]);
-    if (m.fee > 0) { inn.push(['The commissioner\'s flat hosting fee, paid to Cooperstown Cash from the commissioner\'s own funds (it is not part of any buy-in)', m.fee]); out.push(['Hosting fee, kept by Cooperstown Cash', m.fee]); }
+    if (m.fee > 0) { inn.push([`Hosting fee: ${m.seats} seat${m.seats === 1 ? '' : 's'} held by people &times; ${usd(m.seatFee)}, paid to Cooperstown Cash by the commissioner from the commissioner\'s own funds when the season starts. Computer-run clubs are free.`, m.fee]); out.push(['Hosting fee, kept by Cooperstown Cash', m.fee]); }
     const sum = a => r2(a.reduce((s, x) => s + x[1], 0)), tr = (rows, cls) => rows.map(r => `<tr class="${cls}"><td>${r[0]}</td><td class="n">${usd(r[1])}</td></tr>`).join('');
     return `<table class="eg"><thead><tr><th>Money in</th><th class="n">Amount</th></tr></thead><tbody>${tr(inn, '')}<tr class="tot"><td>Total in</td><td class="n">${usd(sum(inn))}</td></tr></tbody></table>
       <table class="eg"><thead><tr><th>Money out</th><th class="n">Amount</th></tr></thead><tbody>${tr(out, '')}<tr class="tot"><td>Total out</td><td class="n">${usd(sum(out))}</td></tr></tbody></table>
-      <p class="note" style="margin:2px 0 6px">${m.fee > 0 ? 'The commissioner plays free, so the commissioner\'s only cost is the hosting fee.' : 'The commissioner plays free, so the commissioner pays no buy-in.'} The prizes add up to exactly the pot, and what comes in is what goes out.</p>`;
+      <p class="note" style="margin:2px 0 6px">${m.fee > 0 ? `The commissioner skips a ${usd(m.buy)} buy-in and pays the ${usd(m.fee)} hosting fee instead. Members pay Cooperstown Cash nothing.` : 'The commissioner plays free, so the commissioner pays no buy-in.'} The prizes add up to exactly the pot, and what comes in is what goes out.</p>`;
   }
 // the commissioner's form (open until the season starts) and what everyone sees
   function leagueMoney(l, isC, live, bare) {
@@ -472,10 +472,17 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function seasonBar(l) {
     return `<div class="rosterbar"><span>Rosters are locked and the schedule is set. It's game day ${dayNow(l)} of 27.</span><a class="btn btn-main" href="season.html?league=${l.id}">Open the season</a><a class="btn btn-alt" href="manager.html?league=${l.id}">Manager settings</a></div>`;
   }
+  // the hosting fee for this league: the per-seat price times the seats held by people, due when the season starts
+  function seatFeeNote(l) {
+    const per = (S.fee && S.fee.seat) || 0; if (!per) return '';
+    const humans = humansIn(l), due = Math.round(per * humans) / 100;
+    return `<p class="note" style="margin:4px 0"><b>Hosting fee:</b> ${humans} seat${humans === 1 ? '' : 's'} held by people &times; ${usd(per / 100)} = <b>${usd(due)}</b>, paid by you from your own funds when the season starts. Computer-run clubs are free, and members pay us nothing. ${S.fee.url ? '' : 'Payment is not switched on yet, so nothing is due right now.'}</p>`;
+  }
   function startPanel(l, members, moneySet) {
     const waiting = members.filter(m => !m.ready), enough = members.length >= 2, empty = 10 - members.length, all = enough && !waiting.length && moneySet;
     return `<div class="start"><b>Start the season</b>
       <p class="note" style="margin:4px 0">${!moneySet ? 'Set your buy-in and split first (step 2). Choose $0 if this league has no buy-in. They lock when the season starts.' : !enough ? 'You need at least two real clubs to start a season. Invite someone with the link above.' : all ? `Every roster is submitted. Starting locks every roster and builds the 27-game schedule. It can\'t be undone.${empty ? ` The ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs, marked CPU, that play on schedule.` : ''}` : `Waiting on ${waiting.length} roster${waiting.length === 1 ? '' : 's'}: ${waiting.map(m => esc(m.club_name)).join(', ')}. You can start as soon as every club here has submitted${empty ? `, and the ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs` : ''}.`}</p>
+      ${seatFeeNote(l)}
       <fieldset class="pace" ${all ? '' : 'disabled'}><legend class="note">How fast should the season go?</legend>
         <label class="check"><input type="radio" name="pace-${l.id}" value="24" checked> One game day a day <span class="note">(about 4 weeks)</span></label>
         <label class="check"><input type="radio" name="pace-${l.id}" value="12"> Two a day <span class="note">(about 2 weeks)</span></label>
