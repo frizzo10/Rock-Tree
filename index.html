@@ -60,6 +60,10 @@ button { font: inherit; }
 
 /* ---------- cards from the vault ---------- */
 .vault { margin-top: 46px; }
+.board .phone { margin-top: 10px; padding: 8px 14px; border-left: 4px solid var(--lamp); background: rgba(242,179,61,.14); border-radius: 0 4px 4px 0; }
+.vbtns { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.allcards { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 18px; background: var(--wb-ink); color: #fff; border-radius: 4px; font: 700 16px var(--text); text-decoration: none; } .allcards:hover { background: #17306E; }
+@media (max-width: 720px) { .vbtns { align-items: stretch; width: 100%; } }
 .vault-head { background: rgba(247,242,228,.93); border-radius: 4px; padding: 16px 20px; box-shadow: 0 2px 0 rgba(0,0,0,.12); display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
 .vault h2 { font: 400 clamp(26px, 4.5vw, 36px)/1.1 var(--marker); color: var(--ink); margin: 0; }
 .vault-head p { margin: 4px 0 0; color: var(--ink-soft); font-size: 15px; max-width: 60ch; }
@@ -179,6 +183,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     <h1>Cooperstown Cash</h1>
     <p class="tag">Historical simulation leagues</p>
     <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Here's the path: build a team with an AI scout and get graded, play it out and see how it plays, then take it to a cash league of your own. A free account is just your email, no password.</p>
+    <p class="phone"><b>Made for your phone.</b> Cooperstown Cash is designed for the few minutes of free time you get in a day: a draft can be paused, a game takes a few minutes, and a league plays one game day at a time.</p>
     <p class="rec" id="rec" hidden></p>
     </div>
   </header>
@@ -256,7 +261,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
   <section class="vault reveal" aria-labelledby="vaultH">
     <div class="vault-head">
       <div><h2 id="vaultH">Cards from the vault</h2><p>Every player-season in the game becomes a card: his real stats, what he's worth in the game, and the roll card the dice read. These are legends. <a href="#vaultH" id="toLegend">What's a legend?</a> <span id="vaultNote"></span> <a class="vault-more" href="highlights.html">See the greatest seasons ever played</a></p><p class="vault-how"><b>How to read a roll card.</b> At every at-bat two 20-sided dice are rolled, one for the batter and one for the pitcher. The higher die decides whose card is used, then a 1-to-100 roll picks the result on that card. The wider a range, the more often it happens: Ruth's 1920 card gives him 16 slots out of 100 for a home run.</p></div>
-      <button class="shuffle" id="shuffle" type="button">Deal four more</button>
+      <div class="vbtns"><a class="allcards" id="allCards" href="cards.html" hidden>See all 1,430 cards</a><button class="shuffle" id="shuffle" type="button">Deal four more</button></div>
     </div>
     <div class="tabs" role="tablist" aria-label="In the vault">
       <button class="tabbtn" role="tab" type="button" id="tabCards" aria-selected="true" aria-controls="panCards">The cards</button>
@@ -266,7 +271,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     <div id="panLegend" role="tabpanel" aria-labelledby="tabLegend" hidden>
       <div class="legendbox">
     <h2 id="legendH">What's a legend?</h2>
-    <p>A legend is one of the <b>45 greatest single seasons</b> in the game: Babe Ruth in 1920, Barry Bonds in 2001, Pedro Martinez in 2000. Legends cost <b>$11M to $18M</b> under the salary cap, and each has a card the dice read like any other player's.</p>
+    <p>A legend is one of the <b>45 highest-rated single seasons</b> in the game: Babe Ruth in 1920, Barry Bonds in 2001, Pedro Martinez in 2000. Legends cost <b>$11M to $18M</b> under the salary cap, and each has a card the dice read like any other player's.</p>
     <h3>How you earn them</h3>
     <ol>
       <li><b>Draft a team</b> in a mock draft. Until you earn the legends, they are off the board for you and for the computer.</li>
@@ -419,6 +424,9 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     if (ids.length) { const { data: bd } = await c.from('seat_board').select('league_id').in('league_id', ids); taken = (bd || []).length; }
     $('ftLive').textContent = ids.length ? `${ids.length} free ${ids.length === 1 ? 'table is' : 'tables are'} open right now, with ${ids.length * 10 - taken} seats available.` : '';
   }
+  // signed-in visitors can browse every card, each with its own scout
+  const paintAll = () => { $('allCards').hidden = !(window.CC && window.CC.user); };
+  window.addEventListener('cc-auth', paintAll); (window.CC ? window.CC.whenReady.bind(window.CC) : f => f())(paintAll);
   (window.CC ? window.CC.whenReady.bind(window.CC) : f => f())(() => { loadLive(); setInterval(() => { if (!document.hidden) loadLive(); }, 30000); });
 
 
