@@ -110,6 +110,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 8
 footer p { margin: 0 0 6px; }
 @media (max-width: 560px) { .tables { grid-template-columns: 1fr; } .board { padding: 18px 20px; } .tbl details ul { columns: 1; } }
 @media (prefers-reduced-motion: no-preference) { .tbl { transition: transform .15s; } .tbl:hover { transform: translateY(-2px); } }
+.invite .acts { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 8px; } .invite .invmsg { min-height: 1.4em; margin: 4px 0; font-weight: 600; color: #17603A; } .invite .invsmall { margin: 8px 0 0; font-size: 15px; }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -150,6 +151,16 @@ footer p { margin: 0 0 6px; }
         <li><b>Build your roster.</b> When the table fills you have 48 hours to build a roster under the salary cap. Anyone who hasn't finished gets one built from their picks.</li>
         <li><b>Play the season.</b> Play 27 games at two game days a day, yourself or simmed, and the server finishes any you miss. The top four go to the playoffs.</li>
       </ol>
+    </div>
+  </section>
+
+  <section class="how invite" id="invite" aria-label="Fill your table">
+    <h2>Tables start when they fill. Bring people you know.</h2>
+    <div class="panel">
+      <p id="inviteLead"></p>
+      <div class="acts"><button class="btn btn-main" id="invCopy" type="button">Copy link</button><a class="btn btn-alt" id="invMail" href="mailto:">Email friends</a><button class="btn btn-alt" id="invShare" type="button" hidden>Share</button></div>
+      <p class="invmsg" id="invMsg" role="status" aria-live="polite"></p>
+      <p class="invsmall">Once you have a seat, we email you whenever a new manager sits down at your table. <a href="email-settings.html">Manage these emails</a>.</p>
     </div>
   </section>
 
@@ -244,7 +255,8 @@ footer p { margin: 0 0 6px; }
     if (l.status === 'started') return [l.phase === 'playoffs' ? 'The playoffs are on.' : 'The season is on.', `<a class="btn btn-main" href="season.html?league=${l.id}">Open the season</a><a class="btn btn-alt" href="manager.html?league=${l.id}">Manager settings</a>`];
     return ['The season is over.', `<a class="btn btn-main" href="season.html?league=${l.id}">See the final standings</a>`];
   }
-  function render() {
+  function render() { render0(); paintInvite(); }
+  function render0() {
     const freeOpen = S.leagues.filter(l => l.stakes === 'free' && l.status === 'open');
     const seatsLeft = freeOpen.reduce((n, l) => n + 10 - seatsOf(l.id).length, 0);
     $('stats').textContent = S.state === 'ready' ? `${freeOpen.length} free tables open, ${seatsLeft} seats available` : '';
@@ -321,6 +333,22 @@ footer p { margin: 0 0 6px; }
     if (error) return toast('Could not leave that seat. Please try again.', true);
     const l = S.leagues.find(x => x.id === id); S.sig = ''; await load(); toast(`You left ${l ? l.name : 'the table'}.`);
   }
+
+  // ---------- invite people so the table fills and starts ----------
+  const INV = { url: location.origin + '/lobby.html', subject: 'Join me at a free table on Cooperstown Cash', body: '' };
+  function paintInvite() {
+    const mineOpen = S.mine.map(m => S.leagues.find(l => l.id === m.league_id)).filter(l => l && l.status === 'open');
+    const t = mineOpen[0], n = t ? seatsOf(t.id).length : 0, left = 10 - n;
+    const game = 'a baseball dice game that uses real stats from baseball history. You draft a salary-cap roster and play a season with nine other managers';
+    $('inviteLead').textContent = t
+      ? `${t.name} has ${n} of 10 seats filled, so ${left} to go. Every friend who sits down gets your table closer to starting. Send them the link.`
+      : 'A table starts when all ten seats fill, so the more people you bring, the sooner it starts. Know anyone who would enjoy it? Send them the link.';
+    INV.body = t ? `I'm at a free table on Cooperstown Cash, ${game}. ${n} of 10 seats are filled and the table starts when it's full. Grab a seat so we can start: ${INV.url}\n\nYou just need a free account with your email.`
+      : `There are free tables open on Cooperstown Cash, ${game}. A table starts when all ten seats fill. Come take a seat: ${INV.url}\n\nYou just need a free account with your email.`;
+    $('invMail').href = `mailto:?subject=${encodeURIComponent(INV.subject)}&body=${encodeURIComponent(INV.body)}`;
+  }
+  $('invCopy').onclick = async () => { try { await navigator.clipboard.writeText(INV.url); $('invMsg').textContent = 'Link copied. Paste it into a message to your friends.'; } catch (e) { window.prompt('Copy this link:', INV.url); } };
+  if (navigator.share) { $('invShare').hidden = false; $('invShare').onclick = () => navigator.share({ title: INV.subject, text: INV.body, url: INV.url }).catch(() => {}); }
 
   // ---------- filters and wiring ----------
   window.addEventListener('cc-auth', () => { S.sig = ''; load(); });
