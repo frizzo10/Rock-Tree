@@ -29,6 +29,7 @@ label.chk { display: inline-flex; align-items: center; gap: 8px; min-height: 44p
 .panel { background: #FAF8F1; border: 1px solid var(--edge); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
 .empty, .gate, .denied { background: #fff; border: 1px solid var(--edge); border-radius: 8px; padding: 18px; margin: 14px 0; }
 .err { color: #9E2B22; font-weight: 600; }
+.card input { font: inherit; min-height: 44px; padding: 6px 10px; border: 1.5px solid #8C959E; border-radius: 6px; min-width: 240px; max-width: 100%; } button.danger { background: #9E2B22; color: #fff; border-color: #9E2B22; }
 details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 :focus-visible { outline: 3px solid #F2B33D; outline-offset: 2px; }
 </style>
@@ -45,6 +46,12 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     <div class="bar"><button class="main" id="refresh" type="button">Refresh</button><label class="chk"><input type="checkbox" id="flagged"> Only leagues with flags</label><span class="meta" id="stamp" role="status"></span></div>
     <div class="sum" id="sum"></div>
     <div id="list"></div>
+    <section class="card" id="delcard" aria-labelledby="delh"><h2 id="delh">Delete an account</h2>
+      <p class="meta">This follows the deletion policy in the Privacy Policy. Check first: it shows what would be deleted and whether anything blocks it, and it changes nothing.</p>
+      <div class="bar"><label for="delEmail">Account email</label><input id="delEmail" type="email" autocomplete="off" inputmode="email" spellcheck="false"><button type="button" id="delCheck">Check</button></div>
+      <div id="delOut" role="status" aria-live="polite"></div>
+      <div id="delConfirm" hidden><div class="bar"><label for="delEmail2">Type the email again to confirm</label><input id="delEmail2" type="email" autocomplete="off" spellcheck="false"><button type="button" class="danger" id="delGo">Delete this account permanently</button></div></div>
+    </section>
   </div>
 </div>
 <script>
@@ -54,7 +61,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   const when = x => x ? new Date(x).toLocaleString() : '';
   const days = x => x ? Math.floor((Date.now() - new Date(x).getTime()) / 86400000) : null;
   const PLACE = { champion: 'Champion', runner_up: 'Runner-up', best_record: 'Best record' };
-  const LABEL = { confirmed: 'Winner confirmed', waiting: 'Waiting for the winner', overdue: 'Not confirmed after 14 days', problem: 'Winner reports a problem', self: 'Won by the commissioner', cpu: 'Computer-run club' };
+  const LABEL = { confirmed: 'Winner confirmed', waiting: 'Waiting for the winner', overdue: 'Not confirmed after 7 days', purged: 'Records deleted after 14 days', problem: 'Winner reports a problem', self: 'Won by the commissioner', cpu: 'Computer-run club' };
   let DATA = [];
   function card(l) {
     const c = l.commissioner || {}, b = l.buyins || {}, risk = l.score >= 5 ? 'high' : l.score > 0 ? 'medium' : 'none';
@@ -95,6 +102,26 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     if (!cc.user) { $('app').hidden = true; $('denied').hidden = true; $('gate').hidden = false; $('gateGo').onclick = () => cc.requireSignIn('Sign in to open the dashboard'); return; }
     $('gate').hidden = true; load();
   }
+  const delCall = async (email, confirm) => { try { return await window.CC.client.rpc('admin_delete_account', { p_email: email, p_confirm: confirm }); } catch (e) { return { error: e }; } };
+  const blockersHtml = d => `<div class="panel"><b>This account can't be deleted yet.</b><ul>${(d.blockers || []).map(b => `<li>${b.league ? '<b>' + esc(b.league) + '</b> ' : ''}${esc(b.why)}</li>`).join('')}</ul></div>`;
+  $('delCheck').onclick = async () => {
+    const email = $('delEmail').value.trim(); $('delConfirm').hidden = true;
+    if (!email) { $('delOut').innerHTML = '<span class="err">Enter the account email.</span>'; return; }
+    $('delOut').textContent = 'Checking…'; const { data, error } = await delCall(email, false);
+    if (error) { $('delOut').innerHTML = `<span class="err">${esc(error.message)}</span>`; return; }
+    if (!data.ok) { $('delOut').innerHTML = blockersHtml(data); return; }
+    $('delOut').innerHTML = `<div class="panel"><b>This account can be deleted.</b><ul><li>${esc(data.finished_league_seats_renamed)} seat(s) in finished leagues will show "Former manager."</li><li>${esc(data.finished_leagues_commissioned)} finished league(s) will lose the commissioner's name.</li><li>${esc(data.saves)} saved-game slot(s) will be deleted.</li><li>${esc(data.signed_agreements_kept)} signed agreement record(s) will be kept.</li></ul></div>`;
+    $('delEmail2').value = ''; $('delConfirm').hidden = false;
+  };
+  $('delGo').onclick = async () => {
+    const e1 = $('delEmail').value.trim(), e2 = $('delEmail2').value.trim();
+    if (!e1 || e1.toLowerCase() !== e2.toLowerCase()) { $('delOut').insertAdjacentHTML('beforeend', '<p class="err">The two emails do not match.</p>'); return; }
+    $('delOut').textContent = 'Deleting…'; const { data, error } = await delCall(e1, true);
+    if (error) { $('delOut').innerHTML = `<span class="err">${esc(error.message)}</span>`; return; }
+    $('delConfirm').hidden = true; $('delEmail').value = ''; $('delEmail2').value = '';
+    $('delOut').innerHTML = data && data.deleted ? '<p class="ok">Deleted. The account is gone, and finished leagues now show "Former manager."</p>' : blockersHtml(data || {});
+    load();
+  };
   $('refresh').onclick = () => { if (window.CC && window.CC.user) load(); };
   $('flagged').onchange = draw;
   window.addEventListener('cc-auth', start);
