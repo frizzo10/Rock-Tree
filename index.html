@@ -39,23 +39,6 @@ button { font: inherit; }
 .board .rec b { font: 400 22px var(--marker); color: var(--wb-red); margin-right: 4px; }
 .cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
-/* ---------- live strip ---------- */
-.doors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 26px 0 0; }
-.door { display: flex; flex-direction: column; gap: 6px; padding: 16px 22px 14px; background: #12291F; color: #F3EAD3; border-radius: 4px; text-decoration: none; box-shadow: inset 0 0 0 3px #1F4A36, 0 3px 0 rgba(0,0,0,.25); }
-.door:hover { background: #163427; }
-.door .k { font: 400 26px/1.1 var(--marker); color: var(--lamp); letter-spacing: .03em; } .door .d { font-size: 17px; line-height: 1.4; } .door .go { margin-top: auto; padding-top: 6px; font-weight: 700; color: var(--lamp); font-size: 17px; }
-.invitebar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 22px; background: #12291F; color: #F3EAD3; border-radius: 4px; box-shadow: inset 0 0 0 3px #1F4A36, 0 3px 0 rgba(0,0,0,.25); }
-.invitebar b { font: 400 22px var(--marker); color: var(--lamp); } .invitebar span.t { font-size: 16px; }
-.invitebar .ib { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; background: #F3EAD3; color: #12291F; border: 0; border-radius: 4px; font: 700 16px var(--text); text-decoration: none; cursor: pointer; } .invitebar .ib:hover { background: #fff; }
-.invitebar .msg { font-size: 15px; color: var(--lamp); }
-.live.slim { margin-top: 12px; padding: 8px 18px; font-size: 15px; } .live.slim .k { font-size: 16px; } .live.slim b { font-size: 19px; }
-@media (max-width: 720px) { .doors { grid-template-columns: 1fr; } }
-.live { display: flex; align-items: center; gap: 12px 22px; flex-wrap: wrap; margin: 26px 0 0; padding: 12px 20px; background: #12291F; color: #F3EAD3; border-radius: 4px; text-decoration: none; box-shadow: inset 0 0 0 3px #1F4A36, 0 3px 0 rgba(0,0,0,.25); font-size: 16px; }
-.live:hover { background: #163427; }
-.live .lamp { width: 12px; height: 12px; border-radius: 50%; background: var(--lamp); box-shadow: 0 0 10px var(--lamp); flex: none; }
-.live .k { font: 400 18px var(--marker); letter-spacing: .04em; color: var(--lamp); }
-.live b { font: 400 22px var(--marker); color: #fff; margin-right: 1px; }
-.live .go { margin-left: auto; font-weight: 600; color: var(--lamp); }
 
 /* ---------- folders ---------- */
 .choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 38px; }
@@ -96,6 +79,18 @@ button { font: inherit; }
 .card .stats small { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #6B5A2C; }
 .card .gl { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #1E7B45; }
 .card .stats.game { margin: 4px 0 10px; } .card .stats.game div { background: rgba(30,123,69,.12); } .card .stats.game b { color: #17603A; font-size: 21px; }
+.choose { margin-top: 8px; } .choose .path-h { margin-top: 36px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.pickcard { display: flex; flex-direction: column; gap: 8px; background: var(--folder); color: var(--folder-ink); border-radius: 4px 14px 14px 14px; padding: 18px 24px 22px; box-shadow: 0 3px 0 var(--folder-edge), 0 12px 24px rgba(0,0,0,.2); }
+.pickcard .kicker { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6B5312; }
+.pickcard h3 { font: 400 30px/1.1 var(--marker); color: var(--wb-ink); margin: 0; } .pickcard p { margin: 0 0 8px; font-size: 17px; line-height: 1.45; } .pickcard .btn { align-self: flex-start; margin-top: auto; }
+@media (max-width: 720px) { .two { grid-template-columns: 1fr; } }
+.legendbox { background: rgba(247,242,228,.95); border-radius: 4px; padding: 16px 22px 18px; margin: 26px 0 0; box-shadow: 0 2px 0 rgba(0,0,0,.12), inset 5px 0 0 var(--lamp); }
+.legendbox h2 { font: 400 clamp(24px, 4vw, 32px)/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .legendbox h3 { font: 700 15px var(--text); letter-spacing: .06em; text-transform: uppercase; color: #6B5312; margin: 12px 0 4px; }
+.legendbox p { margin: 0 0 6px; font-size: 17px; line-height: 1.5; max-width: 70ch; } .legendbox ol { margin: 0 0 8px; padding-left: 1.3em; font-size: 17px; line-height: 1.5; max-width: 70ch; } .legendbox li { margin: 3px 0; }
+.legendbox .lnote { font-size: 15px; color: var(--ink-soft); } .legendbox .lprog { font-weight: 700; color: #17603A; }
+.card .roll { list-style: none; margin: 2px 0 10px; padding: 0; display: grid; gap: 1px; font-size: 13px; } .card .roll li { display: flex; gap: 8px; } .card .roll b { min-width: 4.7em; font-weight: 700; color: #6B5A2C; } .card .roll li.g span { font-weight: 600; color: #17603A; }
+.vault-how { margin: 6px 0 0; font-size: 15px; color: var(--ink-soft); max-width: 70ch; }
 .card .txt { font-size: 13.5px; line-height: 1.4; margin: 0 0 10px; }
 .card .foot { margin-top: auto; border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
 .card .foot.open { color: var(--wb-green); }
@@ -107,14 +102,12 @@ footer p { margin: 0 0 6px; }
 /* ---------- motion, only where it's welcome ---------- */
 @keyframes lamp { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: no-preference) {
-  .live .lamp { animation: lamp 1.6s ease-in-out infinite; }
   .js .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
   .js .reveal.in { opacity: 1; transform: none; }
 }
 @media (max-width: 720px) {
   .board { grid-template-columns: 1fr; justify-items: start; margin: 0; padding: 22px 22px 22px; gap: 14px; } .board .logo { width: 120px; height: 120px; }
   .choices { grid-template-columns: 1fr; gap: 30px; }
-  .live .go { margin-left: 0; }
 }
 
 /* ---------- the header sits straight on the blueprint ---------- */
@@ -186,6 +179,19 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     </div>
   </header>
 
+  <aside class="legendbox reveal" aria-labelledby="legendH">
+    <h2 id="legendH">What's a legend?</h2>
+    <p>A legend is one of the <b>45 greatest single seasons</b> in the game: Babe Ruth in 1920, Barry Bonds in 2001, Pedro Martinez in 2000. Legends cost <b>$11M to $18M</b> under the salary cap, and each has a card the dice read like any other player's.</p>
+    <h3>How you earn them</h3>
+    <ol>
+      <li><b>Draft a team</b> in a mock draft. Until you earn the legends, they are off the board for you and for the computer.</li>
+      <li>On your report card, press <b>Play the computer's team</b> and play it out.</li>
+      <li><b>Win 3 games</b> with teams you drafted. Then all 45 legends are on the board in every mock draft after that.</li>
+    </ol>
+    <p class="lprog" id="legendProg" hidden></p>
+    <p class="lnote">Quick games with classic clubs don't count toward this. In a league or at a free table there is nothing to earn: every legend is on the board for every manager from the first day, marked with a Legend badge.</p>
+  </aside>
+
   <h2 class="path-h" id="pathH">Your path to a league of your own</h2>
   <p class="path-sub">Three steps, and you can start at any of them. Practice is free, and every step teaches you something about how the game really plays.</p>
 
@@ -196,7 +202,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
         <h2 id="draftH">Build a team with the AI scout, then get graded <span class="chip" id="chip1">Start here</span></h2>
         <p>Practice drafting against the computer from 1,400 all-time player-seasons. Sign in free and the scout puts his advice on every pick in his own words: who to take now, who the computer is about to grab, and what your budget can afford. When the draft ends you get a report card: a score, a letter grade from A+ to F, and your chance of beating the computer's team over 1,000 simulated games, with the scout's verdict on what you did.</p>
         <ul>
-          <li>Five challenges, from a classic draft to a $100M payroll crunch</li>
+          <li>A $100M payroll crunch: both teams must fit under the cap, so stars cost you depth</li>
           <li>A scout who advises your picks, and a 60-second clock you can pause</li>
           <li>A report card with your team's strength, position by position, and your odds in a best-of-7</li>
         </ul>
@@ -216,7 +222,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
         <ul>
           <li>Roll the dice yourself and watch how each player's card decides the play</li>
           <li>Every play shows its roll and the card it came from, so you can see what wins</li>
-          <li>Full box score and play-by-play. Win 3 games to unlock the legends.</li>
+          <li>Full box score and play-by-play. Only wins with a team you drafted count toward unlocking the legends.</li>
         </ul>
         <div class="go"><a class="btn btn-main" href="play.html">Play a quick game</a><a class="btn btn-alt" href="draft.html" id="s2team" hidden>Play your drafted team</a></div>
       </section>
@@ -239,20 +245,17 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     </li>
   </ol>
 
-  <section class="doors reveal" aria-label="Ways to play">
-    <a class="door" href="play.html"><span class="k">Play solo</span><span class="d">Take on the computer. Pick a classic club and play a game right now, no sign-in needed.</span><span class="go">Play a game &rarr;</span></a>
-    <a class="door" href="private.html"><span class="k">Play with friends</span><span class="d">Start a league, invite your friends by email, and run the whole season together.</span><span class="go">Start a league &rarr;</span></a>
-    <div class="invitebar" id="invitebar"><b>Invite a friend</b><span class="t">Know someone who would love this? Send them a link.</span><button class="ib" id="invCopy" type="button">Copy link</button><a class="ib" id="invMail" href="mailto:">Email a friend</a><button class="ib" id="invShare" type="button" hidden>Share</button><span class="msg" id="invMsg" role="status"></span></div>
+  <section class="choose reveal" aria-labelledby="chooseH">
+    <h2 class="path-h" id="chooseH">Ready to play?</h2>
+    <div class="two">
+      <article class="pickcard"><span class="kicker">On your own</span><h3>Play solo</h3><p>Take on the computer. Pick a classic club and play a game right now, no sign-in needed.</p><a class="btn btn-main" href="play.html">Play a game</a></article>
+      <article class="pickcard"><span class="kicker">With other people</span><h3>Play with friends</h3><p>Start a league with people you know, sit at a free table with other managers, or invite a friend to try the game.</p><a class="btn btn-main" href="friends.html">Play with friends</a></article>
+    </div>
   </section>
-
-  <a class="live slim side-door reveal" id="live" href="lobby.html" hidden>
-    <span class="lamp" aria-hidden="true"></span><span class="k">Or sit at a free table with other managers</span>
-    <span><b id="lt">0</b> free tables open</span><span><b id="ls">0</b> seats available</span><span class="go">Sit down &rarr;</span>
-  </a>
 
   <section class="vault reveal" aria-labelledby="vaultH">
     <div class="vault-head">
-      <div><h2 id="vaultH">Cards from the vault</h2><p>Every player-season in the game becomes a card built from his real stats. Here are a few of the legends. <span id="vaultNote"></span> <a class="vault-more" href="highlights.html">See the greatest seasons ever played</a></p></div>
+      <div><h2 id="vaultH">Cards from the vault</h2><p>Every player-season in the game becomes a card: his real stats, what he's worth in the game, and the roll card the dice read. These are legends. <a href="#legendH">What's a legend?</a> <span id="vaultNote"></span> <a class="vault-more" href="highlights.html">See the greatest seasons ever played</a></p><p class="vault-how"><b>How to read a roll card.</b> At every at-bat two 20-sided dice are rolled, one for the batter and one for the pitcher. The higher die decides whose card is used, then a 1-to-100 roll picks the result on that card. The wider a range, the more often it happens: Ruth's 1920 card gives him 16 slots out of 100 for a home run.</p></div>
       <button class="shuffle" id="shuffle" type="button">Deal four more</button>
     </div>
     <div class="deck" id="deck" aria-live="polite"></div>
@@ -278,6 +281,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     rec.innerHTML = `<b>${pr.wins}-${pr.games - pr.wins}</b> your record with drafted teams. ${pr.wins >= 3 ? 'Every legend is unlocked.' : `Win ${3 - pr.wins} more to unlock the legends.`}`;
   }
   const unlocked = !!(pr && pr.wins >= 3);
+  { const lp = $('legendProg'), w = (pr && pr.wins) || 0; if (pr && pr.games > 0) { lp.hidden = false; lp.textContent = w >= 3 ? 'Your progress: all 45 legends are unlocked for you.' : `Your progress: ${w} of 3 wins so far.`; } }
 
   // ----- the path: where you are, from what you've already done (nothing here changes any saved data) -----
   (() => {
@@ -296,48 +300,23 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
   // ----- cards from the vault: a new four each day, plus a button to deal more -----
-  const CARDS = [{"n": "Babe Ruth", "y": 1920, "t": "New York Yankees", "p": "RF", "s": [["AVG", ".376"], ["HR", "54"], ["RBI", "137"]], "x": "25-year-old right fielder who led the AL with 54 home runs, 35 more than anyone else, and led the league with 137 RBI for the 95-59 New York Yankees. His 54 homers were more than any other AL team hit.", "g": [["Runs+", "81"], ["OBP", ".528"], ["Cap price", "$18M"]]}, {"n": "Barry Bonds", "y": 2001, "t": "San Francisco Giants", "p": "LF", "s": [["AVG", ".328"], ["HR", "73"], ["RBI", "137"]], "x": "37-year-old left fielder who led the NL with 73 home runs, 9 more than anyone else for the 90-72 San Francisco Giants.", "g": [["Runs+", "71"], ["OBP", ".515"], ["Cap price", "$16M"]]}, {"n": "Ted Williams", "y": 1957, "t": "Boston Red Sox", "p": "LF", "s": [["AVG", ".388"], ["HR", "38"], ["RBI", "87"]], "x": "39-year-old left fielder who won the batting title at .388 for the 82-72 Boston Red Sox.", "g": [["Runs+", "62"], ["OBP", ".526"], ["Cap price", "$14M"]]}, {"n": "Pedro Martinez", "y": 2000, "t": "Boston Red Sox", "p": "P", "s": [["ERA", "1.74"], ["W-L", "18-6"], ["K", "284"]], "x": "29-year-old starter who won the ERA title at 1.74, and led the league with 284 strikeouts for the 85-77 Boston Red Sox.", "g": [["Runs+", "48"], ["WHIP", "0.74"], ["Cap price", "$13.5M"]]}, {"n": "Willie Mays", "y": 1965, "t": "San Francisco Giants", "p": "CF", "s": [["AVG", ".317"], ["HR", "52"], ["RBI", "112"]], "x": "34-year-old center fielder who led the NL with 52 home runs, 13 more than anyone else for the 95-67 San Francisco Giants.", "g": [["Runs+", "52"], ["OBP", ".397"], ["Cap price", "$12M"]]}, {"n": "Honus Wagner", "y": 1908, "t": "Pittsburgh Pirates", "p": "SS", "s": [["AVG", ".354"], ["HR", "10"], ["RBI", "109"]], "x": "34-year-old shortstop who won the batting title at .354, led the league with 109 RBI, and led the league with 53 steals for the 98-56 Pittsburgh Pirates.", "g": [["Runs+", "50"], ["OBP", ".406"], ["Cap price", "$11.5M"]]}, {"n": "Ty Cobb", "y": 1911, "t": "Detroit Tigers", "p": "CF", "s": [["AVG", ".420"], ["HR", "8"], ["RBI", "127"]], "x": "25-year-old center fielder who won the batting title at .420, led the league with 127 RBI, and led the league with 83 steals for the 89-65 Detroit Tigers.", "g": [["Runs+", "50"], ["OBP", ".459"], ["Cap price", "$11.5M"]]}, {"n": "Greg Maddux", "y": 1995, "t": "Atlanta Braves", "p": "P", "s": [["ERA", "1.63"], ["W-L", "19-2"], ["K", "181"]], "x": "29-year-old starter who led the NL with 19 wins, and won the ERA title at 1.63 for the World Series champion Atlanta Braves.", "g": [["Runs+", "40"], ["WHIP", "0.81"], ["Cap price", "$11.5M"]]}, {"n": "Hank Aaron", "y": 1971, "t": "Atlanta Braves", "p": "1B", "s": [["AVG", ".327"], ["HR", "47"], ["RBI", "118"]], "x": "37-year-old first baseman who hit .327 with 47 homers and 118 RBI for the 82-80 Atlanta Braves.", "g": [["Runs+", "55"], ["OBP", ".410"], ["Cap price", "$12.5M"]]}, {"n": "Mickey Mantle", "y": 1956, "t": "New York Yankees", "p": "CF", "s": [["AVG", ".353"], ["HR", "52"], ["RBI", "130"]], "x": "25-year-old center fielder who led the AL with 52 home runs, 20 more than anyone else, won the batting title at .353, and led the league with 130 RBI for the World Series champion New York Yankees.", "g": [["Runs+", "55"], ["OBP", ".463"], ["Cap price", "$12.5M"]]}, {"n": "Nap Lajoie", "y": 1901, "t": "Philadelphia Athletics", "p": "2B", "s": [["AVG", ".426"], ["HR", "14"], ["RBI", "125"]], "x": "27-year-old second baseman who led the AL with 14 home runs, won the batting title at .426, and led the league with 125 RBI for the 74-62 Philadelphia Athletics.", "g": [["Runs+", "50"], ["OBP", ".462"], ["Cap price", "$11.5M"]]}, {"n": "Jake Arrieta", "y": 2015, "t": "Chicago Cubs", "p": "P", "s": [["ERA", "1.77"], ["W-L", "22-6"], ["K", "236"]], "x": "29-year-old starter who led the NL with 22 wins for the 97-65 Chicago Cubs.", "g": [["Runs+", "38"], ["WHIP", "0.86"], ["Cap price", "$11M"]]}];
+  const CARDS = [{"n": "Babe Ruth", "y": 1920, "t": "New York Yankees", "p": "RF", "s": [["AVG", ".376"], ["HR", "54"], ["RBI", "137"]], "x": "25-year-old right fielder who led the AL with 54 home runs, 35 more than anyone else, and led the league with 137 RBI for the 95-59 New York Yankees. His 54 homers were more than any other AL team hit.", "g": [["Runs+", "81"], ["OBP", ".528"], ["Cap price", "$18M"]], "r": [[1, 16, "Home run", 1], [17, 17, "Triple", 1], [18, 24, "Double", 1], [25, 31, "Single", 1], [32, 64, "Walk", 1], [65, 91, "Strikeout", 0], [92, 92, "Lineout", 0], [93, 96, "Flyout", 0], [97, 100, "Groundout", 0]]}, {"n": "Barry Bonds", "y": 2001, "t": "San Francisco Giants", "p": "LF", "s": [["AVG", ".328"], ["HR", "73"], ["RBI", "137"]], "x": "37-year-old left fielder who led the NL with 73 home runs, 9 more than anyone else for the 90-72 San Francisco Giants.", "g": [["Runs+", "71"], ["OBP", ".515"], ["Cap price", "$16M"]], "r": [[1, 17, "Home run", 1], [18, 21, "Double", 1], [22, 24, "Single", 1], [25, 58, "Walk", 1], [59, 59, "Hit by pitch", 1], [60, 68, "Strikeout", 0], [69, 72, "Lineout", 0], [73, 85, "Flyout", 0], [86, 100, "Groundout", 0]]}, {"n": "Ted Williams", "y": 1957, "t": "Boston Red Sox", "p": "LF", "s": [["AVG", ".388"], ["HR", "38"], ["RBI", "87"]], "x": "39-year-old left fielder who won the batting title at .388 for the 82-72 Boston Red Sox.", "g": [["Runs+", "62"], ["OBP", ".526"], ["Cap price", "$14M"]], "r": [[1, 11, "Home run", 1], [12, 18, "Double", 1], [19, 36, "Single", 1], [37, 61, "Walk", 1], [62, 62, "Hit by pitch", 1], [63, 69, "Strikeout", 0], [70, 73, "Lineout", 0], [74, 86, "Flyout", 0], [87, 100, "Groundout", 0]]}, {"n": "Pedro Martinez", "y": 2000, "t": "Boston Red Sox", "p": "P", "s": [["ERA", "1.74"], ["W-L", "18-6"], ["K", "284"]], "x": "29-year-old starter who won the ERA title at 1.74, and led the league with 284 strikeouts for the 85-77 Boston Red Sox.", "g": [["Runs+", "48"], ["WHIP", "0.74"], ["Cap price", "$13.5M"]], "r": [[1, 1, "Home run", 1], [2, 2, "Double", 1], [3, 9, "Single", 1], [10, 10, "Walk", 1], [11, 12, "Hit by pitch", 1], [13, 13, "Error", 1], [14, 52, "Strikeout", 0], [53, 58, "Lineout", 0], [59, 78, "Flyout", 0], [79, 100, "Groundout", 0]]}, {"n": "Willie Mays", "y": 1965, "t": "San Francisco Giants", "p": "CF", "s": [["AVG", ".317"], ["HR", "52"], ["RBI", "112"]], "x": "34-year-old center fielder who led the NL with 52 home runs, 13 more than anyone else for the 95-67 San Francisco Giants.", "g": [["Runs+", "52"], ["OBP", ".397"], ["Cap price", "$12M"]], "r": [[1, 13, "Home run", 1], [14, 17, "Double", 1], [18, 33, "Single", 1], [34, 48, "Walk", 1], [49, 56, "Strikeout", 0], [57, 61, "Lineout", 0], [62, 80, "Flyout", 0], [81, 100, "Groundout", 0]]}, {"n": "Honus Wagner", "y": 1908, "t": "Pittsburgh Pirates", "p": "SS", "s": [["AVG", ".354"], ["HR", "10"], ["RBI", "109"]], "x": "34-year-old shortstop who won the batting title at .354, led the league with 109 RBI, and led the league with 53 steals for the 98-56 Pittsburgh Pirates.", "g": [["Runs+", "50"], ["OBP", ".406"], ["Cap price", "$11.5M"]], "r": [[1, 4, "Home run", 1], [5, 8, "Triple", 1], [9, 19, "Double", 1], [20, 41, "Single", 1], [42, 53, "Walk", 1], [54, 54, "Hit by pitch", 1], [55, 60, "Lineout", 0], [61, 79, "Flyout", 0], [80, 100, "Groundout", 0]]}, {"n": "Ty Cobb", "y": 1911, "t": "Detroit Tigers", "p": "CF", "s": [["AVG", ".420"], ["HR", "8"], ["RBI", "127"]], "x": "25-year-old center fielder who won the batting title at .420, led the league with 127 RBI, and led the league with 83 steals for the 89-65 Detroit Tigers.", "g": [["Runs+", "50"], ["OBP", ".459"], ["Cap price", "$11.5M"]], "r": [[1, 4, "Home run", 1], [5, 9, "Triple", 1], [10, 19, "Double", 1], [20, 45, "Single", 1], [46, 52, "Walk", 1], [53, 53, "Hit by pitch", 1], [54, 58, "Strikeout", 0], [59, 63, "Lineout", 0], [64, 81, "Flyout", 0], [82, 100, "Groundout", 0]]}, {"n": "Greg Maddux", "y": 1995, "t": "Atlanta Braves", "p": "P", "s": [["ERA", "1.63"], ["W-L", "19-2"], ["K", "181"]], "x": "29-year-old starter who led the NL with 19 wins, and won the ERA title at 1.63 for the World Series champion Atlanta Braves.", "g": [["Runs+", "40"], ["WHIP", "0.81"], ["Cap price", "$11.5M"]], "r": [[1, 3, "Double", 1], [4, 15, "Single", 1], [16, 16, "Error", 1], [17, 37, "Strikeout", 0], [38, 45, "Lineout", 0], [46, 71, "Flyout", 0], [72, 100, "Groundout", 0]]}, {"n": "Hank Aaron", "y": 1971, "t": "Atlanta Braves", "p": "1B", "s": [["AVG", ".327"], ["HR", "47"], ["RBI", "118"]], "x": "37-year-old first baseman who hit .327 with 47 homers and 118 RBI for the 82-80 Atlanta Braves.", "g": [["Runs+", "55"], ["OBP", ".410"], ["Cap price", "$12.5M"]], "r": [[1, 13, "Home run", 1], [14, 14, "Triple", 1], [15, 19, "Double", 1], [20, 34, "Single", 1], [35, 49, "Walk", 1], [50, 57, "Strikeout", 0], [58, 62, "Lineout", 0], [63, 80, "Flyout", 0], [81, 100, "Groundout", 0]]}, {"n": "Mickey Mantle", "y": 1956, "t": "New York Yankees", "p": "CF", "s": [["AVG", ".353"], ["HR", "52"], ["RBI", "130"]], "x": "25-year-old center fielder who led the AL with 52 home runs, 20 more than anyone else, won the batting title at .353, and led the league with 130 RBI for the World Series champion New York Yankees.", "g": [["Runs+", "55"], ["OBP", ".463"], ["Cap price", "$12.5M"]], "r": [[1, 12, "Home run", 1], [13, 13, "Triple", 1], [14, 17, "Double", 1], [18, 34, "Single", 1], [35, 51, "Walk", 1], [52, 71, "Strikeout", 0], [72, 75, "Lineout", 0], [76, 87, "Flyout", 0], [88, 100, "Groundout", 0]]}, {"n": "Nap Lajoie", "y": 1901, "t": "Philadelphia Athletics", "p": "2B", "s": [["AVG", ".426"], ["HR", "14"], ["RBI", "125"]], "x": "27-year-old second baseman who led the AL with 14 home runs, won the batting title at .426, and led the league with 125 RBI for the 74-62 Philadelphia Athletics.", "g": [["Runs+", "50"], ["OBP", ".462"], ["Cap price", "$11.5M"]], "r": [[1, 5, "Home run", 1], [6, 7, "Triple", 1], [8, 18, "Double", 1], [19, 44, "Single", 1], [45, 48, "Walk", 1], [49, 50, "Hit by pitch", 1], [51, 56, "Lineout", 0], [57, 77, "Flyout", 0], [78, 100, "Groundout", 0]]}, {"n": "Jake Arrieta", "y": 2015, "t": "Chicago Cubs", "p": "P", "s": [["ERA", "1.77"], ["W-L", "22-6"], ["K", "236"]], "x": "29-year-old starter who led the NL with 22 wins for the 97-65 Chicago Cubs.", "g": [["Runs+", "38"], ["WHIP", "0.86"], ["Cap price", "$11M"]], "r": [[1, 3, "Double", 1], [4, 13, "Single", 1], [14, 18, "Walk", 1], [19, 19, "Hit by pitch", 1], [20, 20, "Error", 1], [21, 40, "Strikeout", 0], [41, 47, "Lineout", 0], [48, 72, "Flyout", 0], [73, 100, "Groundout", 0]]}];
   let start = Math.floor(Date.now() / 86400000) % CARDS.length;
   const tilts = [-2.2, 1.6, -1.2, 2.3];
+  const pad = n => n >= 100 ? '00' : String(n).padStart(2, '0');
   function deal() {
     $('deck').innerHTML = [0, 1, 2, 3].map(k => {
       const c = CARDS[(start + k) % CARDS.length];
       return `<article class="card" style="--r:${tilts[k]}deg"><div class="in"><div class="yr">${c.y}</div><div class="nm">${esc(c.n)}</div><div class="meta">${esc(c.p)} &middot; ${esc(c.t)}</div>
         <div class="stats">${c.s.map(s => `<div><b>${esc(s[1])}</b><small>${esc(s[0])}</small></div>`).join('')}</div>
         <p class="gl">In the game</p><div class="stats game">${c.g.map(s => `<div><b>${esc(s[1])}</b><small>${esc(s[0])}</small></div>`).join('')}</div>
-        <p class="txt">${esc(c.x)}</p><div class="foot ${unlocked ? 'open' : ''}">${unlocked ? 'Legend card: unlocked for you' : 'Legend card: win 3 games to unlock'}</div></div></article>`;
+        <p class="gl">His roll card, 1 to 100</p><ol class="roll">${c.r.map(r => `<li class="${r[3] ? 'g' : ''}"><b>${pad(r[0])}${r[0] === r[1] ? '' : '&ndash;' + pad(r[1])}</b><span>${esc(r[2])}</span></li>`).join('')}</ol>
+        <p class="txt">${esc(c.x)}</p><div class="foot ${unlocked ? 'open' : ''}">${unlocked ? 'Legend card: unlocked for you' : 'Legend card: win 3 games with a team you drafted to unlock'}</div></div></article>`;
     }).join('');
   }
   $('shuffle').onclick = () => { start = (start + 4) % CARDS.length; deal(); };
   deal();
 
-  // ----- invite a friend: copy a link, email it, or use the phone's share sheet -----
-  (() => {
-    const url = location.origin + '/', subject = 'Come play baseball with me on Cooperstown Cash';
-    const body = `I found a baseball dice game that uses real stats from baseball history. You draft a team and play it, and you can try it free for as long as you like. Take a look: ${url}`;
-    $('invMail').href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    $('invCopy').onclick = async () => { try { await navigator.clipboard.writeText(url); $('invMsg').textContent = 'Link copied. Paste it into a message to your friend.'; } catch (e) { window.prompt('Copy this link:', url); } };
-    if (navigator.share) { $('invShare').hidden = false; $('invShare').onclick = () => navigator.share({ title: subject, text: body, url }).catch(() => {}); }
-  })();
-
-  // ----- live at the tables -----
-  function paintLive(t, s) {
-    const box = $('live'); if (!t) { box.hidden = true; return; }
-    const from = [+$('lt').textContent, +$('ls').textContent], to = [t, s];
-    box.hidden = false;
-    if (reduce.matches || (from[0] === to[0] && from[1] === to[1])) { $('lt').textContent = t; $('ls').textContent = s; return; }
-    const t0 = performance.now();
-    (function step(now) { const p = Math.min(1, (now - t0) / 700); $('lt').textContent = Math.round(from[0] + (to[0] - from[0]) * p); $('ls').textContent = Math.round(from[1] + (to[1] - from[1]) * p); if (p < 1) requestAnimationFrame(step); })(t0);
-  }
-  async function loadLive() {
-    const c = window.CC && window.CC.client; if (!c) return;
-    const { data: ls, error } = await c.from('leagues').select('id').eq('is_public', true).eq('status', 'open');
-    if (error || !ls) return;
-    const ids = ls.map(l => l.id); let taken = 0;
-    if (ids.length) { const { data: bd } = await c.from('seat_board').select('league_id').in('league_id', ids); taken = (bd || []).length; }
-    paintLive(ids.length, ids.length * 10 - taken);
-  }
-  (window.CC ? window.CC.whenReady.bind(window.CC) : f => f())(() => { loadLive(); setInterval(() => { if (!document.hidden) loadLive(); }, 30000); });
 
   // ----- gentle reveal as sections scroll into view -----
   const items = [...document.querySelectorAll('.reveal')];
