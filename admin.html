@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Owner dashboard</title>
+<style>
+:root { --ink: #1B1F24; --soft: #5A646E; --paper: #F4F1E8; --edge: #D8D2C0; --blue: #1F3F8F; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 16px 14px 48px; }
+h1 { font-size: 30px; margin: 6px 0 4px; } h2 { font-size: 20px; margin: 0; } h3 { font-size: 16px; margin: 14px 0 4px; }
+.lede { color: var(--soft); margin: 0 0 12px; max-width: 70ch; }
+.bar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+button, .btn { font: inherit; font-weight: 600; min-height: 44px; padding: 8px 16px; border-radius: 6px; border: 1.5px solid #8C959E; background: #fff; color: var(--ink); cursor: pointer; }
+button.main { background: var(--blue); color: #fff; border-color: var(--blue); }
+label.chk { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; } label.chk input { width: 22px; height: 22px; }
+.sum { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 4px; } .sum span { background: #fff; border: 1px solid var(--edge); border-radius: 6px; padding: 4px 12px; font-weight: 600; }
+.card { background: #fff; border: 1px solid var(--edge); border-left: 6px solid #9AA3AB; border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+.card.risk-high { border-left-color: #B03A2E; } .card.risk-medium { border-left-color: #C69A2B; } .card.risk-none { border-left-color: #1E7B45; }
+.head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.meta { color: var(--soft); font-size: 14px; }
+.flag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 14px; font-weight: 600; margin: 3px 6px 3px 0; }
+.flag.high { background: #FBE3DF; color: #9E2B22; } .flag.medium { background: #FFF1C9; color: #7A5200; } .flag.low { background: #E7EDF3; color: #34506B; }
+.ok { color: #17603A; font-weight: 600; }
+.scroll { overflow-x: auto; } table { border-collapse: collapse; width: 100%; font-size: 14px; } th, td { padding: 4px 8px; border-bottom: 1px solid #EEE9DB; text-align: left; vertical-align: top; } th { color: var(--soft); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.panel { background: #FAF8F1; border: 1px solid var(--edge); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+.empty, .gate, .denied { background: #fff; border: 1px solid var(--edge); border-radius: 8px; padding: 18px; margin: 14px 0; }
+.err { color: #9E2B22; font-weight: 600; }
+details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+:focus-visible { outline: 3px solid #F2B33D; outline-offset: 2px; }
+</style>
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>Owner dashboard</h1>
+  <p class="lede">Every private league, with anything that looks wrong at the top. A flag is a pattern worth a look, never proof. Nothing here changes a league.</p>
+  <div class="gate" id="gate" hidden><p>Sign in to open the dashboard.</p><button class="main" id="gateGo" type="button">Sign in</button></div>
+  <div class="denied" id="denied" hidden><p class="err">This account does not have access to this page.</p></div>
+  <div id="app" hidden>
+    <div class="bar"><button class="main" id="refresh" type="button">Refresh</button><label class="chk"><input type="checkbox" id="flagged"> Only leagues with flags</label><span class="meta" id="stamp" role="status"></span></div>
+    <div class="sum" id="sum"></div>
+    <div id="list"></div>
+  </div>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const when = x => x ? new Date(x).toLocaleString() : '';
+  const days = x => x ? Math.floor((Date.now() - new Date(x).getTime()) / 86400000) : null;
+  const PLACE = { champion: 'Champion', runner_up: 'Runner-up', best_record: 'Best record' };
+  const LABEL = { confirmed: 'Winner confirmed', waiting: 'Waiting for the winner', overdue: 'Not confirmed after 14 days', problem: 'Winner reports a problem', self: 'Won by the commissioner', cpu: 'Computer-run club' };
+  let DATA = [];
+  function card(l) {
+    const c = l.commissioner || {}, b = l.buyins || {}, risk = l.score >= 5 ? 'high' : l.score > 0 ? 'medium' : 'none';
+    const flags = (l.flags || []).map(f => `<span class="flag ${esc(f.level)}" title="${esc(f.code)}">${esc(f.text)}</span>`).join('') || '<span class="ok">No flags</span>';
+    const seats = (l.seats || []).map(s => `<tr><td>${esc(s.seat_no)}</td><td>${esc(s.club)}${s.is_commissioner ? ' <b>(commissioner)</b>' : ''}</td><td>${esc(s.email)}</td><td>${esc(when(s.joined_at))}</td><td>${s.account_created ? esc(days(s.account_created)) + ' d' : ''}</td><td>${esc(s.ip)}</td></tr>`).join('');
+    const pays = (l.payouts || []).map(p => `<li>${esc(PLACE[p.place] || p.place)}: ${esc(p.club)}, ${esc(LABEL[p.label] || p.label)}</li>`).join('');
+    const reps = (l.reports || []).map(r => `<li><b>${esc(r.by)}</b> ${esc(when(r.at))}: ${esc(r.reason)}</li>`).join('');
+    return `<article class="card risk-${risk}" data-id="${esc(l.id)}"><div class="head"><h2>${esc(l.name)} <span class="meta">${esc(l.status)}${l.buy_in ? ', $' + esc(l.buy_in) + ' buy-in' : ', no buy-in'}</span></h2><span class="meta">Score ${esc(l.score)} &middot; created ${esc(when(l.created_at))}</span></div>
+      <div>${flags}</div>
+      <p class="meta">Commissioner: <b>${esc(c.email)}</b>, account ${c.created_at ? esc(days(c.created_at)) + ' days old' : 'age unknown'}, ${esc(c.cash_seasons || 0)} cash season(s) before, last sign-in ${esc(when(c.last_sign_in))}. LeagueSafe link: ${l.has_link ? esc(l.link) : '<b>none</b>'}.</p>
+      <p class="meta">Buy-ins: ${esc(b.member_paid || 0)} of ${esc(b.members || 0)} members say paid, commissioner confirmed ${esc(b.commish_seen || 0)}, ${esc(b.mismatched || 0)} mismatched.${l.snapshot ? ' Started with ' + esc(l.snapshot.matched) + ' of ' + esc(l.snapshot.total) + ' confirmed by both sides.' : ''}</p>
+      ${pays ? `<div class="panel"><b>Prize spots</b><ul>${pays}</ul></div>` : ''}${reps ? `<div class="panel"><b>Reports</b><ul>${reps}</ul></div>` : ''}
+      <details><summary>Seats, emails and networks</summary><div class="scroll"><table><thead><tr><th>Seat</th><th>Club</th><th>Email</th><th>Joined</th><th>Account</th><th>Network (IP at signing)</th></tr></thead><tbody>${seats}</tbody></table></div></details>
+      <details data-hist="${esc(l.id)}"><summary>History of confirmations</summary><div class="scroll" id="h-${esc(l.id)}"><span class="meta">Open to load.</span></div></details></article>`;
+  }
+  function draw() {
+    const only = $('flagged').checked, rows = DATA.filter(l => !only || (l.flags || []).length);
+    const hi = DATA.filter(l => l.score >= 5).length, fl = DATA.filter(l => (l.flags || []).length).length;
+    $('sum').innerHTML = `<span>${DATA.length} league${DATA.length === 1 ? '' : 's'}</span><span>${fl} with flags</span><span>${hi} high risk</span>`;
+    $('list').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${DATA.length ? 'No leagues have flags.' : 'No private leagues yet.'}</div>`;
+    document.querySelectorAll('details[data-hist]').forEach(d => d.ontoggle = async () => {
+      if (!d.open || d.dataset.loaded) return; d.dataset.loaded = '1'; const box = $('h-' + d.dataset.hist);
+      const { data, error } = await window.CC.client.rpc('admin_league_events', { p_league: d.dataset.hist });
+      if (error) { box.innerHTML = `<span class="err">${esc(error.message)}</span>`; return; }
+      box.innerHTML = (data || []).length ? `<table><thead><tr><th>When</th><th>Who</th><th>What</th><th>Details</th></tr></thead><tbody>${data.map(e => `<tr><td>${esc(when(e.at))}</td><td>${esc(e.actor)}</td><td>${esc(e.kind)}</td><td>${esc(JSON.stringify(e.detail))}</td></tr>`).join('')}</tbody></table>` : '<span class="meta">Nothing recorded yet.</span>';
+    });
+  }
+  async function load() {
+    const cc = window.CC; $('stamp').textContent = 'Loading…';
+    let res; try { res = await cc.client.rpc('admin_league_health'); } catch (e) { res = { error: e }; }
+    const { data, error } = res;
+    if (error) { $('app').hidden = true; $('denied').hidden = false; $('denied').innerHTML = /authorized/i.test(error.message || '') ? '<p class="err">This account does not have access to this page.</p>' : '<p class="err">Could not load the dashboard. Check your connection and refresh.</p>'; return; }
+    $('denied').hidden = true; $('app').hidden = false; DATA = (Array.isArray(data) ? data : []).slice().sort((x, y) => (y.score || 0) - (x.score || 0) || String(y.created_at).localeCompare(String(x.created_at))); $('stamp').textContent = 'Updated ' + new Date().toLocaleTimeString(); draw();
+  }
+  async function start() {
+    const cc = window.CC;
+    if (!cc || !cc.client) { $('gate').hidden = false; $('gate').innerHTML = '<p class="err">Could not reach sign-in. Check your connection and refresh.</p>'; return; }
+    if (!cc.user) { $('app').hidden = true; $('denied').hidden = true; $('gate').hidden = false; $('gateGo').onclick = () => cc.requireSignIn('Sign in to open the dashboard'); return; }
+    $('gate').hidden = true; load();
+  }
+  $('refresh').onclick = () => { if (window.CC && window.CC.user) load(); };
+  $('flagged').onchange = draw;
+  window.addEventListener('cc-auth', start);
+  (window.CC ? window.CC.whenReady.bind(window.CC) : f => f())(start);
+})();
+</script>
+</body>
+</html>

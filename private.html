@@ -155,6 +155,11 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
 .stamp { font: 400 22px/1 var(--marker); color: var(--wb-ink); border: 2px solid var(--wb-ink); border-radius: 6px; padding: 2px 10px; transform: rotate(-3deg); }
 .part { font: 400 22px/1.1 var(--marker); color: var(--wb-ink); margin: 24px 0 0; }
 @media (max-width: 560px) { .members { columns: 1; } .wb { padding: 18px 20px; } .dlg { padding: 22px 20px 20px; } }
+.mcheck { background: rgba(247,242,228,.6); border-radius: 6px; padding: 10px 14px; margin: 10px 0; } .mcheck h4 { margin: 12px 0 4px; font-size: 16px; }
+.mcheck .lsin { flex: 1 1 240px; min-width: 0; min-height: 44px; padding: 6px 10px; border: 1.5px solid #8C959E; border-radius: 4px; font: inherit; } .mcheck select.bic { min-height: 44px; font: inherit; max-width: 100%; }
+.mcheck .warn { background: #FFF4CF; border-left: 5px solid #C69A2B; padding: 8px 12px; border-radius: 4px; } .mcheck .scroll { overflow-x: auto; }
+.mcheck tr.st-mismatch td { background: #FBE3DF; } .mcheck tr.st-matched td { background: #E4F2E9; } .mcheck .polist { list-style: none; padding: 0; margin: 0; } .mcheck .polist li { padding: 6px 0; border-top: 1px solid #E1DCCB; } .mcheck .polab { font-weight: 600; }
+.mcheck .rep textarea { width: 100%; font: inherit; padding: 6px 10px; border: 1.5px solid #8C959E; border-radius: 4px; margin: 6px 0; } .mcheck .rep summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -247,7 +252,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
-  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, seat: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {}, invite: null, legends: null, endv: new Map() };
+  const S = { rosters: [], leagues: [], board: new Map(), seats: [], reqs: [], sig: '', agr: null, signed: new Set(), support: '', fee: { cents: 0, seat: 0, url: '' }, results: new Map(), resultsAt: new Map(), mdraft: {}, open: {}, edraft: {}, invite: null, legends: null, endv: new Map(), mn: new Map() };
   const say = (id, text, kind) => { const el = $(id); el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); };
   const signedIn = () => !!(window.CC && window.CC.user);
   const client = () => window.CC && window.CC.client;
@@ -376,7 +381,15 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     await Promise.all(leagues.filter(l => l.status === 'started' && (ms.data || []).some(s => s.league_id === l.id)).map(async l => {
       const { data, error } = await c.rpc('end_vote_status', { p_league_id: l.id }); if (!error && data) endv.set(l.id, data);
     }));
-    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data, [...S.signed], S.rosters, [...S.results], [...endv]]);
+    // buy-in and winnings confirmations: only the answers people gave, never a record of the money (the site cannot see LeagueSafe)
+    const mn = new Map();
+    await Promise.all(leagues.filter(l => (l.buy_in_dollars || 0) > 0 && l.status !== 'canceled' && (ms.data || []).some(s => s.league_id === l.id)).map(async l => {
+      const o = {}, b = await c.rpc('buyin_status', { p_league_id: l.id }); if (!b.error && b.data) o.buyin = b.data;
+      if (l.status === 'complete') { const p = await c.rpc('payout_status', { p_league_id: l.id }); if (!p.error && p.data) o.payouts = p.data; }
+      mn.set(l.id, o);
+    }));
+    S.mn = mn;
+    const sig = JSON.stringify([leagues, [...board], ms.data, rq.data, [...S.signed], S.rosters, [...S.results], [...endv], [...mn]]);
     if (sig === S.sig) return;
     S.sig = sig; S.leagues = leagues; S.board = board; S.seats = ms.data || []; S.reqs = rq.data || []; S.endv = endv; render();
   }
@@ -550,7 +563,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   // ---------- the commissioner's five steps ----------
   function hqSteps(l, members, pending, mySeat) {
     const n = members.length, set = l.buy_in_dollars != null, fee = active(l), all = n >= 2 && !members.some(x => !x.ready);
-    const paid = store.get('cc-paid-' + l.id) === '1';
+    const bsx = (S.mn.get(l.id) || {}).buyin, paid = !!(bsx && bsx.counts && bsx.counts.members > 0 && bsx.counts.matched === bsx.counts.members);
     // keep recruiting until the league is full or everyone in has a roster, then collect the buy-ins, then start
     const next = !fee ? 'fee' : !set ? 'money' : (n < 2 || pending.length) ? 'invite' : (!all && n < 10) ? 'invite' : (l.buy_in_dollars > 0 && !paid) ? 'collect' : 'start';
     const mline = !set ? '' : l.buy_in_dollars === 0 ? 'No buy-in.' : (() => { const m = moneyFor(l); return `${usd(m.buy)} buy-in, split ${m.sh.join(' / ')}. With all 10 (you play free): pot ${usd(l.buy_in_dollars * 9)}.`; })();
@@ -558,7 +571,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       { id: 'created', title: 'League created', state: 'done', sum: `You're in seat ${mySeat ? mySeat.seat_no : 1}.` },
       { id: 'money', title: 'Set your buy-in and split', state: set ? 'done' : next === 'money' ? 'now' : 'todo', sum: mline || 'Do this first, so your invite can tell people what they are joining.', body: leagueMoney(l, true, true, true) },
       { id: 'invite', title: 'Invite your managers', state: n >= 10 ? 'done' : next === 'invite' ? 'now' : 'todo', sum: `${n} of 10 seats filled${pending.length ? `, ${pending.length} waiting for your approval` : ''}.`, badge: pending.length, body: !fee ? '<p class="note">Activate your league first (see above). Your invite switches on once the hosting fee is received.</p>' : !set ? '<p class="note">Set your buy-in and split first (step 2), so your invite email can tell people what they are joining.</p>' : inviteKit(l, members, pending) },
-      { id: 'collect', title: 'Collect buy-ins on LeagueSafe', state: (set && l.buy_in_dollars === 0) || paid ? 'done' : next === 'collect' ? 'now' : 'todo', sum: set && l.buy_in_dollars === 0 ? 'Not needed, there is no buy-in.' : paid ? 'You marked everyone as paid.' : 'Wait until everyone has paid before you start.', body: (set && l.buy_in_dollars > 0 ? `<label class="check paidbox"><input type="checkbox" data-paid="${l.id}" ${paid ? 'checked' : ''}> Every other manager has paid on LeagueSafe</label><p class="note" style="margin:0 0 6px">This is only your own reminder, kept on this device. Cooperstown Cash can't see who has paid.</p>` : '') + moneyExplainC(l, true, false) },
+      { id: 'collect', title: 'Collect buy-ins on LeagueSafe', state: (set && l.buy_in_dollars === 0) || paid ? 'done' : next === 'collect' ? 'now' : 'todo', sum: set && l.buy_in_dollars === 0 ? 'Not needed, there is no buy-in.' : paid ? 'Every member is confirmed by both sides.' : 'Check LeagueSafe, and ask each member to confirm.', body: (set && l.buy_in_dollars > 0 ? moneyCheckHtml(l, true) : '') + moneyExplainC(l, true, false) },
       { id: 'start', title: 'Start the season', state: next === 'start' ? 'now' : 'todo', sum: `${members.filter(x => x.ready).length} of ${n} rosters submitted.`, body: (mySeat ? rosterBar(l, members) : '') + startPanel(l, members, set) }
     ];
     const ico = { done: '&#10003;', now: '&#9679;', todo: '&#9675;' };
@@ -596,7 +609,8 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       ${started ? seasonBar(l) : ''}
       ${started || over ? moneyBoard(l) : ''}
       ${isC && money ? `<details class="mp" data-step="${l.id}:moneypanel" data-def="0" ${S.open[l.id + ':moneypanel'] ? 'open' : ''}><summary><b>Money and payouts</b></summary>${moneyExplainC(l, false, true)}</details>` : ''}
-      ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
+      ${money && (isC || mySeat) && l.buy_in_dollars > 0 ? moneyCheckHtml(l, isC) : ''}
+${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
       ${!started && !over ? memberList : ''}
       ${mySeat && live ? rosterBar(l, members) : ''}
       ${supportCard(l)}
@@ -665,7 +679,12 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     document.querySelectorAll('[data-money-save]').forEach(b => b.onclick = () => saveMoney(b.dataset.moneySave));
     document.querySelectorAll('.mf').forEach(i => i.oninput = () => moneyInput(i));
     document.querySelectorAll('.mset').forEach(el => moneyCheck(el.dataset.lid));
-    document.querySelectorAll('[data-paid]').forEach(i => i.onchange = () => { store.set('cc-paid-' + i.dataset.paid, i.checked ? '1' : ''); S.sig = ''; render(); });
+    document.querySelectorAll('[data-ls-save]').forEach(b => b.onclick = () => saveLsLink(b.dataset.lsSave));
+    document.querySelectorAll('[data-bi-me]').forEach(b => b.onclick = () => answerBuyin(b.dataset.biMe, b.dataset.says));
+    document.querySelectorAll('[data-bi-c]').forEach(s => s.onchange = () => markBuyin(s.dataset.biC, s.dataset.user, s.value));
+    document.querySelectorAll('[data-po-me]').forEach(b => b.onclick = () => answerPayout(b.dataset.poMe, b.dataset.place, b.dataset.says));
+    document.querySelectorAll('[data-po-c]').forEach(i => i.onchange = () => markPayout(i.dataset.poC, i.dataset.place, i.checked));
+    document.querySelectorAll('[data-rep-send]').forEach(b => b.onclick = () => sendReport(b.dataset.repSend));
     document.querySelectorAll('.ek').forEach(i => i.oninput = () => { const lid = i.dataset.lid, d = S.edraft[lid] || (S.edraft[lid] = {}); d[i.dataset.k] = i.value; });
     document.querySelectorAll('[data-email-open]').forEach(b => b.onclick = () => emailOpen(b.dataset.emailOpen));
     document.querySelectorAll('[data-email-copy]').forEach(b => b.onclick = () => emailCopy(b.dataset.emailCopy));
@@ -728,9 +747,58 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (error) return say('mmsg-' + lid, error.message, 'err');
     delete S.mdraft[lid]; S.sig = ''; await load(); say('mmsg-' + lid, 'Saved. Everyone in the league can see these numbers now.', 'ok');
   }
+  // ---------- the LeagueSafe checks: answers from the people involved, never a record of the money ----------
+  const LS_RE = /^https:\/\/(www\.)?leaguesafe\.com\/\S+$/i;
+  const PLACE_NAME = { champion: 'Champion', runner_up: 'Runner-up', best_record: 'Best regular-season record' };
+  const PO_LABEL = { confirmed: 'Winner confirmed &#10003;', waiting: 'Waiting for the winner to confirm', overdue: 'Not confirmed after 14 days', problem: 'The winner reports a problem', self: 'Won by the commissioner (self-reported)', cpu: 'Computer-run club: the prize follows your league\'s own rule' };
+  function moneyCheckHtml(l, isC) {
+    if (!((l.buy_in_dollars || 0) > 0) || l.status === 'canceled') return '';
+    const o = S.mn.get(l.id) || {}, b = o.buyin; if (!b) return '';
+    const cn = b.counts || {}, live = l.status === 'open' || l.status === 'full' || l.status === 'started', link = b.link && LS_RE.test(b.link) ? b.link : '';
+    let h = '';
+    if (b.snapshot) h += `<p class="note"><b>Started with ${b.snapshot.matched} of ${b.snapshot.total} buy-ins confirmed by both sides.</b></p>`;
+    if (isC) {
+      h += `<div class="lsl"><label for="lsl-${l.id}"><b>Your LeagueSafe link</b></label><div class="row"><input id="lsl-${l.id}" class="lsin" type="url" inputmode="url" autocomplete="off" placeholder="https://www.leaguesafe.com/..." value="${esc(link)}" ${live ? '' : 'disabled'}><button class="btn btn-alt" type="button" data-ls-save="${l.id}" ${live ? '' : 'disabled'}>Save link</button></div><p class="note" id="lslmsg-${l.id}" role="status">${link ? 'Members see this link on their league page.' : 'Paste the payment link from your LeagueSafe league. Until it is here, members are told not to pay anyone.'}</p></div>`;
+    } else {
+      h += link ? `<p><a class="btn btn-main" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Pay your ${usd(l.buy_in_dollars)} buy-in on LeagueSafe</a></p><p class="note">Pay only through this link. Never send a buy-in to Cooperstown Cash or to the commissioner's personal account. The league name on your LeagueSafe receipt should be ${esc(l.name)}.</p>` : `<p class="note warn"><b>Don't pay anyone yet.</b> Your commissioner hasn't added the LeagueSafe link. Wait for it, and never pay a personal account.</p>`;
+      if (live) {
+        const me = b.mine || {}, st = me.state === 'matched' ? 'You and the commissioner both say you have paid. &#10003;' : me.state === 'mismatch' ? 'You and the commissioner don\'t agree. Check your LeagueSafe receipt, then message the commissioner.' : me.member_says === 'paid' ? 'Waiting for the commissioner to confirm.' : me.commish_sees === true ? 'The commissioner says he sees your payment. Please confirm.' : '';
+        h += `<div class="bibox"><b>Did you pay your buy-in?</b><div class="row"><button class="btn ${me.member_says === 'paid' ? 'btn-main' : 'btn-alt'}" type="button" data-bi-me="${l.id}" data-says="paid" aria-pressed="${me.member_says === 'paid'}">I paid on LeagueSafe using the link above</button><button class="btn ${me.member_says === 'not_yet' ? 'btn-main' : 'btn-alt'}" type="button" data-bi-me="${l.id}" data-says="not_yet" aria-pressed="${me.member_says === 'not_yet'}">I haven't paid yet</button></div>${st ? `<p class="note">${st}</p>` : ''}</div>`;
+      }
+    }
+    h += cn.members ? `<p class="note" style="margin:4px 0">${cn.member_paid} of ${cn.members} member${cn.members === 1 ? '' : 's'} say they paid. The commissioner has confirmed ${cn.commish_seen}.${cn.mismatched ? ` <b>${cn.mismatched} ${cn.mismatched === 1 ? 'doesn\'t' : 'don\'t'} match.</b>` : ''}</p>` : '<p class="note">No members have joined yet.</p>';
+    if (isC && Array.isArray(b.rows) && b.rows.length) h += `<div class="scroll"><table class="eg"><thead><tr><th>Member</th><th>Says</th><th>Do you see their payment on LeagueSafe?</th></tr></thead><tbody>${b.rows.map(r => `<tr class="st-${esc(r.state)}"><td>${esc(r.club)}</td><td>${r.member_says === 'paid' ? 'Paid' : r.member_says === 'not_yet' ? 'Not yet' : 'No answer'}</td><td><select class="bic" data-bi-c="${l.id}" data-user="${esc(r.user_id)}" aria-label="Do you see ${esc(r.club)}'s payment on LeagueSafe?" ${live ? '' : 'disabled'}><option value="" ${r.commish_sees == null ? 'selected' : ''}>Not checked yet</option><option value="1" ${r.commish_sees === true ? 'selected' : ''}>I see their payment</option><option value="0" ${r.commish_sees === false ? 'selected' : ''}>I don't see their payment</option></select> <span class="stl">${r.state === 'matched' ? 'Matched &#10003;' : r.state === 'mismatch' ? 'Doesn\'t match' : 'Waiting'}</span></td></tr>`).join('')}</tbody></table></div>`;
+    const pl = (o.payouts && o.payouts.places) || [], m = moneyFor(l), amt = m ? { champion: m.champ, runner_up: m.runner, best_record: m.best } : {};
+    if (l.status === 'complete' && pl.length) h += `<h4>Prizes</h4><ul class="polist">${pl.map(p => `<li class="po-${esc(p.label)}"><b>${esc(PLACE_NAME[p.place] || p.place)}</b>${amt[p.place] ? ' (' + usd(amt[p.place]) + ')' : ''}: ${esc(p.club)}. <span class="polab">${PO_LABEL[p.label] || esc(p.label)}</span>${p.mine && p.label !== 'self' && p.label !== 'cpu' ? `<div class="row"><button class="btn btn-alt" type="button" data-po-me="${l.id}" data-place="${esc(p.place)}" data-says="received">I received it</button><button class="btn btn-alt" type="button" data-po-me="${l.id}" data-place="${esc(p.place)}" data-says="problem">Not yet, or a different amount</button></div>` : ''}${isC && p.label !== 'cpu' && p.label !== 'self' ? `<label class="check"><input type="checkbox" data-po-c="${l.id}" data-place="${esc(p.place)}" ${p.commish_assigned ? 'checked' : ''}> I assigned this prize on LeagueSafe</label>` : ''}</li>`).join('')}</ul>`;
+    h += `<details class="rep"><summary>Report a problem with this league</summary><textarea id="rep-${l.id}" maxlength="1000" rows="3" placeholder="What happened?" aria-label="Describe the problem"></textarea><div class="row"><button class="btn btn-alt" type="button" data-rep-send="${l.id}">Send report</button></div><p class="note" id="repmsg-${l.id}" role="status">Reports go to the owner of Cooperstown Cash.</p></details>`;
+    return `<div class="mcheck"><b>LeagueSafe and buy-ins</b>${h}</div>`;
+  }
+  async function mnCall(name, args, msgId) {
+    const { error } = await client().rpc(name, args);
+    if (error) { const el = msgId && $(msgId); if (el) { el.textContent = error.message; el.className = 'msg err'; } else alert(error.message); return false; }
+    S.sig = ''; await load(); return true;
+  }
+  function saveLsLink(id) {
+    const v = ($('lsl-' + id).value || '').trim(), el = $('lslmsg-' + id);
+    if (v && !LS_RE.test(v)) { el.textContent = 'That is not a LeagueSafe link. It should start with https://www.leaguesafe.com/'; el.className = 'msg err'; return; }
+    return mnCall('set_leaguesafe_url', { p_league_id: id, p_url: v }, 'lslmsg-' + id);
+  }
+  const answerBuyin = (id, says) => mnCall('confirm_my_buyin', { p_league_id: id, p_says: says });
+  const markBuyin = (id, user, val) => mnCall('commissioner_mark_buyin', { p_league_id: id, p_user_id: user, p_sees: val === '' ? null : val === '1' });
+  const answerPayout = (id, place, says) => mnCall('confirm_my_payout', { p_league_id: id, p_place: place, p_says: says });
+  const markPayout = (id, place, on) => mnCall('commissioner_mark_payout', { p_league_id: id, p_place: place, p_assigned: !!on });
+  async function sendReport(id) {
+    const ta = $('rep-' + id), el = $('repmsg-' + id), v = (ta.value || '').trim();
+    if (v.length < 3) { el.textContent = 'Please describe the problem in a few words.'; el.className = 'msg err'; return; }
+    const { error } = await client().rpc('report_league', { p_league_id: id, p_reason: v });
+    if (error) { el.textContent = error.message; el.className = 'msg err'; return; }
+    ta.value = ''; el.textContent = 'Thank you. Your report was sent to the owner of Cooperstown Cash.'; el.className = 'msg ok';
+  }
   async function startSeason(id) {
     const pick = document.querySelector(`input[name="pace-${id}"]:checked`), hrs = pick ? +pick.value : 24;
-    if (!confirm('Lock every roster and start the season? This can\'t be undone.')) return;
+    const bs = (S.mn.get(id) || {}).buyin, cn = bs && bs.counts, l0 = S.leagues.find(x => x.id === id);
+    let warn = ''; if (cn && l0 && (l0.buy_in_dollars || 0) > 0 && cn.matched < cn.members) warn = `\n\nHeads up: only ${cn.matched} of ${cn.members} buy-ins are confirmed by both you and the member${cn.mismatched ? ` (${cn.mismatched} don't match)` : ''}. Every member will see this count once the season starts.`;
+    if (!confirm('Lock every roster and start the season? This can\'t be undone.' + warn)) return;
     const { error } = await client().rpc('start_season', { p_league_id: id, p_hours: hrs });
     if (error) alert(error.message);
     S.sig = ''; load();
