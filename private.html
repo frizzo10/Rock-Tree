@@ -439,7 +439,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       const n = r.w + r.l, pct = n ? (r.w / n).toFixed(3).replace(/^0/, '') : '.000', diff = r.rs - r.ra, tags = (paid.get(r.seat) || []).map(x => `<span class="tag-money">${esc(x)}</span>`).join('') + (seedOf.has(r.seat) ? `<span class="seed">Seed ${seedOf.get(r.seat)}</span>` : '');
       return `<tr class="${paid.has(r.seat) ? 'in-money' : ''}"><td class="n">${i + 1}</td><td>${esc(r.club)}${cpu.has(r.seat) ? ' <span class="cpu">(computer-run)</span>' : ''}${tags ? `<div>${tags}</div>` : ''}</td><td class="n">${r.w}-${r.l}</td><td class="n">${pct}</td><td class="n">${diff > 0 ? '+' : ''}${diff}</td></tr>`;
     }).join('');
-    const intro = m ? '' : `<p class="note">${l.buy_in_dollars === 0 ? 'This league has no buy-in, so it plays for fun and no dollar amounts are shown.' : 'No buy-in has been set for this league, so no dollar amounts are shown.'}</p>`;
+    const intro = m ? '' : `<p class="note">${l.buy_in_dollars === 0 ? 'This league has no buy-in, so no dollar amounts are shown.' : 'No buy-in has been set for this league, so no dollar amounts are shown.'}</p>`;
     return `<div class="mb"><h4>${done ? 'Final standings and who gets paid' : 'Standings, and who is in the money if the season ended today'}</h4>${played ? '' : '<p class="note">No games have been played yet, so everyone is 0 and 0.</p>'}${intro}${lines.length ? `<ul class="mlines">${lines.join('')}</ul>` : ''}${series && !done ? `<h5>The playoffs so far</h5><ul class="mlines">${series}</ul>` : ''}
       <table class="st"><thead><tr><th class="n">#</th><th>Club</th><th class="n">W-L</th><th class="n">Pct</th><th class="n">Diff</th></tr></thead><tbody>${trs}</tbody></table>
       <p class="note">${done ? 'These are the final standings.' : 'This is a live scoreboard from the standings right now.'} Ties are broken by run difference, then runs scored, the same way the playoffs are seeded. It is not a payment or a promise: Cooperstown Cash does not set, hold, pay or guarantee any prize, and your league settles up between its members.</p></div>`;
@@ -449,7 +449,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const m = moneyFor(l), free = l.buy_in_dollars === 0, set = l.buy_in_dollars != null;
     let html = bare ? '' : '<h4>This league\'s money</h4>';
     if (m) html += `<p class="note" style="margin:2px 0 6px">Buy-in: <b>${usd(m.buy)}</b> per member${m.free ? ', except the commissioner, who plays free' : ''}. Split: champion <b>${m.sh[0]}%</b>, runner-up <b>${m.sh[1]}%</b>, best regular-season record <b>${m.sh[2]}%</b>. With ${m.humans} member${m.humans === 1 ? '' : 's'} in the league right now${m.free ? ` (${m.payers} paying)` : ''}, the pot is <b>${usd(m.pot)}</b>: champion ${usd(m.champ)}, runner-up ${usd(m.runner)}, best record ${usd(m.best)}.</p><p class="note" style="margin:2px 0 6px">${live ? 'The commissioner can change these until the season starts, then they lock.' : 'The commissioner set these before the season started, and they are locked.'} They are shown for everyone to see. Cooperstown Cash does not set, hold, pay or guarantee any prize.</p>`;
-    else if (free) html += '<p class="note" style="margin:2px 0 6px">The commissioner set no buy-in, so this league plays for fun.</p>';
+    else if (free) html += '<p class="note" style="margin:2px 0 6px">The commissioner set no buy-in, so no dollar amounts are shown.</p>';
     else if (!(bare && isC && live)) html += `<p class="note" style="margin:2px 0 6px">${isC && live ? 'Set your league\'s buy-in and split below, so every member sees the same numbers.' : live ? 'The commissioner has not set a buy-in yet.' : 'No buy-in was set for this league.'}</p>`;
     if (isC && live) {
       const d = S.mdraft[l.id] || {}, sp = l.payout_split || [60, 25, 15], v = (k, saved) => esc(d[k] != null ? d[k] : saved == null ? '' : saved);
@@ -466,7 +466,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function startPanel(l, members, moneySet) {
     const waiting = members.filter(m => !m.ready), enough = members.length >= 2, empty = 10 - members.length, all = enough && !waiting.length && moneySet;
     return `<div class="start"><b>Start the season</b>
-      <p class="note" style="margin:4px 0">${!moneySet ? 'Set your buy-in and split first (step 2). Choose $0 if this league is just for fun. They lock when the season starts.' : !enough ? 'You need at least two real clubs to start a season. Invite someone with the link above.' : all ? `Every roster is submitted. Starting locks every roster and builds the 27-game schedule. It can\'t be undone.${empty ? ` The ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs, marked CPU, that play on schedule.` : ''}` : `Waiting on ${waiting.length} roster${waiting.length === 1 ? '' : 's'}: ${waiting.map(m => esc(m.club_name)).join(', ')}. You can start as soon as every club here has submitted${empty ? `, and the ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs` : ''}.`}</p>
+      <p class="note" style="margin:4px 0">${!moneySet ? 'Set your buy-in and split first (step 2). Choose $0 if this league has no buy-in. They lock when the season starts.' : !enough ? 'You need at least two real clubs to start a season. Invite someone with the link above.' : all ? `Every roster is submitted. Starting locks every roster and builds the 27-game schedule. It can\'t be undone.${empty ? ` The ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs, marked CPU, that play on schedule.` : ''}` : `Waiting on ${waiting.length} roster${waiting.length === 1 ? '' : 's'}: ${waiting.map(m => esc(m.club_name)).join(', ')}. You can start as soon as every club here has submitted${empty ? `, and the ${empty} empty seat${empty === 1 ? '' : 's'} will be filled with computer-run clubs` : ''}.`}</p>
       <fieldset class="pace" ${all ? '' : 'disabled'}><legend class="note">How fast should the season go?</legend>
         <label class="check"><input type="radio" name="pace-${l.id}" value="24" checked> One game day a day <span class="note">(about 4 weeks)</span></label>
         <label class="check"><input type="radio" name="pace-${l.id}" value="12"> Two a day <span class="note">(about 2 weeks)</span></label>
@@ -502,7 +502,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       free ? `- Buy-in: ${usd(buy)} each, except me. I'm the commissioner and I'm playing free, so the other managers' buy-ins cover my seat.` : `- Buy-in: ${usd(buy)} each.`,
       `- If all 10 managers join, ${free ? `nine buy-ins make a pot of ${usd(pot)}` : `the pot is ${usd(pot)}`}: ${spots}.`,
       "- If we don't fill all ten seats, computer-run clubs take the empty ones. They pay nothing, so the pot is just the real managers' buy-ins.",
-      '- After I approve you, LeagueSafe, an independent service, collects and holds the buy-ins and pays out the winners. You never pay the site or me directly, and the site never touches the money.'] : ['- There is no buy-in. This league is just for fun.'];
+      '- After I approve you, LeagueSafe, an independent service, collects and holds the buy-ins and pays out the winners. You never pay the site or me directly, and the site never touches the money.'] : ['- There is no buy-in.'];
     const body = ['Hi,', '', `I'm starting a baseball league called ${l.name} and I'd like you in it. It's a simulation game with real player stats and dice, and I'm only inviting people I know.`, '',
       buy > 0 ? 'The money' : 'The cost', ...moneyLines, '',
       'The game',
@@ -516,7 +516,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       buy > 0 ? '4. I approve you, then send you the LeagueSafe link to pay your buy-in.' : '4. I approve you, and you can build your roster.', '',
       'Reply to this email with any questions.', '', '[your name]'].join('\n');
     const subject = `Join my baseball dice league: ${l.name}${buy > 0 ? ` (${usd(buy)} buy-in)` : ''}`;
-    const text = `I'm running a baseball dice league, ${l.name}${buy > 0 ? `: ${usd(buy)} buy-in, ${usd(pot)} pot if we fill up` : ', just for fun'}. I approve everyone myself. Details and sign-up: ${link}`;
+    const text = `I'm running a baseball dice league, ${l.name}${buy > 0 ? `: ${usd(buy)} buy-in, ${usd(pot)} pot if we fill up` : ', no buy-in'}. I approve everyone myself. Details and sign-up: ${link}`;
     return { subject, body, text };
   }
   function inviteKit(l, members, pending) {
@@ -536,7 +536,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const paid = store.get('cc-paid-' + l.id) === '1';
     // keep recruiting until the league is full or everyone in has a roster, then collect the buy-ins, then start
     const next = !fee ? 'fee' : !set ? 'money' : (n < 2 || pending.length) ? 'invite' : (!all && n < 10) ? 'invite' : (l.buy_in_dollars > 0 && !paid) ? 'collect' : 'start';
-    const mline = !set ? '' : l.buy_in_dollars === 0 ? 'No buy-in: just for fun.' : (() => { const m = moneyFor(l); return `${usd(m.buy)} buy-in, split ${m.sh.join(' / ')}. With all 10${l.commish_free ? ' (you play free)' : ''}: pot ${usd(l.buy_in_dollars * (10 - (l.commish_free ? 1 : 0)))}.`; })();
+    const mline = !set ? '' : l.buy_in_dollars === 0 ? 'No buy-in.' : (() => { const m = moneyFor(l); return `${usd(m.buy)} buy-in, split ${m.sh.join(' / ')}. With all 10${l.commish_free ? ' (you play free)' : ''}: pot ${usd(l.buy_in_dollars * (10 - (l.commish_free ? 1 : 0)))}.`; })();
     const steps = [
       { id: 'created', title: 'League created', state: 'done', sum: `You're in seat ${mySeat ? mySeat.seat_no : 1}.` },
       { id: 'money', title: 'Set your buy-in and split', state: set ? 'done' : next === 'money' ? 'now' : 'todo', sum: mline || 'Do this first, so your invite can tell people what they are joining.', body: leagueMoney(l, true, true, true) },
@@ -611,7 +611,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const tile = (k, v) => `<div class="tile"><span>${k}</span><b>${v}</b></div>`;
     const lg = (S.legends || []).map(c => `<article class="mini"><div class="y">${esc(c.yr)}</div><h4>${esc(c.name)}</h4><p>${esc(c.line)}</p></article>`).join('');
     box.innerHTML = `<h2>${esc(d.name)}</h2><p class="lede">A baseball dice league with real stats from baseball history. You're here because someone who knows you asked you to play.</p>
-      <div class="tiles">${tile('Buy-in', !set ? 'To be announced' : free ? 'None: just for fun' : usd(buy))}${buy > 0 ? tile('Pot if all 10 join', usd(pot)) : ''}${tile('Seats open', `${d.seats_left} of 10`)}</div>
+      <div class="tiles">${tile('Buy-in', !set ? 'To be announced' : free ? 'None' : usd(buy))}${buy > 0 ? tile('Pot if all 10 join', usd(pot)) : ''}${tile('Seats open', `${d.seats_left} of 10`)}</div>
       ${spots ? `<p class="pay"><b>Payouts if the league fills up:</b> ${esc(spots)}.</p>` : ''}
       ${d.commish_free && buy > 0 ? '<p class="note">The commissioner is playing free, so a full league\'s pot is nine buy-ins.</p>' : ''}
       ${lg ? `<h3>Seasons you could be drafting</h3><div class="minis">${lg}</div>` : ''}
