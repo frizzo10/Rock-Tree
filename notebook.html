@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Manager's notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.png">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #F0E8D2; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2;
+  --folder: #E8D5A4; --folder-edge: #C9B27A; --folder-ink: #3A2E12; --lamp: #F2B33D;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url(blueprint.webp) center / cover no-repeat; }
+body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(rgba(243,236,216,.10), rgba(243,236,216,.30)); }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 3px; }
+button { font: inherit; }
+.deck { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; align-items: start; }
+@media (max-width: 980px) { .deck { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .deck { grid-template-columns: 1fr; } }
+.card { display: flex; flex-direction: column; background: #F3EAD3; color: #3A2E12; border-radius: 10px; padding: 9px; box-shadow: 0 4px 0 #C9B27A, 0 12px 20px rgba(0,0,0,.22); transform: rotate(var(--r, 0deg)); transition: transform .25s, box-shadow .25s; }
+.card .in { border: 3px double #8C6D2F; border-radius: 6px; padding: 12px 14px 12px; background: linear-gradient(#FBF5E3, #F0E4C4); flex: 1 1 auto; display: flex; flex-direction: column; }
+.card .yr { font: 400 40px/1 var(--marker); color: #9E2B22; }
+.card .nm { font: 400 24px/1.08 var(--marker); color: var(--wb-ink); margin: 4px 0 2px; }
+.card .meta { font-size: 12.5px; color: #6B5A2C; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.card .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; text-align: center; }
+.card .stats div { background: rgba(31,63,143,.08); border-radius: 5px; padding: 5px 0 4px; }
+.card .stats b { display: block; font: 400 24px/1.1 var(--marker); color: var(--wb-ink); }
+.card .stats small { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #6B5A2C; }
+.card .gl { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #1E7B45; }
+.card .stats.game { margin: 4px 0 10px; } .card .stats.game div { background: rgba(30,123,69,.12); } .card .stats.game b { color: #17603A; font-size: 21px; }
+.card .roll { list-style: none; margin: 2px 0 10px; padding: 0; display: grid; gap: 1px; font-size: 13px; } .card .roll li { display: flex; gap: 8px; } .card .roll b { min-width: 4.7em; font-weight: 700; color: #6B5A2C; } .card .roll li.g span { font-weight: 600; color: #17603A; }
+.card .ask { align-self: flex-start; min-height: 44px; margin: 0 0 10px; padding: 8px 16px; background: var(--wb-ink); color: #fff; border: 0; border-radius: 4px; font: 700 15px var(--text); cursor: pointer; } .card .ask:hover { background: #17306E; }
+.card .scoutbox { background: rgba(31,63,143,.07); border-left: 4px solid var(--wb-ink); padding: 8px 12px 6px; margin: 0 0 10px; font-size: 13.5px; line-height: 1.4; }
+.scoutbox h4 { font: 400 18px/1.15 var(--marker); margin: 0 0 4px; color: var(--wb-ink); } .scoutbox ul { margin: 4px 0; padding-left: 1.1em; } .scoutbox li { margin: 4px 0; } .scoutbox .voice { margin: 4px 0 6px; font-weight: 600; } .scoutbox .nudge { margin: 4px 0; font-size: 13px; color: #4A5560; }
+.scoutbox .slink { display: inline-block; background: none; border: 0; padding: 0 2px; min-height: 44px; font: 700 14px var(--text); color: var(--wb-ink); text-decoration: underline; cursor: pointer; }
+.card .txt { font-size: 13.5px; line-height: 1.4; margin: 0 0 10px; }
+.card .foot { margin-top: auto; border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
+.card .foot.open { color: var(--wb-green); }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) { .card:hover { transform: rotate(0deg) translateY(-6px); box-shadow: 0 4px 0 #C9B27A, 0 20px 28px rgba(0,0,0,.3); } .folder:hover { transform: translateY(-4px); box-shadow: 0 7px 0 var(--folder-edge), 0 16px 22px rgba(0,0,0,.18); } }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 22px 16px 48px; }
+.crumbs { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; } .crumbs a { color: var(--ink); font-weight: 600; } .badge img { width: 52px; height: 52px; display: block; }
+.acct { background: rgba(247,242,228,.92); border-radius: 4px; padding: 4px 12px; margin-left: auto; }
+.board { background: rgba(247,248,246,.92); color: #20262D; border-radius: 4px; padding: 18px 24px 20px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 6px 0 rgba(0,0,0,.18); }
+.board h1 { font: 400 clamp(34px, 6vw, 54px)/1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .board p { margin: 4px 0 0; font-size: 17px; line-height: 1.5; max-width: 70ch; }
+.gate { background: rgba(247,242,228,.95); border-radius: 4px; padding: 18px 24px 20px; margin: 18px 0 0; box-shadow: 0 2px 0 rgba(0,0,0,.12), inset 5px 0 0 var(--lamp); } .gate h2 { font: 400 28px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .gate p { margin: 4px 0 10px; font-size: 17px; max-width: 60ch; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 20px; border-radius: 4px; font: 600 17px var(--text); text-decoration: none; cursor: pointer; border: 1.5px solid transparent; } .btn-main { background: var(--wb-ink); color: #fff; } .btn-main:hover { background: #17306E; } .btn-alt { background: rgba(247,242,228,.95); color: var(--ink); border-color: #8C959E; } .btn[disabled] { opacity: .45; cursor: default; }
+.tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; background: rgba(247,242,228,.95); border-radius: 4px; padding: 12px 16px 14px; margin: 18px 0 8px; }
+.tools label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4A5560; } .tools input, .tools select { font: 16px var(--text); min-height: 44px; padding: 6px 10px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: var(--ink); min-width: 150px; } .tools .grow { flex: 1 1 220px; } .tools .grow input { width: 100%; }
+.count { margin: 10px 2px 12px; font-weight: 700; color: var(--ink); background: rgba(247,242,228,.9); display: inline-block; padding: 4px 12px; border-radius: 4px; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 26px 0 0; } .pager span { background: rgba(247,242,228,.92); padding: 6px 14px; border-radius: 4px; font-weight: 700; }
+.card { --r: 0deg; } .card .badgeL { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 10px; background: #F0DFA0; color: #5B4712; font: 700 12px var(--text); letter-spacing: .06em; text-transform: uppercase; vertical-align: 6px; }
+.card .bargain { margin: 0 0 8px; padding: 4px 8px; border-radius: 4px; background: rgba(30,123,69,.14); color: #17603A; font-size: 13px; font-weight: 700; }
+.card .ask { align-self: flex-start; min-height: 44px; margin: 6px 0 10px; padding: 8px 16px; background: var(--wb-ink); color: #fff; border: 0; border-radius: 4px; font: 700 15px var(--text); cursor: pointer; } .card .ask:hover { background: #17306E; }
+.card .foot { margin-top: auto; border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
+.empty { background: rgba(247,242,228,.95); border-radius: 4px; padding: 20px 24px; font-size: 17px; }
+footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); display: inline-block; padding: 8px 14px; border-radius: 4px; } footer a { color: inherit; font-weight: 600; }
+
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; }
+.tabbtn { min-height: 44px; padding: 8px 18px; border: 0; border-bottom: 4px solid transparent; border-radius: 6px 6px 0 0; background: rgba(247,242,228,.62); color: var(--ink); font: 700 16px var(--text); cursor: pointer; } .tabbtn:hover { background: rgba(247,242,228,.85); } .tabbtn[aria-selected="true"] { background: rgba(247,242,228,.98); border-bottom-color: var(--lamp); }
+.page { background: rgba(247,242,228,.97); border-radius: 0 4px 4px 4px; padding: 16px 20px 22px; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+.page h2 { font: 400 26px/1.1 var(--marker); color: var(--wb-ink); margin: 18px 0 8px; } .page > h2:first-child { margin-top: 0; } .page p { margin: 6px 0; font-size: 17px; line-height: 1.5; max-width: 74ch; } .page ol, .page ul.plain { font-size: 17px; line-height: 1.5; max-width: 74ch; padding-left: 1.3em; } .page li { margin: 4px 0; }
+.muted { color: #5A646E; font-size: 15px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; } .row label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4A5560; } .row .grow { flex: 1 1 240px; } .row .grow input { width: 100%; }
+.page input[type=search], .page input[type=number], .page select { font: 16px var(--text); min-height: 44px; padding: 6px 10px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: var(--ink); } .page input[type=number] { width: 110px; }
+.row label.chk { flex-direction: row; align-items: center; gap: 8px; min-height: 44px; text-transform: none; letter-spacing: 0; font-size: 16px; color: var(--ink); } .row label.chk input { width: 22px; height: 22px; }
+.sum { margin: 10px 0 0; padding: 10px 14px; border-radius: 4px; background: #EDF1F7; border-left: 5px solid var(--wb-ink); font-size: 17px; line-height: 1.5; max-width: none !important; } .sum.good { background: #E4F2E9; border-left-color: #1E7B45; } .sum.warn { background: #FFF4CF; border-left-color: #C69A2B; } .sum.bad { background: #FBE3DF; border-left-color: #B03A2E; }
+.gh { font: 400 21px/1.1 var(--marker); color: var(--wb-ink); margin: 18px 0 6px; }
+ul.slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .slot { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 8px 12px; }
+.sl { flex: none; min-width: 3.4em; font-weight: 700; color: #4A5560; padding-top: 2px; } .who { flex: 1; min-width: 0; } .line { font-size: 16px; line-height: 1.5; }
+.lk { background: none; border: 0; padding: 0 2px; min-height: 44px; min-width: 44px; font: 700 15px var(--text); color: var(--wb-ink); text-decoration: underline; cursor: pointer; }
+.bg { display: inline-block; margin: 0 6px 0 0; padding: 1px 9px; border-radius: 10px; background: rgba(30,123,69,.15); color: #17603A; font: 700 12px var(--text); } .bg.lk { background: #F0DFA0; color: #5B4712; text-decoration: none; min-height: 0; min-width: 0; }
+ul.buy li { display: flex; align-items: center; gap: 8px; margin: 2px 0; font-size: 16px; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 2px 10px; }
+.star { all: unset; cursor: pointer; font-size: 24px; line-height: 1; color: #B7BDC2; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; } .star[aria-pressed="true"] { color: #D4A017; } .star:focus-visible { outline: 3px solid var(--lamp); }
+#syncNote { margin: 8px 0 0; font-size: 15px; color: #4A5560; }
+textarea#notes { width: 100%; min-height: 260px; font: 17px/1.5 var(--text); padding: 10px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: var(--ink); resize: vertical; }
+.when { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; color: #4A5560; margin: 0 0 6px; font-weight: 600; }
+.chs { display: grid; gap: 6px; } .ch { display: flex; align-items: flex-start; gap: 10px; background: #F7F9FB; border: 1px solid #DDE3EA; border-radius: 6px; padding: 6px 10px; } .ch > div { flex: 1; min-width: 0; } .ch.empty { background: transparent; border-style: dashed; align-items: center; }
+.cl { flex: none; width: 1.7em; height: 1.7em; border-radius: 50%; background: var(--wb-ink); color: #fff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; margin-top: 2px; } .ch.empty .cl { background: #8C959E; margin-top: 0; }
+.rk { display: inline-block; margin: 0 6px 0 0; padding: 1px 9px; border-radius: 10px; font: 700 12px var(--text); } .rk.hi { background: #FBE3DF; color: #9E2B22; } .rk.md { background: #FFF1C9; color: #7A5200; } .rk.lo { background: #E4F2E9; color: #17603A; }
+.picker { background: #EEF3FA; border: 2px solid var(--wb-ink); border-radius: 6px; padding: 10px 14px 12px; margin: 14px 0; } .picker h3 { font: 400 22px var(--marker); color: var(--wb-ink); margin: 0 0 8px; } .picker ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; } .picker li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 6px; padding: 6px 10px; } .pw { min-width: 0; font-size: 16px; line-height: 1.5; } .btn.sm { min-height: 44px; padding: 6px 14px; font-size: 16px; flex: none; }
+details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 4px 14px 10px; } details.opp summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; font-size: 17px; } #oppTable { overflow-x: auto; } #oppTable table { border-collapse: collapse; width: 100%; font-size: 15px; } #oppTable th, #oppTable td { padding: 2px 8px; border-bottom: 1px solid #E6E9EC; text-align: left; vertical-align: middle; } #oppTable th { font-size: 13px; color: #4A5560; }
+</style>
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+<script src="nb.js"></script>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a><a href="notebook.html" style="margin-left:14px" aria-current="page">Notebook</a></nav>
+  <header class="board">
+    <h1>Manager's notebook</h1>
+    <p>Plan your draft before the clock starts. For every spot, line up a first, second and third choice, see how the computer drafts and who it is likely to grab first, and check your plan against the salary cap. Your plan follows you from game to game.</p>
+    <p id="syncNote" aria-live="polite"></p>
+  </header>
+  <div class="tabs" role="tablist" aria-label="Notebook">
+    <button class="tabbtn" role="tab" type="button" id="tPlan" aria-selected="true" aria-controls="pPlan">Draft plan</button>
+    <button class="tabbtn" role="tab" type="button" id="tBuys" aria-selected="false" aria-controls="pBuys" tabindex="-1">Best buys</button>
+    <button class="tabbtn" role="tab" type="button" id="tNotes" aria-selected="false" aria-controls="pNotes" tabindex="-1">Notes</button>
+    <button class="tabbtn" role="tab" type="button" id="tHow" aria-selected="false" aria-controls="pHow" tabindex="-1">How it works</button>
+  </div>
+  <section class="page" id="pPlan" role="tabpanel" aria-labelledby="tPlan">
+    <div class="row">
+      <label>Plan for<select id="mode"><option value="mock">Mock draft: $100M, 18 spots</option><option value="league">League roster: $150M, 25 spots</option></select></label>
+      <button class="btn btn-alt" id="clear" type="button">Clear this plan</button>
+    </div>
+    <p id="lead"></p>
+    <h2>Budget check</h2>
+    <div id="check" role="status" aria-live="polite"></div>
+    <details class="opp" id="opp" open>
+      <summary>How the computer drafts, and who it takes first</summary>
+      <p>The computer takes the priciest player it can afford, nudged up or down by as much as 15% at random, and it leans toward hitters or pitchers depending on which side of its roster it is shorter of. A coin flip decides who picks first. So the highest-priced players go first, and the middle of the pool lasts longer. These are the players most likely to be gone, from 600 simulated drafts (an estimate):</p>
+      <p id="oppCap" class="muted"></p>
+      <div id="oppTable"></div>
+    </details>
+    <h2>Your shortlist</h2>
+    <div id="short"></div>
+    <div class="picker" id="picker" hidden>
+      <h3 id="pTitle"></h3>
+      <div class="row"><label class="grow">Search<input id="q" type="search" placeholder="Name, team or year" autocomplete="off"></label><label>Price limit ($M)<input id="pLimit" type="number" min="1" max="20" step="0.5" value="5.5"></label><button class="btn btn-alt" id="pClose" type="button">Close</button></div>
+      <p class="muted">Your starred players come first, then the best by Runs+ at or under your price limit. Search to see anyone.</p>
+      <ul id="pList"></ul>
+    </div>
+    <h2>Your plan</h2>
+    <div id="board"></div>
+    <div id="order"><h2>The order you plan to take them</h2><div id="orderBody"></div></div>
+  </section>
+  <section class="page" id="pBuys" role="tabpanel" aria-labelledby="tBuys" hidden>
+    <h2>Best buys</h2>
+    <div class="row"><label>Spend up to ($M) at each spot<input id="limit" type="number" min="1" max="20" step="0.5" value="5.5"></label><label class="chk"><input id="barg" type="checkbox"> Bargains only</label></div>
+    <p class="muted" id="hint"></p>
+    <div id="buys"></div>
+  </section>
+  <section class="page" id="pNotes" role="tabpanel" aria-labelledby="tNotes" hidden>
+    <h2>Notes</h2>
+    <p class="muted">Anything you want to remember for your drafts. It saves as you type and stays with your notebook.</p>
+    <textarea id="notes" aria-label="Your notes" placeholder="Need a lefty bat. Wait on relievers. Don't let the computer get Mays..."></textarea>
+    <p class="muted" id="saved" role="status" aria-live="polite"></p>
+  </section>
+  <section class="page" id="pHow" role="tabpanel" aria-labelledby="tHow" hidden>
+    <h2>Why plan ahead</h2>
+    <p>In a mock draft you get 60 seconds a pick. That is not much time to read cards and check a budget. The notebook is where you do that thinking first, so on the clock you are just following your plan.</p>
+    <h2>How to use it</h2>
+    <ol>
+      <li><b>Choose three players for each spot.</b> Press <i>Choose your first choice</i> on a spot, then add a second and third as backups. Starred players are listed first, and you can search for anyone.</li>
+      <li><b>Say when you will take him.</b> Early means one of your first 3 picks, middle is picks 4 to 9, late is picks 10 to 18. A badge on each choice shows how likely the computer is to take him before your pick, so you know which spots to fill first.</li>
+      <li><b>Check the budget.</b> The notebook adds up your first choices against the cap, and prices every empty spot at its cheapest, so it can tell you how much room you really have.</li>
+      <li><b>Draft with it open.</b> In the draft room your plan sits next to the scout: the next spot on your plan, your first choice who is still available, and a Draft button. If the computer takes your first choice, your second is right there.</li>
+      <li><b>It stays with you.</b> Your plan and shortlist are saved on your device, and when you are signed in they follow you to every device and every game, so you build one strategy and keep refining it.</li>
+    </ol>
+    <h2>What the numbers mean</h2>
+    <ul class="plain">
+      <li><b>Runs+</b> is how many runs a player's season is worth over an average player. It is the fastest way to compare anyone from 1901 to today.</li>
+      <li><b>Price.</b> Every price is $1M for taking a spot plus a charge for the runs a player adds: about $0.21M per run for a hitter, $0.26M for a starter and $0.30M for a reliever. So bats are the cheapest source of runs and relievers the most expensive, and a star gives you more for each dollar than a cheap player does, because the $1M for the spot is spread over more runs. These are facts about the price scale. The dice still decide every game.</li>
+      <li><b>Bargain</b> means a player's price is below what his real season says he is worth. There are 47 of them in the game.</li>
+      <li><b>Risk</b> is the share of simulated drafts in which the computer takes a player before your pick. It is an estimate: the real computer also follows the salary cap and the positions it needs, which the simulation only roughly includes.</li>
+      <li><b>Room to spare</b> is the cap minus your first choices minus the cheapest way to fill every other spot. It is the same number the draft room shows.</li>
+      <li><b>Legends</b> are the 45 highest-rated seasons. In a mock draft they are locked until you win 3 games with a team you drafted. In a league or at a free table they are open to everyone.</li>
+    </ul>
+  </section>
+  <footer><a href="terms.html">Terms of Service</a> &middot; <a href="privacy.html">Privacy Policy</a></footer>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const KR = { H: .21, SP: .26, RP: .30 }, runsOf = p => Math.round((p.s - 1) / KR[p.kd]);
+  const mon = x => '$' + (Number.isInteger(x) ? x : x.toFixed(1)) + 'M', r1 = x => Math.round(x * 10) / 10;
+  const LAB = { c: 'C', '1b': '1B', '2b': '2B', '3b': '3B', ss: 'SS', lf: 'LF', cf: 'CF', rf: 'RF' };
+  const MODES = { mock: { name: 'Mock draft', cap: 100, tight: 4, rp: 4 }, league: { name: 'League roster', cap: 150, tight: 6, rp: 7 } };
+  const WIN = { early: [3, 'Early: your first 3 picks'], mid: [9, 'Middle: picks 4 to 9'], late: [18, 'Late: picks 10 to 18'] }, CH = ['A', 'B', 'C'], CHN = ['first', 'second', 'third'];
+  const progress = () => { try { return JSON.parse(localStorage.getItem('gts-progress')) || {}; } catch (e) { return {}; } };
+  // Rookie mode (a setting on the draft screen, on for new players) gives the computer an $80M cap instead of $100M
+  const rookie = () => { let r = null; try { r = JSON.parse(localStorage.getItem('gts-rookie')); } catch (e) {} return r === null ? (progress().wins || 0) < 1 : !!r; };
+  let ALL = [], BYK = new Map(), mode = 'mock', picker = null, pLimit = null, RISK = null;
+
+  function slotsOf(m) {
+    const S = []; Object.keys(LAB).forEach(id => S.push({ id, label: LAB[id], grp: 'Lineup', type: 'f' })); S.push({ id: 'dh', label: 'DH', grp: 'Lineup', type: 'dh' });
+    if (m === 'league') for (let i = 1; i <= 4; i++) S.push({ id: 'bn' + i, label: 'Bench ' + i, grp: 'Bench', type: 'bn' });
+    for (let i = 1; i <= 5; i++) S.push({ id: 'sp' + i, label: 'SP' + i, grp: 'Rotation', type: 'sp' });
+    for (let i = 1; i <= MODES[m].rp; i++) S.push({ id: 'rp' + i, label: 'RP' + i, grp: 'Bullpen', type: 'rp' });
+    return S;
+  }
+  const canFill = (s, p) => s.type === 'f' ? p.kd === 'H' && p.e.includes(s.id) : (s.type === 'dh' || s.type === 'bn') ? p.kd === 'H' : s.type === 'sp' ? p.kd === 'SP' : p.kd !== 'H';
+  const minMemo = {}, minFor = s => { const k = s.type === 'f' ? s.id : s.type === 'bn' ? 'dh' : s.type; return minMemo[k] ?? (minMemo[k] = Math.min(...ALL.filter(p => canFill(s, p)).map(p => p.s))); };
+  const locked = (p, m) => m === 'mock' && p.g && (progress().wins || 0) < 3;
+  const posTxt = p => p.kd === 'H' ? p.e.map(x => LAB[x]).filter(Boolean).join(', ') : p.kd;
+  const listOf = a => a.length < 2 ? a.join('') : a.length === 2 ? a.join(' and ') : a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1];
+  const badge = p => `${p.st > 0 ? `<span class="bg">Bargain: ${mon(p.st)} under his worth</span>` : ''}${locked(p, mode) ? '<span class="bg lk">Locked legend</span>' : ''}`;
+
+  // ---- the computer, modeled exactly as the draft room plays it: the priciest player it can afford, nudged up or down at random, leaning toward the side of the roster it is shorter of ----
+  const mulberry32 = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  function simulate(runs = 600) {
+    const pool = ALL.filter(p => !locked(p, 'mock')), n = pool.length, rnd = mulberry32(20261003), cnt = new Uint16Array(n * 3);
+    const minH = Math.min(...pool.filter(p => p.kd === 'H').map(p => p.s)), minP = Math.min(...pool.filter(p => p.kd !== 'H').map(p => p.s)), CAP = rookie() ? 80 : 100;   // the computer's cap
+    for (let r = 0; r < runs; r++) {
+      const taken = new Uint8Array(n); let hitNeed = 9, pitNeed = 9, pay = 0;
+      for (let pick = 1; pick <= 18; pick++) {
+        let best = -1, bs = -1;
+        for (let i = 0; i < n; i++) {
+          if (taken[i]) continue; const p = pool[i], h = p.kd === 'H'; if (h ? hitNeed <= 0 : pitNeed <= 0) continue;
+          if (pay + p.s + (h ? hitNeed - 1 : hitNeed) * minH + (h ? pitNeed : pitNeed - 1) * minP > CAP) continue;   // it keeps enough back to fill its roster
+          const s = p.s * (0.85 + rnd() * 0.3) * (h ? (hitNeed >= pitNeed ? 1.08 : 0.95) : (pitNeed > hitNeed ? 1.08 : 0.95)); if (s > bs) { bs = s; best = i; }
+        }
+        if (best >= 0) { taken[best] = 1; pay += pool[best].s; if (pool[best].kd === 'H') hitNeed--; else pitNeed--; }   // a run that cannot afford another legal pick still counts at the later checkpoints
+        if (pick === 3 || pick === 9 || pick === 18) { const c = pick === 3 ? 0 : pick === 9 ? 1 : 2; for (let i = 0; i < n; i++) if (taken[i]) cnt[i * 3 + c]++; }
+      }
+    }
+    const m = new Map(); pool.forEach((p, i) => m.set(p.k, [cnt[i * 3] / runs, cnt[i * 3 + 1] / runs, cnt[i * 3 + 2] / runs])); return m;
+  }
+  const WI = { early: 0, mid: 1, late: 2 };
+  const riskOf = (p, when) => { const v = RISK && RISK.get(p.k); const pct = v ? Math.round(v[WI[when] ?? 1] * 100) : 0; return { pct, cls: pct >= 50 ? 'hi' : pct >= 15 ? 'md' : 'lo' }; };
+  const riskTxt = (p, when) => { if (mode !== 'mock') return ''; const r = riskOf(p, when); return `<span class="rk ${r.cls}" title="The computer takes him before your pick in about ${r.pct}% of simulated drafts (an estimate)">${r.cls === 'hi' ? 'High risk' : r.cls === 'md' ? 'Some risk' : 'Low risk'}: ${r.pct}%</span>`; };
+
+  function check(m, plan) {   // the plan's first choices against the cap, the way the draft room counts room to spare
+    const S = slotsOf(m), used = new Set(), dup = [], picked = [];
+    S.forEach(s => { const e = plan[s.id], k = e && e.picks[0], p = k && BYK.get(k); if (!p) return; if (used.has(k)) { dup.push(p); return; } used.add(k); picked.push([s, p]); });
+    const open = S.filter(s => !picked.some(([x]) => x === s)), spend = picked.reduce((a, [, p]) => a + p.s, 0), fill = open.reduce((a, s) => a + minFor(s), 0), cap = MODES[m].cap;
+    return { S, picked, dup, spend: r1(spend), open: open.length, fill: r1(fill), cap, room: r1(cap - spend - fill), per: open.length ? r1((cap - spend) / open.length) : 0 };
+  }
+  function candidates(s, q, limit, stars, chosen) {
+    const ok = p => canFill(s, p) && !locked(p, mode) && !chosen.has(p.k);
+    if (q.length >= 2) return ALL.filter(p => ok(p) && `${p.n} ${p.y} ${p.t}`.toLowerCase().includes(q)).sort((a, b) => b.s - a.s || a.n.localeCompare(b.n)).slice(0, 8);
+    const star = stars.map(k => BYK.get(k)).filter(p => p && ok(p)).sort((a, b) => runsOf(b) - runsOf(a)), ks = new Set(star.map(p => p.k));
+    return [...star, ...ALL.filter(p => ok(p) && !ks.has(p.k) && p.s <= limit + 1e-9).sort((a, b) => runsOf(b) - runsOf(a) || a.s - b.s).slice(0, 8)].slice(0, 12);
+  }
+  function autoPlace(p) {
+    const S = slotsOf(mode).filter(s => canFill(s, p)), plan = NB.plan(mode);
+    const filled = s => plan[s.id] ? plan[s.id].picks.filter(Boolean).length : 0, nat = s => s.id === p.p || (p.kd === 'SP' && s.type === 'sp') || (p.kd === 'RP' && s.type === 'rp') ? 0 : s.type === 'dh' ? 1 : 2;
+    const choose = S.filter(s => filled(s) < 3 && !(plan[s.id] && plan[s.id].picks.includes(p.k))).sort((a, b) => nat(a) - nat(b) || filled(a) - filled(b))[0];
+    if (!choose) return alert('Every spot he could fill already has three choices.');
+    NB.setPick(mode, choose.id, plan[choose.id] ? plan[choose.id].picks.indexOf(null) : 0, p.k);
+  }
+  const star = (p, on, attr = 'data-star') => `<button class="star" type="button" ${attr}="${esc(p.k)}" aria-pressed="${on}" aria-label="${on ? 'Remove' : 'Add'} ${esc(p.n)} ${on ? 'from' : 'to'} your shortlist">${on ? '★' : '☆'}</button>`;
+  function toggle(k) { if (NB.toggle(k) === null) alert(`Your notebook holds ${NB.MAX} shortlist players. Remove one to add another.`); }
+
+  function render() {
+    const M = MODES[mode], plan = NB.plan(mode), C = check(mode, plan), S = C.S, set = new Set(NB.targets()), mock = mode === 'mock';
+    $('lead').textContent = mock ? 'In a mock draft you get 60 seconds a pick (you can pause the clock). Decide here, then pick in seconds: for each spot, line up your first, second and third choice.' : 'Line up your first, second and third choice for each spot before you open the roster builder. There is no clock, but a plan keeps you under the cap.';
+    $('opp').hidden = !mock; $('order').hidden = !mock;
+    $('oppCap').textContent = rookie() ? 'Rookie mode is on, so the computer plays with an $80M cap instead of your $100M. You can change that on the draft screen.' : 'Rookie mode is off, so the computer plays with the same $100M cap you do.';
+    // the budget check
+    let cls = 'sum', msg; const n = C.picked.length;
+    if (!n) msg = `Pick a first choice for the spots you care about. The notebook adds up what your first choices cost against the ${mon(M.cap)} cap, and checks that you can still afford to fill every other spot.`;
+    else {
+      const head = `Your ${n} first choice${n === 1 ? '' : 's'} cost ${mon(C.spend)} of the ${mon(M.cap)} cap and fill ${n} of ${S.length} spots.`, rest = C.open ? ` The cheapest way to fill the other ${C.open} spot${C.open === 1 ? '' : 's'} is ${mon(C.fill)}` : '';
+      if (C.room < 0) { cls += ' bad'; msg = `${head}${rest}, so you would be <b>over by ${mon(-C.room)}</b>. Swap a first choice for someone cheaper.`; }
+      else if (C.room < M.tight) { cls += ' warn'; msg = `${head}${rest}, so you would have <b>only ${mon(C.room)} to spare</b>. That is tight.`; }
+      else { cls += ' good'; msg = `${head}${rest}, so you would have <b>${mon(C.room)} to spare</b>.${C.open ? ` That is about ${mon(C.per)} for each open spot.` : ' Every spot has a first choice.'}`; }
+    }
+    const extra = [];
+    if (C.dup.length) extra.push(`<p class="sum warn">${listOf(C.dup.map(p => esc(p.n) + ' (' + p.y + ')'))} ${C.dup.length === 1 ? 'is' : 'are'} the first choice at two spots. He can only play one, so the second spot counts as open.</p>`);
+    const lk = [...new Set(Object.values(plan).flatMap(e => e.picks).filter(Boolean))].map(k => BYK.get(k)).filter(p => p && locked(p, mode));
+    if (lk.length) extra.push(`<p class="sum warn">${listOf(lk.map(p => esc(p.n) + ' (' + p.y + ')'))} ${lk.length === 1 ? 'is a legend, and legends are' : 'are legends, and legends are'} locked in mock drafts until you win 3 games with a team you drafted.</p>`);
+    $('check').innerHTML = `<p class="${cls}">${msg}</p>${extra.join('')}`;
+    // the computer
+    if (mock && RISK) {
+      const top = [...RISK.entries()].map(([k, v]) => [BYK.get(k), v]).sort((a, b) => b[1][0] - a[1][0]).slice(0, 10);
+      $('oppTable').innerHTML = `<table><thead><tr><th></th><th>Player</th><th>Price</th><th>Gone in its first 3 picks</th><th>First 9</th></tr></thead><tbody>${top.map(([p, v]) => `<tr><td>${star(p, set.has(p.k))}</td><td><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)} &middot; ${esc(posTxt(p))}</span></td><td>${mon(p.s)}</td><td>${Math.round(v[0] * 100)}%</td><td>${Math.round(v[1] * 100)}%</td></tr>`).join('')}</tbody></table>`;
+    }
+    // your shortlist (starred players), ready to drop into the plan
+    const inPlan = NB.planKeys(mode), sl = NB.targets().map(k => BYK.get(k)).filter(Boolean);
+    $('short').innerHTML = sl.length ? `<ul class="slots">${sl.map(p => `<li class="slot"><span class="sl">${star(p, true)}</span><div class="who"><div class="line"><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${esc(posTxt(p))} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)}</div>${inPlan.has(p.k) ? '<span class="muted">In your plan</span>' : `<button class="lk" type="button" data-auto="${esc(p.k)}">Add to my plan</button>`}</div></li>`).join('')}</ul>` : '<p class="muted">Star players in the draft room, in the roster builder, or in the lists below and they collect here. Then add them to your plan with one tap.</p>';
+    // the plan board
+    $('board').innerHTML = [...new Set(S.map(s => s.grp))].map(g => `<h3 class="gh">${g}</h3><ul class="slots">${S.filter(s => s.grp === g).map(s => {
+      const e = plan[s.id] || { when: 'mid', picks: [null, null, null] };
+      return `<li class="slot prow"><span class="sl">${s.label}</span><div class="who">
+        ${mock ? `<label class="when">Take him <select data-when="${s.id}" ${plan[s.id] ? '' : 'disabled'} aria-label="When to take your ${s.label}">${Object.entries(WIN).map(([k, v]) => `<option value="${k}" ${e.when === k ? 'selected' : ''}>${v[1]}</option>`).join('')}</select></label>` : ''}
+        <div class="chs">${e.picks.map((k, i) => { const p = k && BYK.get(k); return p ? `<div class="ch"><span class="cl">${CH[i]}</span><div><div class="line"><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)}</div><div>${riskTxt(p, e.when)} ${badge(p)}</div></div><button class="lk" type="button" data-clear="${s.id}:${i}" aria-label="Remove ${esc(p.n)} as your ${CHN[i]} choice at ${s.label}">&times;</button></div>` : `<div class="ch empty"><span class="cl">${CH[i]}</span><button class="lk" type="button" data-open="${s.id}:${i}">${i === 0 ? 'Choose your first choice' : 'Add a ' + CHN[i] + ' choice'}</button></div>`; }).join('')}</div></div></li>`;
+    }).join('')}</ul>`).join('');
+    // the order you plan to take them in
+    if (mock) { const by = { early: [], mid: [], late: [] }; S.forEach(s => { if (plan[s.id]) by[plan[s.id].when].push(s.label); }); $('orderBody').innerHTML = Object.entries(WIN).map(([k, v]) => `<p><b>${v[1]}:</b> ${by[k].length ? by[k].join(', ') : '<span class="muted">nothing planned</span>'}</p>`).join(''); }
+    renderPicker(); renderBuys();
+    $('board').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const [s, i] = b.dataset.open.split(':'); picker = { slot: s, i: +i }; $('q').value = ''; renderPicker(true); });
+    $('board').querySelectorAll('[data-clear]').forEach(b => b.onclick = () => { const [s, i] = b.dataset.clear.split(':'); NB.setPick(mode, s, +i, null); });
+    $('board').querySelectorAll('[data-when]').forEach(sel => sel.onchange = () => NB.setWhen(mode, sel.dataset.when, sel.value));
+    $('short').querySelectorAll('[data-auto]').forEach(b => b.onclick = () => autoPlace(BYK.get(b.dataset.auto)));
+    document.querySelectorAll('#short [data-star], #oppTable [data-star]').forEach(b => b.onclick = () => toggle(b.dataset.star));
+  }
+  function renderPicker(focus) {
+    const box = $('picker'); if (!picker) { box.hidden = true; return; }
+    const s = slotsOf(mode).find(x => x.id === picker.slot), plan = NB.plan(mode), e = plan[s.id] || { when: 'mid', picks: [null, null, null] }, chosen = new Set(e.picks.filter(Boolean)), C = check(mode, plan);
+    if (pLimit === null) pLimit = Math.max(3, Math.round((C.open ? C.per : MODES[mode].cap / C.S.length) * 2) / 2);
+    box.hidden = false; $('pTitle').textContent = `Choose your ${CHN[picker.i]} choice at ${s.label}`;
+    if (document.activeElement !== $('pLimit')) $('pLimit').value = pLimit;
+    const list = candidates(s, $('q').value.trim().toLowerCase(), pLimit, NB.targets(), chosen);
+    $('pList').innerHTML = list.length ? list.map(p => `<li><div class="pw"><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${NB.has(p.k) ? '<span class="bg">On your shortlist</span>' : ''} ${badge(p)} ${riskTxt(p, e.when)}</div><button class="btn btn-main sm" type="button" data-choose="${esc(p.k)}">Choose</button></li>`).join('') : '<li class="muted">Nobody fits that. Raise the price limit or change the search.</li>';
+    $('pList').querySelectorAll('[data-choose]').forEach(b => b.onclick = () => { NB.setPick(mode, picker.slot, picker.i, b.dataset.choose); picker = null; renderPicker(); });
+    if (focus) { box.scrollIntoView({ block: 'nearest' }); $('q').focus({ preventScroll: true }); }
+  }
+  function renderBuys() {
+    const limit = Math.max(1, parseFloat($('limit').value) || 1), barg = $('barg').checked, set = new Set(NB.targets());
+    $('hint').textContent = `The best players at each spot who cost ${mon(limit)} or less, by Runs+.${mode === 'mock' && (progress().wins || 0) < 3 ? ' Locked legends are left out until you win 3 games with a team you drafted.' : ''}`;
+    const G = [['Catcher', 'c'], ['First base', '1b'], ['Second base', '2b'], ['Third base', '3b'], ['Shortstop', 'ss'], ['Left field', 'lf'], ['Center field', 'cf'], ['Right field', 'rf'], ['Starting pitchers', 'SP'], ['Relievers', 'RP']];
+    $('buys').innerHTML = G.map(([name, g]) => { const list = ALL.filter(p => (g === 'SP' || g === 'RP' ? p.kd === g : p.kd === 'H' && p.e.includes(g)) && p.s <= limit + 1e-9 && (!barg || p.st > 0) && !locked(p, mode)).sort((a, b) => runsOf(b) - runsOf(a) || a.s - b.s).slice(0, 8);
+      return `<h3 class="gh">${name}</h3>${list.length ? `<ul class="slots buy">${list.map(p => `<li>${star(p, set.has(p.k))}<span><b>${esc(p.n)}</b> ${p.y} ${esc(p.t)} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)}</span></li>`).join('')}</ul>` : '<p class="muted">Nobody at that price.</p>'}`; }).join('');
+    $('buys').querySelectorAll('[data-star]').forEach(b => b.onclick = () => toggle(b.dataset.star));
+  }
+  function sync() {
+    const cc = window.CC; if (!cc || !cc.client) { $('syncNote').textContent = ''; return; }
+    $('syncNote').innerHTML = cc.user ? 'Signed in: your plan and shortlist follow you to every device and every game.' : 'Your notebook is saved on this device. <button class="lk" id="syncGo" type="button">Sign in free</button> and your plan follows you to every device and every game.';
+    if ($('syncGo')) $('syncGo').onclick = () => cc.requireSignIn('Sign in to keep your plan on every device');
+  }
+  function tabs(listEl) {
+    const all = [...listEl.querySelectorAll('[role=tab]')];
+    const show = t => all.forEach(x => { const on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; $(x.getAttribute('aria-controls')).hidden = !on; });
+    all.forEach((t, i) => { t.onclick = () => show(t); t.onkeydown = e => { const k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!k) return; const n = all[(i + k + all.length) % all.length]; n.focus(); show(n); e.preventDefault(); }; });
+  }
+  async function start() {
+    tabs(document.querySelector('[aria-label="Notebook"]'));
+    mode = NB.read().mode; $('mode').value = mode; $('notes').value = NB.read().notes;
+    $('mode').onchange = () => { mode = $('mode').value; NB.setMode(mode); picker = null; pLimit = null; if (mode === 'mock' && ALL.length && !RISK) RISK = simulate(); render(); };
+    $('clear').onclick = () => { if (Object.keys(NB.plan(mode)).length && confirm('Clear your whole plan for this ' + (mode === 'mock' ? 'mock draft' : 'league roster') + '? Your shortlist stays.')) { picker = null; NB.clearPlan(mode); } };
+    $('q').oninput = () => renderPicker(); $('pLimit').oninput = () => { pLimit = Math.max(1, parseFloat($('pLimit').value) || 1); renderPicker(); }; $('pClose').onclick = () => { picker = null; renderPicker(); };
+    $('limit').oninput = renderBuys; $('barg').onchange = renderBuys;
+    let nt = null; $('notes').oninput = () => { $('saved').textContent = ''; clearTimeout(nt); nt = setTimeout(() => { NB.setNotes($('notes').value); $('saved').textContent = 'Saved.'; }, 400); };
+    window.addEventListener('nb-change', () => { if (!ALL.length) return; const m = NB.read().mode; if (m !== mode) { mode = m; $('mode').value = m; pLimit = null; } if (document.activeElement !== $('notes')) $('notes').value = NB.read().notes; render(); });
+    window.addEventListener('storage', e => { if (e.key === 'gts-rookie' && ALL.length && mode === 'mock') { RISK = simulate(); render(); } });
+    window.addEventListener('cc-auth', sync); (window.CC ? window.CC.whenReady.bind(window.CC) : f => f())(sync);
+    try { const r = await fetch('cards-data.json'); if (!r.ok) throw new Error(r.status); ALL = (await r.json()).p; } catch (e) { $('check').innerHTML = '<p class="sum bad">We could not load the player list. Please refresh the page.</p>'; return; }
+    BYK = new Map(ALL.map(p => [p.k, p])); $('limit').value = 5.5; if (mode === 'mock') RISK = simulate(); render();
+  }
+  start();
+})();
+
+</script>
+</body>
+</html>

@@ -81,16 +81,23 @@ tr.owned td { opacity: .45; }
 .empty-msg { padding: 24px; text-align: center; color: #5A6470; }
 footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
 @media (max-width: 720px) { .hide-sm { display: none; } .sm-only { display: inline; } .wb { padding: 16px 18px; } .card { padding: 14px 14px; } td, th { padding: 7px 6px; } }
+.star { all: unset; cursor: pointer; font-size: 20px; line-height: 1; color: #B7BDC2; padding: 0 6px 0 0; } .star[aria-pressed="true"] { color: #D4A017; } .star:focus-visible { outline: 2px solid #1F3F8F; }
+@media (max-width: 700px) { .star { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; } }
+.pspot { border-top: 1px solid #E3E6EA; padding: 6px 0 4px; } .pspot:first-child { border-top: 0; } .ph { margin: 0 0 2px; } .sh { margin: 12px 0 4px; font-size: 17px; }
+.pch { list-style: none; margin: 0; padding: 0; } .pch li { display: flex; align-items: center; gap: 8px; padding: 2px 0; } .pch li.next { background: rgba(31,63,143,.07); border-radius: 4px; margin: 0 -6px; padding: 2px 6px; } .pch .cl { flex: none; width: 1.6em; height: 1.6em; border-radius: 50%; background: #1F3F8F; color: #fff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; } .pch .pn { flex: 1; min-width: 0; } .pch small, .tgtlist small { color: #5A646E; }
+@media (max-width: 700px) { #planList .add { min-height: 44px; min-width: 64px; } }
+.tgtlist { list-style: none; margin: 8px 0; padding: 0; } .tgtlist li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #E3E6EA; } .tact { display: flex; align-items: center; gap: 12px; flex: none; } #planList .lk { all: unset; cursor: pointer; font-weight: 600; text-decoration: underline; color: #1F3F8F; min-height: 44px; display: inline-flex; align-items: center; }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
+<script src="nb.js"></script>
 <link rel="stylesheet" href="mobile.css">
 </head>
 <body>
 <div class="wrap">
-  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a> <span aria-hidden="true">/</span> <a href="private.html">Private leagues</a></nav>
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a> <span aria-hidden="true">/</span> <a href="private.html">Private leagues</a><a href="notebook.html" style="margin-left:14px">Notebook</a></nav>
 
   <header class="wb" id="head">
     <h1 id="title">Build your roster</h1>
@@ -112,6 +119,9 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
 
   <div class="cols" id="cols" hidden>
     <section class="card" aria-label="Your roster"><h2>Your roster</h2><p class="note">Pick a spot to fill it, or press Add on any player and he'll take the best open spot.</p><div id="roster"></div></section>
+    <section class="card" aria-label="Your plan" id="planCard">
+      <h2>Your plan</h2><p class="note" id="planNote"></p><div id="planList"></div><p class="note"><a href="notebook.html">Open your notebook</a> to plan your picks, check your budget and see backups.</p>
+    </section>
     <section class="card" aria-label="Player pool">
       <h2>Player pool</h2>
       <div class="tabs" id="tabs" role="group" aria-label="Player type"></div>
@@ -196,7 +206,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     $('afford').onchange = e => { S.afford = e.target.checked; S.limit = 60; renderPool(); };
     $('hideOwned').onchange = e => { S.hideOwned = e.target.checked; S.limit = 60; renderPool(); };
     $('more').onclick = () => { S.limit += 60; renderPool(); };
-    $('rows').onclick = e => { const b = e.target.closest('[data-add]'); if (b) add(b.dataset.add); };
+    $('rows').onclick = e => { const st = e.target.closest('[data-star]'); if (st) return toggleStar(st.dataset.star); const b = e.target.closest('[data-add]'); if (b) add(b.dataset.add); };
     $('roster').onclick = e => {
       const x = e.target.closest('[data-rm]'); if (x) return remove(x.dataset.rm);
       const row = e.target.closest('[data-slot]'); if (row && !S.roster[row.dataset.slot]) chooseSlot(row.dataset.slot);
@@ -204,7 +214,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     $('submit').onclick = submit; $('auto').onclick = autoFill; $('scoutBtn').onclick = askScout;
     $('clear').onclick = () => { if (!count() || S.locked) return; if (!confirm('Remove everyone from your roster?')) return; S.roster = {}; S.target = null; changed(); };
   }
-  function render() { renderHead(); renderRoster(); renderFilters(); renderPool(); }
+  function render() { renderHead(); renderRoster(); renderFilters(); renderPool(); renderPlan(); }
   function renderHead() {
     const pay = payroll(), left = S.cap - pay, n = count(), pct = Math.min(100, (pay / S.cap) * 100);
     $('pay').textContent = '$' + money(pay) + 'M'; $('cap').textContent = 'of $' + money(S.cap) + 'M cap · ' + n + ' of 25 players';
@@ -248,9 +258,30 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     const own = owned(), left = S.cap - payroll(), list = visible(), shown = list.slice(0, S.limit);
     $('rows').innerHTML = shown.length ? shown.map(p => {
       const has = own.has(pidOf(p.k)), dear = p.s > left + 1e-9;
-      return `<tr class="${has ? 'owned' : ''}"><td class="n"><b>${esc(p.n)}</b>${p.g ? '<span class="legend">Legend</span>' : ''}<small>${p.y} ${esc(p.t)}<span class="sm-only"> · ${p.r || (p.e || []).map(x => POS[x]).join(", ")} · ${esc(p.l)}</span></small></td><td class="hide-sm">${p.r || (p.e || []).map(x => POS[x]).join(', ')}</td><td class="hide-sm">${esc(p.l)}</td><td class="num">${runs(p)}</td><td class="num">${money(p.s)}</td><td><button class="add" type="button" data-add="${esc(p.k)}" ${S.locked || has || dear ? 'disabled' : ''} aria-label="Add ${esc(p.n)}, ${p.y}">${has ? 'On roster' : dear ? 'Too much' : 'Add'}</button></td></tr>`;
+      return `<tr class="${has ? 'owned' : ''}"><td class="n">${starBtn(p)}<b>${esc(p.n)}</b>${p.g ? '<span class="legend">Legend</span>' : ''}<small>${p.y} ${esc(p.t)}<span class="sm-only"> · ${p.r || (p.e || []).map(x => POS[x]).join(", ")} · ${esc(p.l)}</span></small></td><td class="hide-sm">${p.r || (p.e || []).map(x => POS[x]).join(', ')}</td><td class="hide-sm">${esc(p.l)}</td><td class="num">${runs(p)}</td><td class="num">${money(p.s)}</td><td><button class="add" type="button" data-add="${esc(p.k)}" ${S.locked || has || dear ? 'disabled' : ''} aria-label="Add ${esc(p.n)}, ${p.y}">${has ? 'On roster' : dear ? 'Too much' : 'Add'}</button></td></tr>`;
     }).join('') : '<tr><td colspan="6" class="empty-msg">No players match. Try loosening a filter.</td></tr>';
     $('more').hidden = list.length <= S.limit; $('more').textContent = `Show more (${list.length - S.limit} left)`;
+  }
+
+  // ---------- your notebook: stars on every player, and your league plan with one tap to add ----------
+  const starBtn = p => { const on = NB.has(p.k); return `<button type="button" class="star" data-star="${esc(p.k)}" aria-pressed="${on}" aria-label="${on ? 'Remove' : 'Add'} ${esc(p.n)} ${on ? 'from' : 'to'} your shortlist">${on ? '★' : '☆'}</button>`; };
+  function toggleStar(k) { if (NB.toggle(k) === null) say(`Your notebook holds ${NB.MAX} shortlist players. Remove one to add another.`, 'err'); }
+  window.addEventListener('nb-change', () => { if (S.byKey && S.byKey.size) { renderPlan(); renderPool(); } });
+  function renderPlan() {
+    if (!S.byKey || !S.byKey.size) return;
+    const plan = NB.plan('league'), have = new Set(Object.values(S.roster)), own = owned(), left = S.cap - payroll(), inPlan = NB.planKeys('league');
+    const spots = SLOTS.filter(s => plan[s.id] && !S.roster[s.id] && plan[s.id].picks.some(k => k && S.byKey.has(k)));
+    const short = NB.targets().filter(k => S.byKey.has(k) && !have.has(k) && !inPlan.has(k));
+    const state = k => { const p = S.byKey.get(k); return have.has(k) ? 'on' : own.has(pidOf(k)) ? 'other' : p.s > left + 1e-9 ? 'dear' : 'ok'; };
+    const btn = (k, slot) => { const p = S.byKey.get(k), st = state(k); return st === 'on' ? '<em>On your roster</em>' : st === 'other' ? '<em>Another season of him is on your roster</em>' : `<button class="add" type="button" data-padd="${esc(k)}" data-pslot="${slot || ''}" ${S.locked || st === 'dear' ? 'disabled' : ''}>${st === 'dear' ? 'Over your cap' : 'Add'}</button>`; };
+    const info = k => { const p = S.byKey.get(k); return `<b>${esc(p.n)}</b> <small>${p.y} ${esc(p.t)} &middot; ${esc(p.r || (p.e || []).map(x => POS[x]).join(', '))} &middot; $${money(p.s)}M</small>`; };
+    const planHtml = spots.map(s => { const e = plan[s.id], first = e.picks.findIndex(k => k && S.byKey.has(k) && state(k) === 'ok'); return `<div class="pspot"><div class="ph"><b>${esc(s.label)}</b></div><ul class="pch">${e.picks.map((k, i) => k && S.byKey.has(k) ? `<li class="${i === first ? 'next' : ''}"><span class="cl">${'ABC'[i]}</span><span class="pn">${info(k)}</span><span class="tact">${btn(k, s.id)}</span></li>` : '').join('')}</ul></div>`; }).join('');
+    const shortHtml = short.length ? `<h3 class="sh">Your shortlist</h3><ul class="tgtlist">${short.map(k => `<li><span>${info(k)}</span><span class="tact">${btn(k, '')}<button class="lk" type="button" data-trm="${esc(k)}" aria-label="Remove ${esc(S.byKey.get(k).n)} from your shortlist">remove</button></span></li>`).join('')}</ul>` : '';
+    const total = spots.reduce((a, s) => { const k = plan[s.id].picks.find(x => x && S.byKey.has(x)); return a + (k ? S.byKey.get(k).s : 0); }, 0);
+    $('planNote').textContent = spots.length || short.length ? `${spots.length} planned spot${spots.length === 1 ? '' : 's'} still open${spots.length ? `. Your first choices there cost about $${money(total)}M together` : ''}, and you have $${money(left)}M left.` : 'Plan your picks in your notebook, or star players in the list below, and they collect here with a button to add each one to your roster. Your notebook keeps them for every draft and every league.';
+    $('planList').innerHTML = planHtml + shortHtml;
+    $('planList').querySelectorAll('[data-padd]').forEach(b => b.onclick = () => { if (b.dataset.pslot) S.target = b.dataset.pslot; add(b.dataset.padd); });
+    $('planList').querySelectorAll('[data-trm]').forEach(b => b.onclick = () => NB.remove(b.dataset.trm));
   }
 
   // ---------- changing the roster ----------

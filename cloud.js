@@ -76,7 +76,8 @@
     .acct input { padding: 7px 9px; border: 1px solid #9AA2A0; border-radius: 4px; min-width: 210px; background: #fff; color: #1B1F24; }
     .acct .go { background: #1F3F8F; color: #fff; border: 0; border-radius: 4px; padding: 7px 12px; font-weight: 600; cursor: pointer; }
     .acct .msg { width: 100%; font-size: 13px; opacity: .85; }
-    .acctbar { display: flex; margin: 0 0 10px; }`;
+    .acctbar { display: flex; margin: 0 0 10px; }
+    .crumbs { flex-wrap: wrap; row-gap: 6px; }`;
   let host = null, mode = 'idle', status = '';
   function setStatus(s) { status = s; render(); }
   function mount() {
