@@ -65,11 +65,11 @@ button { font: inherit; }
 .vault-head p { margin: 4px 0 0; color: var(--ink-soft); font-size: 15px; max-width: 60ch; }
 .shuffle { border: 1.5px solid #8C959E; background: transparent; color: var(--ink); border-radius: 4px; padding: 8px 16px; font-weight: 600; cursor: pointer; min-height: 44px; }
 .shuffle:hover { background: rgba(140,149,158,.2); }
-.deck { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+.deck { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; align-items: start; }
 @media (max-width: 980px) { .deck { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 480px) { .deck { grid-template-columns: 1fr; } }
-.card { background: #F3EAD3; color: #3A2E12; border-radius: 10px; padding: 9px; box-shadow: 0 4px 0 #C9B27A, 0 12px 20px rgba(0,0,0,.22); transform: rotate(var(--r, 0deg)); transition: transform .25s, box-shadow .25s; }
-.card .in { border: 3px double #8C6D2F; border-radius: 6px; padding: 12px 14px 12px; background: linear-gradient(#FBF5E3, #F0E4C4); height: 100%; display: flex; flex-direction: column; }
+.card { display: flex; flex-direction: column; background: #F3EAD3; color: #3A2E12; border-radius: 10px; padding: 9px; box-shadow: 0 4px 0 #C9B27A, 0 12px 20px rgba(0,0,0,.22); transform: rotate(var(--r, 0deg)); transition: transform .25s, box-shadow .25s; }
+.card .in { border: 3px double #8C6D2F; border-radius: 6px; padding: 12px 14px 12px; background: linear-gradient(#FBF5E3, #F0E4C4); flex: 1 1 auto; display: flex; flex-direction: column; }
 .card .yr { font: 400 40px/1 var(--marker); color: #9E2B22; }
 .card .nm { font: 400 24px/1.08 var(--marker); color: var(--wb-ink); margin: 4px 0 2px; }
 .card .meta { font-size: 12.5px; color: #6B5A2C; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
@@ -85,12 +85,17 @@ button { font: inherit; }
 .legendbox .lnote { font-size: 15px; color: var(--ink-soft); } .legendbox .lprog { font-weight: 700; color: #17603A; }
 .card .roll { list-style: none; margin: 2px 0 10px; padding: 0; display: grid; gap: 1px; font-size: 13px; } .card .roll li { display: flex; gap: 8px; } .card .roll b { min-width: 4.7em; font-weight: 700; color: #6B5A2C; } .card .roll li.g span { font-weight: 600; color: #17603A; }
 .vault-how { margin: 6px 0 0; font-size: 15px; color: var(--ink-soft); max-width: 70ch; }
-.also { margin-top: 18px; padding-top: 14px; border-top: 2px dashed var(--folder-edge); } .also h3 { font: 400 22px/1.15 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .also p { margin: 8px 0 4px; }
+.also { margin: 0; } .also h3 { font: 400 22px/1.15 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .also p { margin: 8px 0 4px; }
 .also .go { margin-top: 8px; } .ftlive { font-weight: 700; color: #17603A; } .invnote { min-height: 1.4em; font-weight: 600; color: #17603A; }
 .card .ask { align-self: flex-start; min-height: 44px; margin: 0 0 10px; padding: 8px 16px; background: var(--wb-ink); color: #fff; border: 0; border-radius: 4px; font: 700 15px var(--text); cursor: pointer; } .card .ask:hover { background: #17306E; }
 .card .scoutbox { background: rgba(31,63,143,.07); border-left: 4px solid var(--wb-ink); padding: 8px 12px 6px; margin: 0 0 10px; font-size: 13.5px; line-height: 1.4; }
 .scoutbox h4 { font: 400 18px/1.15 var(--marker); margin: 0 0 4px; color: var(--wb-ink); } .scoutbox ul { margin: 4px 0; padding-left: 1.1em; } .scoutbox li { margin: 4px 0; } .scoutbox .voice { margin: 4px 0 6px; font-weight: 600; } .scoutbox .nudge { margin: 4px 0; font-size: 13px; color: #4A5560; }
 .scoutbox .slink { display: inline-block; background: none; border: 0; padding: 0 2px; min-height: 44px; font: 700 14px var(--text); color: var(--wb-ink); text-decoration: underline; cursor: pointer; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.tabbtn { min-height: 44px; padding: 8px 18px; border: 0; border-bottom: 4px solid transparent; border-radius: 6px 6px 0 0; background: rgba(247,242,228,.62); color: var(--ink); font: 700 16px var(--text); cursor: pointer; }
+.tabbtn:hover { background: rgba(247,242,228,.85); } .tabbtn[aria-selected="true"] { background: rgba(247,242,228,.98); border-bottom-color: var(--lamp); }
+.folder .tabbtn { background: rgba(255,255,255,.38); color: var(--folder-ink); } .folder .tabbtn:hover { background: rgba(255,255,255,.6); } .folder .tabbtn[aria-selected="true"] { background: #F6EBC4; }
+.vault .legendbox { margin: 0; }
 .card .txt { font-size: 13.5px; line-height: 1.4; margin: 0 0 10px; }
 .card .foot { margin-top: auto; border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
 .card .foot.open { color: var(--wb-green); }
@@ -174,23 +179,9 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     <h1>Cooperstown Cash</h1>
     <p class="tag">Historical simulation leagues</p>
     <p>Baseball's best seasons, played out with dice and player cards built from the real stats. Here's the path: build a team with an AI scout and get graded, play it out and see how it plays, then take it to a cash league of your own. A free account is just your email, no password.</p>
-    <div class="cta"><a class="btn btn-main" id="heroMain" href="draft.html">Build your first team</a><a class="btn btn-alt" id="heroSkip" href="private.html">Already know the game? Start a private league</a></div>
     <p class="rec" id="rec" hidden></p>
     </div>
   </header>
-
-  <aside class="legendbox reveal" aria-labelledby="legendH">
-    <h2 id="legendH">What's a legend?</h2>
-    <p>A legend is one of the <b>45 greatest single seasons</b> in the game: Babe Ruth in 1920, Barry Bonds in 2001, Pedro Martinez in 2000. Legends cost <b>$11M to $18M</b> under the salary cap, and each has a card the dice read like any other player's.</p>
-    <h3>How you earn them</h3>
-    <ol>
-      <li><b>Draft a team</b> in a mock draft. Until you earn the legends, they are off the board for you and for the computer.</li>
-      <li>On your report card, press <b>Play the computer's team</b> and play it out.</li>
-      <li><b>Win 3 games</b> with teams you drafted. Then all 45 legends are on the board in every mock draft after that.</li>
-    </ol>
-    <p class="lprog" id="legendProg" hidden></p>
-    <p class="lnote">Quick games with classic clubs don't count toward this. In a league or at a free table there is nothing to earn: every legend is on the board for every manager from the first day, marked with a Legend badge.</p>
-  </aside>
 
   <h2 class="path-h" id="pathH">Your path to a league of your own</h2>
   <p class="path-sub">Three steps, and you can start at any of them. Practice is free, and every step teaches you something about how the game really plays.</p>
@@ -218,6 +209,11 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
       <section class="folder" aria-labelledby="quickH">
         <span class="tab" aria-hidden="true">Free play</span><span class="num" aria-hidden="true">2</span>
         <h2 id="quickH">Play it free and see how it plays <span class="chip" id="chip2"></span></h2>
+        <div class="tabs" role="tablist" aria-label="Free ways to play">
+          <button class="tabbtn" role="tab" type="button" id="tabSolo" aria-selected="true" aria-controls="panSolo">1. Play solo</button>
+          <button class="tabbtn" role="tab" type="button" id="tabOthers" aria-selected="false" aria-controls="panOthers" tabindex="-1">2. Play with other people</button>
+        </div>
+        <div id="panSolo" role="tabpanel" aria-labelledby="tabSolo">
         <p><b>Play for fun, or learn strategy.</b> Take the team you drafted, or any great club from the 1906 Cubs to the 2022 Dodgers, out on the field. It's the practice field: learn the game here before you start a league.</p>
         <ul>
           <li>Roll the dice yourself and watch how each player's card decides the play</li>
@@ -225,6 +221,8 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
           <li>Full box score and play-by-play. Only wins with a team you drafted count toward unlocking the legends.</li>
         </ul>
         <div class="go"><a class="btn btn-main" href="play.html">Play a quick game</a><a class="btn btn-alt" href="draft.html" id="s2team" hidden>Play your drafted team</a></div>
+        </div>
+        <div id="panOthers" role="tabpanel" aria-labelledby="tabOthers" hidden>
         <div class="also">
           <h3>Want other people to play with? That's free too.</h3>
           <p><b>Sit at a free table.</b> Ten seats, a salary cap, and nothing to pay. You sit down with nine other managers, and the season starts when all ten seats fill. Not full after three days? With four or more managers seated, computer clubs fill the empty seats and it starts anyway. <span class="ftlive" id="ftLive" aria-live="polite"></span></p>
@@ -232,6 +230,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
           <p><b>Invite a friend.</b> Send them a link, and they can try the game free.</p>
           <div class="go"><button class="btn btn-alt" id="invCopy" type="button">Copy link</button><a class="btn btn-alt" id="invMail" href="mailto:">Email a friend</a><button class="btn btn-alt" id="invShare" type="button" hidden>Share</button></div>
           <p class="invnote" id="invMsg" role="status" aria-live="polite"></p>
+        </div>
         </div>
       </section>
     </li>
@@ -256,10 +255,28 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
 
   <section class="vault reveal" aria-labelledby="vaultH">
     <div class="vault-head">
-      <div><h2 id="vaultH">Cards from the vault</h2><p>Every player-season in the game becomes a card: his real stats, what he's worth in the game, and the roll card the dice read. These are legends. <a href="#legendH">What's a legend?</a> <span id="vaultNote"></span> <a class="vault-more" href="highlights.html">See the greatest seasons ever played</a></p><p class="vault-how"><b>How to read a roll card.</b> At every at-bat two 20-sided dice are rolled, one for the batter and one for the pitcher. The higher die decides whose card is used, then a 1-to-100 roll picks the result on that card. The wider a range, the more often it happens: Ruth's 1920 card gives him 16 slots out of 100 for a home run.</p></div>
+      <div><h2 id="vaultH">Cards from the vault</h2><p>Every player-season in the game becomes a card: his real stats, what he's worth in the game, and the roll card the dice read. These are legends. <a href="#vaultH" id="toLegend">What's a legend?</a> <span id="vaultNote"></span> <a class="vault-more" href="highlights.html">See the greatest seasons ever played</a></p><p class="vault-how"><b>How to read a roll card.</b> At every at-bat two 20-sided dice are rolled, one for the batter and one for the pitcher. The higher die decides whose card is used, then a 1-to-100 roll picks the result on that card. The wider a range, the more often it happens: Ruth's 1920 card gives him 16 slots out of 100 for a home run.</p></div>
       <button class="shuffle" id="shuffle" type="button">Deal four more</button>
     </div>
-    <div class="deck" id="deck" aria-live="polite"></div>
+    <div class="tabs" role="tablist" aria-label="In the vault">
+      <button class="tabbtn" role="tab" type="button" id="tabCards" aria-selected="true" aria-controls="panCards">The cards</button>
+      <button class="tabbtn" role="tab" type="button" id="tabLegend" aria-selected="false" aria-controls="panLegend" tabindex="-1">What's a legend?</button>
+    </div>
+    <div id="panCards" role="tabpanel" aria-labelledby="tabCards"><div class="deck" id="deck" aria-live="polite"></div></div>
+    <div id="panLegend" role="tabpanel" aria-labelledby="tabLegend" hidden>
+      <div class="legendbox">
+    <h2 id="legendH">What's a legend?</h2>
+    <p>A legend is one of the <b>45 greatest single seasons</b> in the game: Babe Ruth in 1920, Barry Bonds in 2001, Pedro Martinez in 2000. Legends cost <b>$11M to $18M</b> under the salary cap, and each has a card the dice read like any other player's.</p>
+    <h3>How you earn them</h3>
+    <ol>
+      <li><b>Draft a team</b> in a mock draft. Until you earn the legends, they are off the board for you and for the computer.</li>
+      <li>On your report card, press <b>Play the computer's team</b> and play it out.</li>
+      <li><b>Win 3 games</b> with teams you drafted. Then all 45 legends are on the board in every mock draft after that.</li>
+    </ol>
+    <p class="lprog" id="legendProg" hidden></p>
+    <p class="lnote">Quick games with classic clubs don't count toward this. In a league or at a free table there is nothing to earn: every legend is on the board for every manager from the first day, marked with a Legend badge.</p>
+      </div>
+    </div>
   </section>
 
   <footer>
@@ -292,10 +309,6 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     chip(2, finished ? 'done' : games > 0 ? 'now' : drafted ? 'ready' : '', finished ? 'Done' : games > 0 ? `${games} of 3 played` : drafted ? 'Ready' : '');
     chip(3, finished ? 'ready' : '', finished ? "You're ready" : '');
     if (d && d.done) { $('s2team').hidden = false; $('s1report').hidden = false; }
-    const main = $('heroMain'), skip = $('heroSkip');
-    if (finished) { main.textContent = 'Start a private league'; main.href = 'private.html'; skip.hidden = true; }
-    else if (d && d.done) { main.textContent = 'See your report card and play your team'; main.href = 'draft.html'; }
-    else if (inDraft) { main.textContent = 'Resume your mock draft'; main.href = 'draft.html#resume'; }
   })();
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
@@ -315,9 +328,30 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
         <p class="txt">${esc(c.x)}</p><button class="ask" type="button" data-i="${ci}" aria-expanded="false" aria-controls="sc${ci}">Ask the scout</button><div class="scoutbox" id="sc${ci}" role="region" aria-label="The scout on ${esc(c.n)}" hidden></div><div class="foot ${unlocked ? 'open' : ''}">${unlocked ? 'Legend card: unlocked for you' : 'Legend card: win 3 games with a team you drafted to unlock'}</div></div></article>`;
     }).join('');
     $('deck').querySelectorAll('.ask').forEach(b => b.onclick = () => openScout(b));
+    evenCards();
   }
   $('shuffle').onclick = () => { start = (start + 4) % CARDS.length; deal(); };
   deal();
+
+  // ----- tabs (step 2 and the vault): click or arrow keys, one page showing at a time -----
+  function tabs(listEl, onChange) {
+    const all = [...listEl.querySelectorAll('[role=tab]')];
+    const show = t => { all.forEach(x => { const on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; $(x.getAttribute('aria-controls')).hidden = !on; }); if (onChange) onChange(t.id); };
+    all.forEach((t, i) => { t.onclick = () => show(t); t.onkeydown = e => { const k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!k) return; const n = all[(i + k + all.length) % all.length]; n.focus(); show(n); e.preventDefault(); }; });
+    return show;
+  }
+  tabs(document.querySelector('[aria-label="Free ways to play"]'));
+  const showVault = tabs(document.querySelector('[aria-label="In the vault"]'), id => { $('shuffle').hidden = id !== 'tabCards'; if (id === 'tabCards') evenCards(); });
+  $('toLegend').onclick = e => { e.preventDefault(); showVault($('tabLegend')); $('tabLegend').scrollIntoView({ behavior: reduce.matches ? 'auto' : 'smooth', block: 'start' }); $('tabLegend').focus({ preventScroll: true }); };
+  // each card keeps its own height: the closed cards share the tallest closed height, and a card whose scout is open grows by itself
+  function evenCards() {
+    const deck = $('deck'), cards = [...deck.querySelectorAll('.card')]; cards.forEach(c => { c.style.minHeight = ''; });
+    if (getComputedStyle(deck).gridTemplateColumns.split(' ').length < 2) return;
+    const closed = cards.filter(c => c.querySelector('.ask').getAttribute('aria-expanded') !== 'true'), h = Math.max(0, ...closed.map(c => c.offsetHeight));
+    closed.forEach(c => { c.style.minHeight = h + 'px'; });
+  }
+  let evenT = null; window.addEventListener('resize', () => { clearTimeout(evenT); evenT = setTimeout(evenCards, 150); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(evenCards);
 
   // ----- Ask the scout, on every card: what the game knows about him, in plain words (every number comes from the card's own data) -----
   const scoutCache = new Map();
