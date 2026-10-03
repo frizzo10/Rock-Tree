@@ -4,7 +4,7 @@
 (function () {
   const SUPABASE_URL = 'https://yqungoehuurjxanobpsb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_OOOgHRHOes5EYOVnZGyPCw_4FG9Xkz6'; // publishable key: safe in the browser, rows are protected per player
-  const SLOTS = ['gts-draft', 'gts-progress', 'gts-clock', 'gts-proj', 'cc-league-v1'];
+  const SLOTS = ['gts-draft', 'gts-progress', 'gts-clock', 'gts-proj', 'cc-league-v1', 'gts-notebook'];
   const META = 'cc-sync-meta'; // when each slot last changed on this device
 
   // Registration gate. Play pages ask for a free account (email link, no password) before anything runs.
@@ -96,7 +96,19 @@
     if (!error) return '';
     return /expired|invalid/i.test(error.message) ? "That code didn't work. Check it, or ask for a new email." : 'We could not check the code. Try again in a moment.';
   }
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // The email link signs you in on Supabase's side, then sends your browser to the site address saved in the project settings. If that address is wrong the page
+  // cannot be reached, but your sign-in is still in that page's address bar. Paste it here and we finish the job.
+  async function rescueFromAddress(raw) {
+    const s = String(raw || ''), pick = k => { const m = s.match(new RegExp('(?:^|[#?&\\s])' + k + '=([^&\\s#]+)')); return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : ''; };
+    const at = pick('access_token'), rt = pick('refresh_token');
+    if (!at || !rt) { const why = pick('error_description'); return why ? `That link says: ${why}. Ask for a new email.` : "That address doesn't have a sign-in in it. Copy the whole address from the top of the page that opened when you clicked the link."; }
+    const { error } = await client.auth.setSession({ access_token: at, refresh_token: rt });
+    return error ? 'That sign-in link has expired. Ask for a new email.' : '';
+  }
+  const rescueCss = `.acct details.rescue { width: 100%; } .acct details.rescue summary, .ccgate-card details.rescue summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+    .ccgate-card details.rescue { margin-top: 14px; text-align: left; } .ccgate-card details.rescue input, .acct details.rescue input { width: 100%; box-sizing: border-box; margin: 6px 0; }`;
+  { const st = document.createElement('style'); st.textContent = rescueCss; document.head.appendChild(st); }
+  const esc = s => String(s).replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function render() {
     if (!host) return;
     if (!client) { host.innerHTML = ''; return; }
@@ -116,7 +128,9 @@
       };
       host.querySelector('#accEmail').focus();
     } else if (mode === 'sent') {
-      host.innerHTML = `<span>Check your email for the sign-in link. It opens this page and saves your progress.</span> <form id="accCodeForm"><label class="msg" for="accCode">Or, if the email has a code, type it here:</label><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button class="go" type="submit">Sign in</button></form><span class="msg" id="accCodeMsg" role="alert"></span>`;
+      host.innerHTML = `<span>Check your email for the sign-in link. It opens this page and saves your progress.</span> <form id="accCodeForm"><label class="msg" for="accCode">Or, if the email has a code, type it here:</label><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button class="go" type="submit">Sign in</button></form><span class="msg" id="accCodeMsg" role="alert"></span>
+        <details class="rescue"><summary>The link opened a page that can't be reached?</summary><p class="msg">Your sign-in is in that page's address. Copy the whole address from the top of your browser, paste it here, and you're signed in.</p><form id="accRescueForm"><input id="accAddr" placeholder="Paste the address here" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="go" type="submit">Sign in</button></form><span class="msg" id="accRescueMsg" role="alert"></span></details>`;
+      host.querySelector('#accRescueForm').onsubmit = async e => { e.preventDefault(); const m = host.querySelector('#accRescueMsg'); m.textContent = 'Checking…'; m.textContent = await rescueFromAddress(host.querySelector('#accAddr').value); };
       host.querySelector('#accCodeForm').onsubmit = async e => { e.preventDefault(); const m = host.querySelector('#accCodeMsg'); m.textContent = 'Checking…'; m.textContent = await verifyCode(pendingEmail, host.querySelector('#accCode').value); };
     } else {
       host.innerHTML = `<button class="lnk" id="accIn">Sign in or create a free account</button>`;
@@ -151,7 +165,8 @@
     let body;
     if (gateState === 'checking') body = `${head}<h2 id="ccgT">Cooperstown Cash</h2><p>One moment…</p>`;
     else if (gateState === 'offline') body = `${head}<h2 id="ccgT">We couldn't reach sign-in</h2><p>Check your connection and refresh the page. You need a free account to play.</p>`;
-    else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play.</p><form id="ccgCodeForm"><label for="ccgCode">Or, if the email has a code, type it here</label><input id="ccgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button type="submit" id="ccgCodeGo">Sign in with the code</button></form>${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">try a different email</button>.</p>`;
+    else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play.</p><form id="ccgCodeForm"><label for="ccgCode">Or, if the email has a code, type it here</label><input id="ccgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button type="submit" id="ccgCodeGo">Sign in with the code</button></form>${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600;display:inline-block;padding:13px 4px">try a different email</button>.</p>
+      <details class="rescue"${gateMsg ? ' open' : ''}><summary>The link opened a page that can't be reached?</summary><p class="small">Your sign-in is in that page's address. Copy the whole address from the top of your browser, paste it here, and you're signed in.</p><form id="ccgRescueForm"><input id="ccgAddr" placeholder="Paste the address here" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="submit" id="ccgRescueGo">Sign in</button></form></details>`;
     else body = `${head}<h2 id="ccgT">${esc(gateHead || 'Create your free account to play')}</h2><p>Play for fun or learn strategy. Your drafts, wins and unlocks are saved to your account. Just your email, no password.</p>
       <form id="ccgForm"><label for="ccgEmail">Email</label><input id="ccgEmail" type="email" required autocomplete="email" placeholder="you@example.com" value="${esc(pendingEmail)}"><button type="submit" id="ccgGo">Email me a sign-in link</button></form>
       ${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Already have an account? Use the same email and we'll send you a fresh link.</p>${forced && !GATED ? '<p class="small"><button type="button" id="ccgClose" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">Not now</button></p>' : ''}`;
@@ -168,6 +183,8 @@
         drawGate();
       };
     }
+    const rf = gateEl.querySelector('#ccgRescueForm');
+    if (rf) rf.onsubmit = async e => { e.preventDefault(); const b = gateEl.querySelector('#ccgRescueGo'); b.disabled = true; b.textContent = 'Checking…'; const bad = await rescueFromAddress(gateEl.querySelector('#ccgAddr').value); if (bad) { gateMsg = bad; drawGate(); } };
     const cf = gateEl.querySelector('#ccgCodeForm');
     if (cf) { gateEl.querySelector('#ccgCode').focus(); cf.onsubmit = async e => { e.preventDefault(); const b = gateEl.querySelector('#ccgCodeGo'); b.disabled = true; b.textContent = 'Checking…'; const bad = await verifyCode(pendingEmail, gateEl.querySelector('#ccgCode').value); if (bad) { gateMsg = bad; drawGate(); } }; }
     const closeBtn = gateEl.querySelector('#ccgClose'); if (closeBtn) closeBtn.onclick = () => { forced = false; openGate(); };
