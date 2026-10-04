@@ -316,15 +316,12 @@ body.war .dec { color: var(--wb-red); }
 .fieldview { max-width: 440px; margin: 0 auto 12px; } .fieldview .parkwrap { border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 3px #0F2A4A, 0 6px 16px rgba(0,0,0,.28); background: #0F2A4A; }
 .fieldview svg.park { width: 100%; height: auto; max-height: 270px; display: block; }
 .pk-sb { font: 700 9.5px 'Courier New', monospace; fill: #FFD86B; letter-spacing: .5px; } .pk-in { fill: #9FE0A8; }
-.pk-ad { font: 700 7.2px 'Arial Narrow', Arial, sans-serif; letter-spacing: 1.1px; fill: #F4F1E8; }
+.pk-sign { font: 700 4.6px 'Arial Narrow', Arial, sans-serif; letter-spacing: .4px; fill: #1F3F8F; }
 .pk-base { fill: #fff; opacity: .95; } .pk-base.on { fill: #F2B33D; stroke: #fff; stroke-width: 1.4; }
 .pk-run circle { fill: #F2B33D; stroke: #10261c; stroke-width: 1.6; } .pk-tag { font: 700 9px 'Arial Narrow', Arial, sans-serif; fill: #fff; stroke: #10261c; stroke-width: 2.6px; paint-order: stroke; }
 .fieldview .fv-row { color: var(--ink, #1B1F24); }
 @media (prefers-reduced-motion: no-preference) {
-  .pk-fan { animation: pktw 5.5s ease-in-out infinite; animation-delay: var(--d); } @keyframes pktw { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
-  .pk-lamp { animation: pklamp 3.2s ease-in-out infinite; } @keyframes pklamp { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
-  .pk-flag { animation: pkflag 2.2s ease-in-out infinite; } @keyframes pkflag { 0%, 100% { transform: skewY(0deg); } 50% { transform: skewY(7deg); } }
-  .park.pk-wave .pk-fan { animation: pkwave .55s ease-in-out 4; animation-delay: var(--d); } @keyframes pkwave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  .park.pk-wave #pkBoard rect { animation: pkboard .6s ease-in-out 4; } @keyframes pkboard { 0%, 100% { stroke: #59636E; } 50% { stroke: #FFD86B; stroke-width: 2.6; } }
 }
 @media (max-width: 720px) { .fieldview { max-width: 100%; } .fieldview svg.park { max-height: 230px; } }
 .gm { margin: 0 0 14px; padding: 14px 16px; background: #FFF7E0; border: 2px solid #C69A2B; border-radius: 8px; color: #1B1F24; text-align: left; } .gm h3 { margin: 0 0 6px; font: 700 22px var(--display, Georgia, serif); color: #5A3F06; } .gm h4 { margin: 12px 0 2px; font: 700 13px var(--text, sans-serif); letter-spacing: .05em; text-transform: uppercase; color: #6B4E0E; } .gm p { margin: 4px 0; max-width: 70ch; line-height: 1.45; } .gm .btn { margin-top: 8px; min-height: 44px; } .gm-chg { margin: 8px 0; padding: 8px 10px; background: #fff; border-left: 4px solid #C69A2B; border-radius: 4px; } .gm-chg b { font-size: 15px; } .gm-chg p { margin: 2px 0 0; }
@@ -1003,38 +1000,20 @@ body.war .dec { color: var(--wb-red); }
 
   // the field in the dice tray: runners by name on their bases, outs lamps, inning
   // ---------- the ballpark ----------
-  const PK = { first: [216, 190], second: [170, 150], third: [124, 190], plate: [170, 232] };
+  const PK = { first: [229.4, 123.2], second: [170.2, 102.9], third: [111.1, 123.2], plate: [170.0, 156.0] };   // measured on park.webp (viewBox 340 x 185.5)
   function parkSvg() {
-    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    const shirts = ['#C8312B', '#F4F1E8', '#2D5BB8', '#F2B33D', '#2F8F57', '#D9D9D9'];
-    let fans = ''; for (let row = 0; row < 4; row++) for (let i = 0; i < 38; i++) { const x = 6 + i * 8.8 + (row % 2 ? 4 : 0) + rnd() * 2, y = 44 + row * 9 + rnd() * 2; fans += `<circle class="pk-fan" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${shirts[Math.floor(rnd() * shirts.length)]}" style="--d:${(x / 340 * .9).toFixed(2)}s"/>`; }
-    let stripes = ''; for (let k = 0; k < 12; k++) { if (k % 2) continue; const a0 = (-60 + k * 10) * Math.PI / 180, a1 = (-60 + (k + 1) * 10) * Math.PI / 180, R = 300; stripes += `<polygon points="170,232 ${(170 + R * Math.sin(a0)).toFixed(1)},${(232 - R * Math.cos(a0)).toFixed(1)} ${(170 + R * Math.sin(a1)).toFixed(1)},${(232 - R * Math.cos(a1)).toFixed(1)}" fill="#277A36"/>`; }
-    const tower = x => `<g><rect x="${x - 2}" y="6" width="4" height="40" fill="#59636E"/><rect x="${x - 13}" y="0" width="26" height="10" rx="2" fill="#26323F"/><g class="pk-lamp">${[-9, -3, 3, 9].map(d => `<circle cx="${x + d}" cy="3.5" r="2" fill="#FFE9A8"/><circle cx="${x + d}" cy="7.5" r="2" fill="#FFE9A8"/>`).join('')}</g></g>`;
-    const flag = (x, c) => `<g class="pk-flag" style="transform-origin:${x}px 14px"><line x1="${x}" y1="14" x2="${x}" y2="29" stroke="#C9CED3" stroke-width="1.2"/><path d="M${x} 14 L${x + 11} 17.5 L${x} 21 Z" fill="${c}"/></g>`;
-    return `<svg class="park" id="park" viewBox="0 0 340 250" role="img" aria-label="The ballpark" preserveAspectRatio="xMidYMid meet">
-      <defs><linearGradient id="pkSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F2A4A"/><stop offset="1" stop-color="#2B5C8E"/></linearGradient><clipPath id="pkClip"><path d="M0 118 Q170 90 340 118 L340 250 L0 250 Z"/></clipPath></defs>
-      <rect width="340" height="130" fill="url(#pkSky)"/>
-      <path d="M0 96 L0 30 Q170 6 340 30 L340 96 Z" fill="#35465A"/><path d="M0 62 Q170 40 340 62 L340 66 Q170 44 0 66 Z" fill="#2B394A"/><path d="M0 30 Q170 6 340 30 L340 40 Q170 16 0 40 Z" fill="#222D3A"/>
-      ${fans}${tower(24)}${tower(316)}${flag(110, '#C8312B')}${flag(170, '#F2B33D')}${flag(230, '#2D5BB8')}
-      <g><rect x="130" y="56" width="80" height="34" rx="2" fill="#0B1510" stroke="#59636E" stroke-width="1.2"/><text id="pkA" class="pk-sb" x="136" y="68"></text><text id="pkB" class="pk-sb" x="136" y="82"></text><text id="pkI" class="pk-sb pk-in" x="204" y="75" text-anchor="end"></text></g>
-      <path d="M0 118 Q170 90 340 118 L340 250 L0 250 Z" fill="#2E8B3F"/>
-      <g clip-path="url(#pkClip)">${stripes}<path d="M0 118 Q170 90 340 118 L340 130 Q170 102 0 130 Z" fill="#9C7040"/>
-        <circle cx="170" cy="200" r="68" fill="#B98756"/><path d="M170 226 L218 190 L170 152 L122 190 Z" fill="#33953F"/>
-        <path d="M170 232 L42 104 M170 232 L298 104" stroke="#fff" stroke-width="1.6" opacity=".85" fill="none"/>
-        <path d="M170 232 L216 190 L170 150 L124 190 Z" fill="none" stroke="#EFE3CB" stroke-width="2.2" stroke-linejoin="round"/>
-        <ellipse cx="170" cy="190" rx="9" ry="5" fill="#C79A66"/><rect x="167" y="189" width="6" height="1.8" fill="#fff"/></g>
-      <path d="M0 104 Q170 76 340 104 L340 118 Q170 90 0 118 Z" fill="#1E5632"/><path d="M0 104 Q170 76 340 104" stroke="#F2B33D" stroke-width="3" fill="none"/>
-      <path id="pkWall" d="M0 113 Q170 85 340 113" fill="none"/><text class="pk-ad"><textPath href="#pkWall" startOffset="50%" text-anchor="middle">COOPERSTOWN CASH  ·  DRAFT IT  ·  PLAY IT  ·  WIN IT</textPath></text>
-      <path d="M42 104 L42 82 M298 104 L298 82" stroke="#F2B33D" stroke-width="2.4"/>
+    return `<svg class="park" id="park" viewBox="0 0 340 185.5" role="img" aria-label="The ballpark" preserveAspectRatio="xMidYMid meet">
+      <image href="park.webp" x="0" y="0" width="340" height="185.5" preserveAspectRatio="none" aria-hidden="true"/>
+      <g id="pkSigns" aria-hidden="true"><text class="pk-sign" x="132.8" y="51.6" text-anchor="middle" style="font-size:4px">PLAY IT</text><text class="pk-sign" x="128" y="63.4" text-anchor="middle" style="font-size:5.4px">CASH</text><text class="pk-sign" x="200.8" y="61.4" text-anchor="middle" style="font-size:3.5px">DRAFT</text><text class="pk-sign" x="218.2" y="64" text-anchor="middle" style="font-size:4.2px">WIN IT</text></g>
+      <g id="pkBoard"><rect x="124" y="4" width="92" height="40" rx="2.5" fill="#0B1510" stroke="#59636E" stroke-width="1.4"/><text id="pkA" class="pk-sb" x="130" y="18"></text><text id="pkB" class="pk-sb" x="130" y="32"></text><text id="pkI" class="pk-sb pk-in" x="210" y="25" text-anchor="end"></text></g>
       <g id="parkDyn"></g><g id="parkBall"></g>
-      <path d="M170 241 L177 237 L177 232 L163 232 L163 237 Z" fill="#fff"/>
     </svg>`;
   }
-  function crowdWave() { const s = $('park'); if (!s || matchMedia('(prefers-reduced-motion: reduce)').matches) return; s.classList.remove('pk-wave'); void s.getBoundingClientRect(); s.classList.add('pk-wave'); setTimeout(() => s.classList.remove('pk-wave'), 2600); }
+  function crowdWave() { const sv = $('park'); if (!sv || matchMedia('(prefers-reduced-motion: reduce)').matches) return; sv.classList.remove('pk-wave'); void sv.getBoundingClientRect(); sv.classList.add('pk-wave'); setTimeout(() => sv.classList.remove('pk-wave'), 2600); }   // a run scores: the scoreboard lights up
   function ballFlight(play) { // a ball for the play, over the grass, drawn once
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; const dyn = $('parkBall'); if (!dyn) return;
-    const side = Math.random() < .5 ? -1 : 1, x = k => (170 + side * k).toFixed(0), P = PK.plate;
-    const paths = { HR: [`M${P[0]} ${P[1] - 6} Q${x(60)} 6 ${x(120)} 58`, 1.8], '3B': [`M${P[0]} ${P[1] - 6} Q${x(90)} 70 ${x(128)} 126`, 1.3], '2B': [`M${P[0]} ${P[1] - 6} Q${x(70)} 80 ${x(100)} 134`, 1.2], S: [`M${P[0]} ${P[1] - 6} Q${x(30)} 120 ${x(44)} 146`, 1], BH: [`M${P[0]} ${P[1] - 6} L${x(16)} 214`, .6], FB: [`M${P[0]} ${P[1] - 6} Q${x(14)} 30 ${x(24)} 130`, 1.6], LD: [`M${P[0]} ${P[1] - 6} L${x(34)} 168`, .7], GB: [`M${P[0]} ${P[1] - 6} L${x(50)} 200`, .9] };
+    const side = Math.random() < .5 ? -1 : 1, x = k => (170 + side * k).toFixed(0), P = PK.plate, y0 = P[1] - 4;
+    const paths = { HR: [`M${P[0]} ${y0} Q${x(50)} -6 ${x(92)} 40`, 1.8], '3B': [`M${P[0]} ${y0} Q${x(80)} 40 ${x(98)} 78`, 1.3], '2B': [`M${P[0]} ${y0} Q${x(58)} 50 ${x(70)} 84`, 1.2], S: [`M${P[0]} ${y0} Q${x(26)} 70 ${x(34)} 100`, 1], BH: [`M${P[0]} ${y0} L${x(8)} 140`, .6], FB: [`M${P[0]} ${y0} Q${x(14)} 20 ${x(26)} 78`, 1.6], LD: [`M${P[0]} ${y0} L${x(28)} 108`, .7], GB: [`M${P[0]} ${y0} L${x(34)} 130`, .9] };
     const pick = paths[play.code] || null; if (!pick) return; const [d, secs] = pick;
     dyn.insertAdjacentHTML('beforeend', `<circle class="pk-ball" r="3" fill="#fff" stroke="#8A8F96" stroke-width=".8"><animateMotion dur="${secs}s" path="${d}" fill="freeze"/><animate attributeName="opacity" values="1;1;0" keyTimes="0;.85;1" dur="${secs + .5}s" fill="freeze"/></circle>`);
     setTimeout(() => { dyn.querySelectorAll('.pk-ball').forEach(e => e.remove()); }, (secs + .7) * 1000);
