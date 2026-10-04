@@ -91,7 +91,13 @@ textarea#notes { width: 100%; min-height: 260px; font: 17px/1.5 var(--text); pad
 .chs { display: grid; gap: 6px; } .ch { display: flex; align-items: flex-start; gap: 10px; background: #F7F9FB; border: 1px solid #DDE3EA; border-radius: 6px; padding: 6px 10px; } .ch > div { flex: 1; min-width: 0; } .ch.empty { background: transparent; border-style: dashed; align-items: center; }
 .cl { flex: none; width: 1.7em; height: 1.7em; border-radius: 50%; background: var(--wb-ink); color: #fff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; margin-top: 2px; } .ch.empty .cl { background: #8C959E; margin-top: 0; }
 .rk { display: inline-block; margin: 0 6px 0 0; padding: 1px 9px; border-radius: 10px; font: 700 12px var(--text); } .rk.hi { background: #FBE3DF; color: #9E2B22; } .rk.md { background: #FFF1C9; color: #7A5200; } .rk.lo { background: #E4F2E9; color: #17603A; }
-.picker { background: #EEF3FA; border: 2px solid var(--wb-ink); border-radius: 6px; padding: 10px 14px 12px; margin: 14px 0; } .picker h3 { font: 400 22px var(--marker); color: var(--wb-ink); margin: 0 0 8px; } .picker ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; } .picker li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 6px; padding: 6px 10px; } .pw { min-width: 0; font-size: 16px; line-height: 1.5; } .btn.sm { min-height: 44px; padding: 6px 14px; font-size: 16px; flex: none; }
+.pback { position: fixed; inset: 0; background: rgba(15,25,20,.5); z-index: 80; } .pback[hidden], .picker[hidden] { display: none; }
+.picker { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; width: 100%; max-width: 680px; max-height: 86vh; max-height: 86dvh; z-index: 81; display: flex; flex-direction: column; background: #EEF3FA; border: 2px solid var(--wb-ink); border-bottom: 0; border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.35); outline: 0; }
+.picker .phead { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 16px; border-bottom: 1px solid #C9D3E3; flex: none; }
+.picker .pbody { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 10px 14px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.picker h3 { font: 400 22px var(--marker); color: var(--wb-ink); margin: 0; flex: 1; min-width: 0; } .picker #pClose { min-height: 44px; min-width: 84px; flex: none; }
+html.nolock, html.nolock body { overflow: hidden; }
+.embed .crumbs, .embed .board, .embed footer { display: none !important; } .embed .wrap { padding-top: 6px; } .embed .tabs { position: sticky; top: 0; z-index: 5; background: #F3ECD8; padding-top: 6px; } .picker ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; } .picker li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 6px; padding: 6px 10px; } .pw { min-width: 0; font-size: 16px; line-height: 1.5; } .btn.sm { min-height: 44px; padding: 6px 14px; font-size: 16px; flex: none; }
 details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 4px 14px 10px; } details.opp summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; font-size: 17px; } #oppTable { overflow-x: auto; } #oppTable table { border-collapse: collapse; width: 100%; font-size: 15px; } #oppTable th, #oppTable td { padding: 2px 8px; border-bottom: 1px solid #E6E9EC; text-align: left; vertical-align: middle; } #oppTable th { font-size: 13px; color: #4A5560; }
 
 .page h3 { font-size: 19px; margin: 18px 0 4px; color: #1B2430; } .page ul.plain li, .page ol li { margin: 5px 0; }
@@ -114,6 +120,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     <button class="tabbtn" role="tab" type="button" id="tAtbat" aria-selected="false" aria-controls="pAtbat" tabindex="-1">An at-bat</button>
     <button class="tabbtn" role="tab" type="button" id="tBases" aria-selected="false" aria-controls="pBases" tabindex="-1">On the bases</button>
     <button class="tabbtn" role="tab" type="button" id="tPitch" aria-selected="false" aria-controls="pPitch" tabindex="-1">Pitchers</button>
+    <button class="tabbtn" role="tab" type="button" id="tAuto" aria-selected="false" aria-controls="pAuto" tabindex="-1">What the game decides</button>
     <button class="tabbtn" role="tab" type="button" id="tSeason" aria-selected="false" aria-controls="pSeason" tabindex="-1">A league season</button>
     <button class="tabbtn" role="tab" type="button" id="tLimits" aria-selected="false" aria-controls="pLimits" tabindex="-1">What it doesn't do</button>
   </div>
@@ -223,6 +230,24 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     <p>A manager can give starters a <b>short</b>, <b>normal</b> or <b>long</b> leash. Short cuts every starter's limit by 20% so he is taken out sooner. Long adds 25%. You can also set the order of your five starters, or choose who starts a particular game. Starters take the ball in order: game day 1 is the first starter, day 2 the second, and so on around.</p>
   </section>
 
+  <section class="page" id="pAuto" role="tabpanel" aria-labelledby="tAuto" hidden>
+    <h2>What the game decides for you</h2>
+    <p>A few calls are made by the game itself, the same way for both teams. Today you can't make them or change them.</p>
+    <div class="scrollx"><table class="facts"><thead><tr><th>The call</th><th>How the game makes it</th></tr></thead><tbody>
+      <tr><td>Taking extra bases</td><td>Runners advance by fixed odds, nudged by the hitter's speed. There are no outfield arm ratings. The odds are on the <a href="#bases">On the bases</a> tab.</td></tr>
+      <tr><td>Tagging up</td><td>It's automatic. About 6 times in 10 a runner on third scores on a fly ball, and a runner on second tags up to third about a quarter of the time when third is open.</td></tr>
+      <tr><td>Trailing and forced runners</td><td>They advance by the rules, with no choice. A walk or a groundout moves forced runners up, and other runners move by the odds on the On the bases tab.</td></tr>
+      <tr><td>Double plays</td><td>The chance depends on the hitter's speed: with a runner on first and fewer than two outs, about 4 times in 10 for an average hitter on a groundout, less for a fast one. You can't set a double-play depth or play the infield in.</td></tr>
+      <tr><td>Pitching changes and the closer</td><td>These follow the stamina and run rules on the <a href="#pitch">Pitchers</a> tab. The next reliever is the best one available, chosen by the game, not by you.</td></tr>
+    </tbody></table></div>
+    <h3>What you do decide</h3>
+    <ul class="plain">
+      <li>The draft or roster: who you take and what you spend.</li>
+      <li>In a league: your batting order, the order of your five starters, which starter takes the ball in a given game, and how long a leash your starters get.</li>
+    </ul>
+    <p>Things like stolen bases, bunts and pinch hitters aren't in the game at all. See <a href="#limits">What it doesn't do</a>.</p>
+  </section>
+
   <section class="page" id="pSeason" role="tabpanel" aria-labelledby="tSeason" hidden>
     <h2>A league season</h2>
     <ul class="plain">
@@ -243,7 +268,10 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     <p>This is a simple game on purpose, so you can play it in a few minutes. These things are not part of it today:</p>
     <ul class="plain">
       <li><b>The bench doesn't play.</b> Games use only the nine lineup spots, five starters and seven relievers. There are no pinch hitters and no defensive replacements.</li>
-      <li><b>No stolen bases, bunts or hit-and-run plays.</b></li>
+      <li><b>No stolen bases, bunts, squeezes or hit-and-run plays,</b> and no choosing when a runner goes.</li>
+      <li><b>No intentional walks or pitching around a hitter,</b> and no choosing the count to hit in.</li>
+      <li><b>No fielder positioning:</b> no infield in, corners in or double-play depth, no deep outfield, and no holding runners on.</li>
+      <li><b>No choosing where fielders throw,</b> and no warming up or matching up relievers by hand.</li>
       <li><b>No injuries.</b> Everyone on your roster is available every game, except that a pitcher who has left a game doesn't return.</li>
       <li><b>No ballpark or home-field effects.</b> Every game is played in the same neutral setting.</li>
       <li><b>No left-right matchups.</b> A hitter's card is the same against any pitcher.</li>
