@@ -209,11 +209,12 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   }
 
   // ---------- rolling ----------
-  function cardNote(p) { return `${p.owner === 'batter' ? p.batter : p.pitcher}'s card. A ${p.roll} falls in ${p.lo} to ${p.hi}: ${p.label}.`; }
+  function cardNote(p) { return p.owner === 'manager' ? `A manager's call, so no dice are rolled: ${p.label}.` : `${p.owner === 'batter' ? p.batter : p.pitcher}'s card. A ${p.roll} falls in ${p.lo} to ${p.hi}: ${p.label}.`; }
   async function animateDice(p, quick) {
     S.animating = true; updateControls();
     const d = S.dice = { bat: null, pit: null, roll: null, winner: null, note: '', spin: [] };
     const show = () => { updateDice(); };
+    if (p.owner === 'manager') { d.winner = 'manager'; d.note = cardNote(p); show(); await sleep(S.reduce ? 0 : quick ? 120 : 600); S.animating = false; return; }   // a steal, bunt or intentional walk: no dice
     if (S.reduce) { Object.assign(d, { bat: p.bat, pit: p.pit, roll: p.roll, winner: p.owner, note: cardNote(p) }); show(); S.animating = false; return; }
     const tumble = async (keys, ms) => { d.spin = keys; const end = Date.now() + ms; while (Date.now() < end) { keys.forEach(k => { d[k] = k === 'roll' ? 1 + Math.floor(Math.random() * 100) : 1 + Math.floor(Math.random() * 20); }); show(); await sleep(55); } d.spin = []; };
     d.note = 'Rolling the duel dice…'; await tumble(['bat', 'pit'], quick ? 200 : 550);
@@ -341,17 +342,18 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (!open) { el.innerHTML = ''; return; }
     for (let i = S.idx - 1; i >= 0; i--) {
       const p = S.log[i], k = p.inning + '-' + p.half, nextKey = i > 0 ? S.log[i - 1].inning + '-' + S.log[i - 1].half : null;
-      html += `<li class="p${p.code === 'HR' ? ' hr' : ''}"><b>${esc(p.txt)}</b>${p.scored ? ` <span class="note">Score: ${esc(name(S.game.away_seat))} ${p.score[0]}, ${esc(name(S.game.home_seat))} ${p.score[1]}.</span>` : ''}<span class="d">${esc(p.batter)} d20 ${p.bat}, ${esc(p.pitcher)} d20 ${p.pit}, ${p.owner === 'batter' ? 'batter' : 'pitcher'}'s card, roll ${p.roll}</span></li>`;
+      html += `<li class="p${p.code === 'HR' ? ' hr' : ''}"><b>${esc(p.txt)}</b>${p.scored ? ` <span class="note">Score: ${esc(name(S.game.away_seat))} ${p.score[0]}, ${esc(name(S.game.home_seat))} ${p.score[1]}.</span>` : ''}${p.owner === 'manager' ? `<span class="d">Manager's call: ${esc(p.label)}</span>` : `<span class="d">${esc(p.batter)} d20 ${p.bat}, ${esc(p.pitcher)} d20 ${p.pit}, ${p.owner === 'batter' ? 'batter' : 'pitcher'}'s card, roll ${p.roll}</span>`}</li>`;
       (p.pre || []).slice().reverse().forEach(x => { html += `<li class="chg">${esc(x.txt)}</li>`; });
       if (nextKey !== k) html += `<li class="inn">${p.half ? 'Bottom' : 'Top'} of the ${ord(p.inning)}</li>`;
     }
     el.innerHTML = html || '<li class="note">Nothing yet. Roll the first at-bat.</li>';
   }
   const ipText = r => r.IP;
+  const stealNote = bat => { const s = bat.filter(x => x.SB || x.CS); return s.length ? `<p class="note">Steals: ${s.map(x => `${esc(x.name)} ${x.SB || 0} for ${(x.SB || 0) + (x.CS || 0)}`).join(', ')}.</p>` : ''; };
   function boxTable(t, i) {
     const R = S.result, bat = R.batting[i], pit = R.pitching[i], sum = k => bat.reduce((s, x) => s + x[k], 0);
     return `<h3 class="tm">${esc(R.names[i])}</h3><div class="scroll"><table class="box"><thead><tr><th>Batter</th><th class="n">AB</th><th class="n">R</th><th class="n">H</th><th class="n">RBI</th><th class="n">BB</th><th class="n">SO</th><th class="n">HR</th></tr></thead><tbody>${bat.map(x => `<tr><td>${esc(x.name)} <span class="note">${esc((x.pos || '').toUpperCase())}</span></td><td class="n">${x.AB}</td><td class="n">${x.R}</td><td class="n">${x.H}</td><td class="n">${x.RBI}</td><td class="n">${x.BB}</td><td class="n">${x.SO}</td><td class="n">${x.HR}</td></tr>`).join('')}<tr class="tot"><td>Totals</td><td class="n">${sum('AB')}</td><td class="n">${sum('R')}</td><td class="n">${sum('H')}</td><td class="n">${sum('RBI')}</td><td class="n">${sum('BB')}</td><td class="n">${sum('SO')}</td><td class="n">${sum('HR')}</td></tr></tbody></table>
-      <table class="box"><thead><tr><th>Pitcher</th><th class="n">IP</th><th class="n">H</th><th class="n">R</th><th class="n">ER</th><th class="n">BB</th><th class="n">SO</th><th class="n">HR</th></tr></thead><tbody>${pit.map(x => `<tr><td>${esc(x.name)}${x.dec ? ` <b>(${x.dec})</b>` : ''}</td><td class="n">${esc(ipText(x))}</td><td class="n">${x.H}</td><td class="n">${x.R}</td><td class="n">${x.ER}</td><td class="n">${x.BB}</td><td class="n">${x.SO}</td><td class="n">${x.HR}</td></tr>`).join('')}</tbody></table></div>`;
+      <table class="box"><thead><tr><th>Pitcher</th><th class="n">IP</th><th class="n">H</th><th class="n">R</th><th class="n">ER</th><th class="n">BB</th><th class="n">SO</th><th class="n">HR</th></tr></thead><tbody>${pit.map(x => `<tr><td>${esc(x.name)}${x.dec ? ` <b>(${x.dec})</b>` : ''}</td><td class="n">${esc(ipText(x))}</td><td class="n">${x.H}</td><td class="n">${x.R}</td><td class="n">${x.ER}</td><td class="n">${x.BB}</td><td class="n">${x.SO}</td><td class="n">${x.HR}</td></tr>`).join('')}</tbody></table></div>${stealNote(bat)}`;
   }
   function updateFinal() {
     const el = $('fin'); if (!el) return;

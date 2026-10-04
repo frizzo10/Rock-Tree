@@ -15,6 +15,6 @@
     '<li><b>Trailing and forced runners:</b> they advance by the rules, with no choice.</li>' +
     '<li><b>Double plays:</b> the chance depends on the hitter\'s speed, and you can\'t set a double-play depth.</li>' +
     '<li><b>Pitching changes and the closer:</b> these follow the stamina and run rules. The next reliever is the best one available, chosen by the game, not by you.</li>' +
-    '</ul><p>There are also no stolen bases, bunts, pinch hitters or fielder positioning. <a href="howtoplay.html#auto">Read the full rules</a></p></div>';
+    '</ul><p>Steals, sacrifice bunts and intentional walks are your calls: live in a quick game, or set on your manager page in a league. There are no pinch hitters or fielder positioning. <a href="howtoplay.html#calls">Read the full rules</a></p></div>';
   if (before) anchor.parentNode.insertBefore(d, anchor); else anchor.parentNode.insertBefore(d, anchor.nextSibling);
 })();

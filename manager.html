@@ -72,7 +72,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const LINEUP = ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh'], SPS = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'];
   const POS = { c: 'Catcher', '1b': 'First base', '2b': 'Second base', '3b': 'Third base', ss: 'Shortstop', lf: 'Left field', cf: 'Center field', rf: 'Right field', dh: 'Designated hitter' };
-  const S = { id: new URLSearchParams(location.search).get('league'), league: null, seat: null, slots: {}, byKey: new Map(), auto: true, order: LINEUP.slice(), rotation: SPS.slice(), leash: 'normal', saved: null, dirty: false, ended: false, msg: '', msgKind: '' };
+  const S = { id: new URLSearchParams(location.search).get('league'), league: null, seat: null, slots: {}, byKey: new Map(), auto: true, order: LINEUP.slice(), rotation: SPS.slice(), leash: 'normal', steals: 'off', bunts: 'off', walks: 'off', saved: null, dirty: false, ended: false, msg: '', msgKind: '' };
   const client = () => window.CC && window.CC.client;
   const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
   const player = slot => S.byKey.get(S.slots[slot]);
@@ -84,21 +84,21 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     try {
       const [lg, seat, ros, set, pool] = await Promise.all([
         c.from('leagues').select('id,name,status').eq('id', S.id), c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
-        c.from('league_rosters').select('user_id,slots').eq('league_id', S.id), c.from('manager_settings').select('batting_order,rotation,leash').eq('league_id', S.id),
+        c.from('league_rosters').select('user_id,slots').eq('league_id', S.id), c.from('manager_settings').select('batting_order,rotation,leash,steals,bunts,walks').eq('league_id', S.id),
         S.byKey.size ? Promise.resolve(null) : fetch('roster-pool.json').then(r => r.json())]);
       S.league = lg.data && lg.data[0]; S.seat = seat.data && seat.data[0];
       if (!S.league || !S.seat) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
       if (pool) S.byKey = new Map(pool.map(p => [p.k, p]));
       const mine = (ros.data || []).find(r => r.user_id === window.CC.user.id); S.slots = (mine && mine.slots) || {};
       const row = set.data && set.data[0]; S.auto = !(row && row.batting_order); S.order = row && row.batting_order ? row.batting_order.slice() : LINEUP.slice();
-      S.rotation = row && row.rotation ? row.rotation.slice() : SPS.slice(); S.leash = (row && row.leash) || 'normal'; S.ended = ['complete', 'canceled'].includes(S.league.status);
+      S.rotation = row && row.rotation ? row.rotation.slice() : SPS.slice(); S.leash = (row && row.leash) || 'normal'; S.steals = (row && row.steals) || 'off'; S.bunts = (row && row.bunts) || 'off'; S.walks = (row && row.walks) || 'off'; S.ended = ['complete', 'canceled'].includes(S.league.status);
       S.saved = JSON.stringify(snapshot()); S.dirty = false;
       $('backSeason').href = S.league.status === 'started' || S.league.status === 'complete' ? 'season.html?league=' + S.id : 'private.html';
       $('title').textContent = 'Manager settings: ' + S.seat.club_name; $('sub').textContent = S.league.name + '. How your club plays when you\'re not in the dugout.';
       render();
     } catch (e) { $('sub').textContent = 'We couldn\'t load your settings. Please refresh the page.'; }
   }
-  const snapshot = () => ({ auto: S.auto, order: S.auto ? null : S.order, rotation: same(S.rotation, SPS) ? null : S.rotation, leash: S.leash });
+  const snapshot = () => ({ auto: S.auto, order: S.auto ? null : S.order, rotation: same(S.rotation, SPS) ? null : S.rotation, leash: S.leash, steals: S.steals, bunts: S.bunts, walks: S.walks });
   function line(p) { return p ? `${p.y} ${esc(p.t)} · ${esc(p.l)}` : ''; }
 
   function render() {
@@ -109,6 +109,10 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     const rotList = S.rotation.map((s, i) => { const p = player(s); return `<li><span class="n">${i + 1}</span><span><b>${esc(p.n)}</b><small>${line(p)}</small></span>${mv(i, 5, 'rot')}</li>`; }).join('');
     const nextFive = S.rotation.map((s, i) => `day ${i + 1}: ${esc(player(s).n)}`).join(', ');
     const leashes = [['short', 'Short leash', 'Pulls a tiring starter sooner. Fresher arms, but more innings from your bullpen.'], ['normal', 'Normal', 'The game decides, the way it always has.'], ['long', 'Long leash', 'Lets a starter go deeper before the bullpen gets a call.']];
+    const STRAT = [['steals', 'Stolen bases', [['off', 'Off', 'Runners never try to steal. This is how every game has been played until now.'], ['selective', 'Selective', 'Runners go as often as they really did that season, and succeed about as often as they really did. A player who never ran stays put. They hold back late in a game that is out of reach.'], ['aggressive', 'Aggressive', 'Runners go about a third more often than in real life, and even players who rarely ran will go if they succeeded at least two times in three. More steals, and more runners thrown out.']]],
+      ['bunts', 'Sacrifice bunts', [['off', 'Off', 'Nobody bunts.'], ['situational', 'Situational', 'With nobody out, a runner on first and the game within two runs, one of your three weakest hitters bunts the runner over. A bunt moves the runner up about three times in four. The rest become a bunt single, a runner thrown out, a pop-up or a double play.']]],
+      ['walks', 'Intentional walks', [['off', 'Off', 'Your pitchers always pitch to the hitter.'], ['situational', 'Situational', 'From the 6th inning on, when the game is tied or you lead by up to two runs, with first base open and a runner on third (or on second with fewer than two outs), you walk one of the other team\'s four best hitters if the next one is clearly weaker.']]]];
+    const strategy = `<section class="card"><h2>Strategy</h2><p class="note">Your club plays by these choices in every game it plays for you. In a quick game you make these calls yourself, live. They apply to your own club only, and nobody else can see them.</p>${STRAT.map(([k, t, opts]) => `<h3 style="margin:14px 0 4px">${t}</h3>${opts.map(([v, n, d]) => `<label class="choice"><input type="radio" name="${k}" value="${v}" ${S[k] === v ? 'checked' : ''} ${off}><span><b>${n}</b><small>${d}</small></span></label>`).join('')}`).join('')}</section>`;
     $('main').innerHTML = `<section class="card"><h2>Batting order</h2>
         <label class="choice"><input type="radio" name="bo" value="auto" ${S.auto ? 'checked' : ''} ${off}><span><b>Let the scout set it</b><small>He builds the order from each player's season, and it's a good one.</small></span></label>
         <label class="choice"><input type="radio" name="bo" value="mine" ${S.auto ? '' : 'checked'} ${off}><span><b>I'll set it</b><small>Put your best hitters where you want them. Every spot still plays the position it's listed at.</small></span></label>
@@ -118,6 +122,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
         <div class="row"><button class="btn alt" type="button" id="resetRot" ${off}>Back to SP1 through SP5</button></div>
         <p class="note" style="margin-top:8px">Need a different starter for one particular game? Open that game and choose him there.</p></section>
       <section class="card"><h2>Starter leash</h2>${leashes.map(([v, t, d]) => `<label class="choice"><input type="radio" name="leash" value="${v}" ${S.leash === v ? 'checked' : ''} ${off}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}</section>
+      ${strategy}
       <section class="card"><div class="row" style="margin-top:0"><button class="btn" type="button" id="save" ${off || !S.dirty ? 'disabled' : ''}>Save my settings</button>${S.dirty ? '<span class="dirty">You have unsaved changes.</span>' : ''}${S.ended ? '<span class="note">This league has ended, so the settings are locked.</span>' : ''}</div><p class="msg ${S.msgKind}" id="msg" role="status">${esc(S.msg)}</p></section>`;
     bind();
   }
@@ -125,13 +130,14 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   function bind() {
     document.querySelectorAll('input[name=bo]').forEach(r => r.onchange = () => { S.auto = r.value === 'auto'; touch(); });
     document.querySelectorAll('input[name=leash]').forEach(r => r.onchange = () => { S.leash = r.value; touch(); });
+    ['steals', 'bunts', 'walks'].forEach(k => document.querySelectorAll('input[name=' + k + ']').forEach(r => r.onchange = () => { S[k] = r.value; touch(); }));
     document.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { const list = b.dataset.mv === 'order' ? S.order : S.rotation, i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; touch(); });
     const rr = $('resetRot'); if (rr) rr.onclick = () => { S.rotation = SPS.slice(); touch(); };
     const sv = $('save'); if (sv) sv.onclick = save;
   }
   async function save() {
     const snap = snapshot(); $('save').disabled = true; S.msg = 'Saving…'; S.msgKind = ''; $('msg').textContent = S.msg;
-    const { error } = await client().rpc('save_manager_settings', { p_league_id: S.id, p_batting_order: snap.order, p_rotation: snap.rotation, p_leash: snap.leash });
+    const { error } = await client().rpc('save_manager_settings', { p_league_id: S.id, p_batting_order: snap.order, p_rotation: snap.rotation, p_leash: snap.leash, p_steals: snap.steals, p_bunts: snap.bunts, p_walks: snap.walks });
     if (error) { S.msg = error.message || 'We couldn\'t save that. Please try again.'; S.msgKind = 'err'; render(); return; }
     S.saved = JSON.stringify(snap); S.dirty = false; S.msg = 'Saved. Your next game uses these settings.'; S.msgKind = 'ok'; render();
   }
