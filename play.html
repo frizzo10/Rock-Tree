@@ -310,6 +310,7 @@ body.war .dec { color: var(--wb-red); }
 <link rel="stylesheet" href="mobile.css">
 <style>
 .calls { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; } .calls[hidden] { display: none; } .calls .calls-t { flex: 1 0 100%; font-weight: 700; font-size: 14px; }
+.pen { flex: 1 0 100%; display: grid; gap: 6px; } .pen[hidden] { display: none; } .pen .pen-p { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; } .pen .pen-p small { font-weight: 400; font-size: 13px; opacity: .85; } .pen .pen-x { min-height: 44px; background: none; border: 0; text-decoration: underline; color: inherit; } .calls .call[disabled] { opacity: .55; }
 .calls .call { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; flex: 1 1 190px; } .calls .call small { font-weight: 400; font-size: 13px; opacity: .85; line-height: 1.3; }
 </style>
 <style>
@@ -764,6 +765,16 @@ body.war .dec { color: var(--wb-red); }
       if (this.inning >= 9 && dl >= 1 && dl <= 3 && cl && !def.used.has(cl.id) && def.pitcher.id !== cl.id) this.change(def, cl);
       else if (def.cur.BF >= def.pitcher.stamina * (0.9 + rnd() * 0.2) || def.cur.R >= 6) { const n = this.avail(def, this.inning < 9)[0]; if (n) this.change(def, n); }
     }
+    // ---- the call to the bullpen: the manager on defense brings in any reliever who has not pitched yet (a pitcher who has left never returns) ----
+    penOptions() {
+      const def = this.def; if (this.over || !def.cur || def.cur.BF < 1) return { ok: false, why: 'He must face a batter first.', list: [] };   // a pitcher faces at least one batter
+      return { ok: true, list: this.avail(def, false) };
+    }
+    callPen(id) {
+      const o = this.penOptions(); if (!o.ok) return null; const p = o.list.find(x => x.id === id); if (!p) return null;
+      const old = this.def.pitcher; this.change(this.def, p);   // the note stays in `pending`, so it shows with the next play like any other change
+      return { txt: `Pitching change: ${p.name} replaces ${old.name}.`, out: old, inn: p };
+    }
     // ---- what the manager can choose right now ----
     stealChance(r, third) { const s = typeof r.b.stealSucc === 'number' ? r.b.stealSucc : 0.7; return Math.min(0.92, Math.max(0.4, s + (third ? 0.03 : 0))); }
     decisions() {
@@ -1097,11 +1108,26 @@ body.war .dec { color: var(--wb-red); }
   const CPU_CALLS = { steals: 'selective', bunts: 'situational', walks: 'situational' };
   function clearCalls() { const c = $('calls'); if (c) { c.hidden = true; c.innerHTML = ''; } }
   const callNote = o => o.id === 'bunt' ? `${o.who}. About 3 in 4 move the runner up.` : o.id === 'ibb' ? `Put ${o.who} on first.` : `${o.who}: ${Math.round(o.chance * 100)}% to make it.`;
+  function penNote(p) { const c = g.def.t.closer; return `${p.era.toFixed(2)} ERA, ${p.SO} SO${c && c.id === p.id ? ', closer' : ''}`; }
   function drawCalls(youBat) {
-    const c = $('calls'); if (!c) return; const d = g.decisions(), list = youBat ? d.offense : d.defense;
-    if (!list.length || g.over) { clearCalls(); return; }
-    c.innerHTML = '<span class="calls-t">Make a call before the pitch</span>' + list.map(o => `<button type="button" class="btn btn-alt call" data-call="${o.id}">${esc(o.label)}<small>${esc(callNote(o))}</small></button>`).join('');
+    const c = $('calls'); if (!c) return; const d = g.decisions(), list = youBat ? d.offense : d.defense, pen = youBat ? null : g.penOptions();
+    if ((!list.length && !pen) || g.over) { clearCalls(); return; }
+    const left = pen && pen.ok ? pen.list.length : 0;
+    c.innerHTML = '<span class="calls-t">Make a call before the pitch</span>' + list.map(o => `<button type="button" class="btn btn-alt call" data-call="${o.id}">${esc(o.label)}<small>${esc(callNote(o))}</small></button>`).join('')
+      + (pen && (left || !pen.ok) ? `<button type="button" class="btn btn-alt call" id="penBtn" aria-expanded="false" aria-controls="penList" ${pen.ok ? '' : 'disabled'}>Call to the bullpen<small>${pen.ok ? `${left} reliever${left === 1 ? '' : 's'} left. Taking out ${esc(g.pitcher().short)}.` : esc(pen.why)}</small></button><div class="pen" id="penList" role="group" aria-label="Relievers you can bring in" hidden></div>` : '');
     c.hidden = false; c.querySelectorAll('[data-call]').forEach(b => b.onclick = () => doCall(b.dataset.call));
+    const pb = $('penBtn'); if (pb && pen.ok) pb.onclick = () => {
+      const box = $('penList'), open = box.hidden; if (!open) { box.hidden = true; pb.setAttribute('aria-expanded', 'false'); return; }
+      box.innerHTML = pen.list.map(p => `<button type="button" class="btn btn-alt pen-p" data-pen="${esc(p.id)}"><b>${esc(p.name)}</b><small>${esc(penNote(p))}</small></button>`).join('') + '<button type="button" class="btn pen-x" id="penX">Never mind</button>';
+      box.hidden = false; pb.setAttribute('aria-expanded', 'true'); box.querySelectorAll('[data-pen]').forEach(b => b.onclick = () => doPen(b.dataset.pen)); $('penX').onclick = () => { box.hidden = true; pb.setAttribute('aria-expanded', 'false'); pb.focus(); };
+    };
+  }
+  function doPen(id) {
+    if (busy || stage !== 'duel' || g.over) return;
+    const r = g.callPen(id); if (!r) return;
+    clearCalls(); $('result').textContent = r.txt; $('result').className = 'result';
+    prompt();   // the next at-bat is now against the new pitcher's card
+    $('result').textContent = r.txt;
   }
   function doCall(id) {
     if (busy || stage !== 'duel' || g.over) return;

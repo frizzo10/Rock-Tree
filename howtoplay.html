@@ -137,7 +137,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
       <li><b>Private leagues.</b> Ten seats among people you know. A league can have a buy-in, which is held by an independent service and never by us.</li>
     </ul>
     <h3>Where your decisions matter</h3>
-    <p>Who you draft and what you spend. In a league you also set your batting order, the order of your five starters, how long a leash your starters get, which starter takes the ball in a given game, and whether your club steals, bunts and walks hitters on purpose. In a quick game you make the steal, bunt and walk calls yourself, live.</p>
+    <p>Who you draft and what you spend. In a league you also set your batting order, the order of your five starters, how long a leash your starters get, which starter takes the ball in a given game, and whether your club steals, bunts and walks hitters on purpose. In a quick game you make the steal, bunt and walk calls yourself, live, and you decide when to bring in a reliever.</p>
     <div class="callout"><p><b>The dice decide each game.</b> The better team wins more often, but any single game can go either way.</p></div>
     <h3>What a player card shows</h3>
     <p>The season and team, the positions he can play, his price, his real stats, and his <b>Runs+</b>, which is how many runs that season was worth above an average player. At the bottom is his <b>roll card</b>, the list of results the dice can produce for him.</p>
@@ -245,7 +245,8 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     </ul>
     <h3>Who comes in</h3>
     <ul class="plain">
-      <li>The best reliever still available, judged by his real strikeouts, walks and home runs. The closer is held back until the 9th inning.</li>
+      <li>In a league, and for the computer's club, the best reliever still available, judged by his real strikeouts, walks and home runs. The closer is held back until the 9th inning.</li>
+      <li>In a quick game, you can also make the call yourself. When your club is in the field and your pitcher has faced at least one batter, <b>Call to the bullpen</b> lists every reliever who hasn't pitched yet, with his ERA and strikeouts. Pick one and he takes the mound for the next batter. The closer is on the list too, at any inning. The game still takes a pitcher out on its own when he is worn out or getting hit hard.</li>
       <li>The closer is the reliever with the most saves (at least 8). If nobody has 8, it is the best pitcher who mostly relieved.</li>
       <li>A pitcher who has left the game never returns, and each reliever pitches once. If the bullpen runs out, the pitcher on the mound stays in.</li>
     </ul>
@@ -263,12 +264,13 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
       <tr><td>Tagging up</td><td>It's automatic. About 6 times in 10 a runner on third scores on a fly ball, and a runner on second tags up to third about a quarter of the time when third is open.</td></tr>
       <tr><td>Trailing and forced runners</td><td>They advance by the rules, with no choice. A walk or a groundout moves forced runners up, and other runners move by the odds on the On the bases tab.</td></tr>
       <tr><td>Double plays</td><td>The chance depends on the hitter's speed: with a runner on first and fewer than two outs, about 4 times in 10 for an average hitter on a groundout, less for a fast one. You can't set a double-play depth or play the infield in.</td></tr>
-      <tr><td>Pitching changes and the closer</td><td>These follow the stamina and run rules on the <a href="#pitch">Pitchers</a> tab. The next reliever is the best one available, chosen by the game, not by you.</td></tr>
+      <tr><td>Pitching changes and the closer</td><td>These follow the stamina and run rules on the <a href="#pitch">Pitchers</a> tab. In a league, the next reliever is the best one available, chosen by the game. In a quick game you can take out your own pitcher and choose who comes in (see <a href="#pitch">Pitchers</a>).</td></tr>
     </tbody></table></div>
     <h3>What you do decide</h3>
     <ul class="plain">
       <li>The draft or roster: who you take and what you spend.</li>
       <li>Steals, sacrifice bunts and intentional walks: live in a quick game, or as settings in a league.</li>
+      <li>When to bring in a reliever, and which one: live in a quick game. In a league the game decides.</li>
       <li>In a league: your batting order, the order of your five starters, which starter takes the ball in a given game, and how long a leash your starters get.</li>
     </ul>
     <p>Steals, sacrifice bunts and intentional walks are your calls (see <a href="#calls">Manager calls</a>). Pinch hitters and fielder positioning aren't in the game at all. See <a href="#limits">What it doesn't do</a>.</p>
@@ -297,7 +299,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
       <li><b>No squeezes, hit-and-run plays, double steals or steals of home,</b> and no choosing when a runner goes on a hit.</li>
       <li><b>No pitching around a hitter,</b> and no choosing the count to hit in.</li>
       <li><b>No fielder positioning:</b> no infield in, corners in or double-play depth, no deep outfield, and no holding runners on.</li>
-      <li><b>No choosing where fielders throw,</b> and no warming up or matching up relievers by hand.</li>
+      <li><b>No choosing where fielders throw,</b> and no warming up relievers: the one you call is ready at once. In a league you can't call to the bullpen yet.</li>
       <li><b>No injuries.</b> Everyone on your roster is available every game, except that a pitcher who has left a game doesn't return.</li>
       <li><b>No ballpark or home-field effects.</b> Every game is played in the same neutral setting.</li>
       <li><b>No left-right matchups.</b> A hitter's card is the same against any pitcher.</li>
