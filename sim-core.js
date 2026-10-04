@@ -20,7 +20,8 @@ export function buildClub(name, slots, data, opts = {}) {
   };
   const lineup = {}; for (const pos of LINEUP) lineup[pos] = rec(slots[pos]);
   const rotation = [1, 2, 3, 4, 5].map(i => rec(slots['sp' + i]));
-  const bullpen = [1, 2, 3, 4, 5, 6, 7].map(i => rec(slots['rp' + i]));
+  const bullpen = [1, 2, 3, 4, 5, 6, 7].map(i => slots['rp' + i]).filter(Boolean).map(rec);   // a club carries as many relievers as its roster has (the $100M roster has 4)
+  if (bullpen.length < 1) throw new Error('A club needs at least one reliever.');
   const team = Diamond.prepTeam({ nick: name, league: data.neutral, lineup, rotation, bullpen }, data.neutral);
   const club = DuelDice.buildCards(team, data.neutral);
   if (isPerm(opts.order, LINEUP)) {                                     // the manager's batting order
