@@ -306,6 +306,7 @@ body.war .dec { color: var(--wb-red); }
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
 <script src="fx.js"></script>
+<script src="gmfacts.js"></script>
 <link rel="stylesheet" href="mobile.css">
 <style>
 .calls { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; } .calls[hidden] { display: none; } .calls .calls-t { flex: 1 0 100%; font-weight: 700; font-size: 14px; }
@@ -326,6 +327,7 @@ body.war .dec { color: var(--wb-red); }
   .park.pk-wave .pk-fan { animation: pkwave .55s ease-in-out 4; animation-delay: var(--d); } @keyframes pkwave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 }
 @media (max-width: 720px) { .fieldview { max-width: 100%; } .fieldview svg.park { max-height: 230px; } }
+.gm { margin: 0 0 14px; padding: 14px 16px; background: #FFF7E0; border: 2px solid #C69A2B; border-radius: 8px; color: #1B1F24; text-align: left; } .gm h3 { margin: 0 0 6px; font: 700 22px var(--display, Georgia, serif); color: #5A3F06; } .gm h4 { margin: 12px 0 2px; font: 700 13px var(--text, sans-serif); letter-spacing: .05em; text-transform: uppercase; color: #6B4E0E; } .gm p { margin: 4px 0; max-width: 70ch; line-height: 1.45; } .gm .btn { margin-top: 8px; min-height: 44px; } .gm-chg { margin: 8px 0; padding: 8px 10px; background: #fff; border-left: 4px solid #C69A2B; border-radius: 4px; } .gm-chg b { font-size: 15px; } .gm-chg p { margin: 2px 0 0; }
 </style>
 </head>
 <body class="war">
@@ -962,6 +964,7 @@ body.war .dec { color: var(--wb-red); }
   $('youSel').onchange = () => { if (!g || g.over) { cpuKey = null; drawLine(); } };
 
   let advTok = 0, g = null, you = 1, busy = false, stage = 'duel', duelWinner = null, lastHalfKey = '';
+  let plays = [], ab = { batter: '', pitcher: '' }, gmView = { state: 'idle' };   // the play-by-play for the GM: who batted and who pitched on each play
 
   function pairing() {
     const y = byKey($('youSel').value);
@@ -1132,8 +1135,10 @@ body.war .dec { color: var(--wb-red); }
     setTimeout(() => { if (tok !== advTok) return; busy = false; $('result').textContent = ''; $('result').className = 'result'; prompt(); }, 1800);
   }
 
+  function snapAB() { try { ab = { batter: g.batter().name, pitcher: g.pitcher().name }; } catch (e) { /* keep the last names */ } }
   function prompt() {
     if (g.over) return endGame();
+    snapAB();
     // the computer's own calls come first, each shown before the at-bat they belong to
     const cpuPlay = DuelDice.autoStrategy(g);
     if (cpuPlay) {
@@ -1231,8 +1236,43 @@ body.war .dec { color: var(--wb-red); }
       .then(r => note(r && r.error ? 'This game could not be added to your record.' : 'Saved to your record.', r && r.error ? null : { href: 'career.html', text: 'See my record' }))
       .catch(() => note('This game could not be added to your record.'));
   }
+  // ---------- your GM: a candid review of the game, the pitching changes and the turning point ----------
+  function gmFacts() { const me = g.teams[you], opp = g.teams[1 - you]; return GMFacts.build(plays, { youHalf: you, yourClub: `${me.t.year} ${me.t.nick}`, opponentClub: `${opp.t.year} ${opp.t.nick}`, mode: 'quick' }); }
+  function paintGM() {
+    const box = $('gmBox'); if (!box) return; const v = gmView, cc = window.CC; box.innerHTML = '';
+    const h = document.createElement('h3'); h.textContent = 'Your GM'; box.appendChild(h);
+    const para = (txt, cls) => { const p = document.createElement('p'); if (cls) p.className = cls; p.textContent = txt; box.appendChild(p); return p; };
+    const button = (label, id, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-main'; b.id = id; b.textContent = label; b.onclick = fn; box.appendChild(b); };
+    if (v.state === 'loading') return para('Your GM is going over the game…', 'note');
+    if (v.state === 'done') {
+      const r = v.result, section = (title, txt) => { if (!txt) return; const t = document.createElement('h4'); t.textContent = title; box.appendChild(t); para(txt); };
+      section('The verdict', r.verdict); section('Pitching', r.pitching);
+      for (const c of v.facts.changes.filter(c => c.side === 'you' && r.changes && r.changes[c.n])) { const d = document.createElement('div'); d.className = 'gm-chg'; const b = document.createElement('b'); b.textContent = `${c.half === 'top' ? 'Top' : 'Bottom'} ${ord(c.inning)}: ${c.entering.name} replaces ${c.leaving.name}`; d.appendChild(b); const p = document.createElement('p'); p.textContent = r.changes[c.n]; d.appendChild(p); box.appendChild(d); }
+      section('The turning point', r.moment); section('Next time', r.next); return;
+    }
+    if (!cc || !cc.client || !cc.client.functions) return;
+    if (!cc.user) { para('Sign in free and your general manager will go over this game with you: the pitching changes, the turning point, and what to try next.'); button('Sign in', 'gmSign', () => cc.requireSignIn && cc.requireSignIn('Sign in to hear from your GM')); return; }
+    if (v.state === 'failed') para(v.msg);
+    else para('Your general manager can go over this game with you: how the pitching changes worked and what turned it.');
+    if (v.state !== 'failed' || v.again) button(v.state === 'failed' ? 'Ask again' : 'Hear from your GM', 'gmAsk', askGM);
+  }
+  function showGM() {
+    const host = $('right'); if (!host || !window.GMFacts) return; const cc = window.CC; if (!cc || !cc.client || !cc.client.functions) return;
+    let box = $('gmBox'); if (!box) { box = document.createElement('section'); box.id = 'gmBox'; box.className = 'gm'; box.setAttribute('aria-live', 'polite'); host.prepend(box); }
+    paintGM();
+  }
+  async function askGM() {
+    const cc = window.CC; if (!cc || !cc.user || gmView.state === 'loading') return; const tok = advTok, facts = gmFacts(); gmView = { state: 'loading' }; paintGM();
+    let res = null, reason = 'error';
+    try { const { data, error } = await cc.client.functions.invoke('gm-critic', { body: { kind: 'game', facts } }); if (!error && data) { res = data.game || null; reason = data.reason || (res ? '' : 'unusable'); } } catch (e) { res = null; }
+    if (tok !== advTok) return;   // a new game has started since
+    if (res && res.verdict) gmView = { state: 'done', result: res, facts };
+    else { const msg = { limit: 'You have used all of today\'s GM reviews. Come back tomorrow.', unavailable: 'Your GM is not available right now.', unusable: 'Your GM could not put it into words this time.' }[reason] || 'Your GM could not be reached just now.'; gmView = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
+    paintGM();
+  }
   function scrollToBox() { const el = $('rightTitle') ? ($('rightTitle').closest('section') || $('right')) : $('right'); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
   function logPlay(play, note) {
+    plays.push({ inning: play.inning, half: play.half, outs: play.outs, score: play.score, scored: play.scored || 0, code: play.code, txt: play.txt, batter: ab.batter, pitcher: ab.pitcher });
     crowdReact(play);
     if (play.code === 'HR' && window.FX) FX.homeRun({ text: play.txt, runs: play.scored, walkOff: g.over && play.half === 1 && play.inning >= 9 });
     const f = $('feed');
@@ -1257,9 +1297,9 @@ body.war .dec { color: var(--wb-red); }
     if (busy || g.over) return;
     const startKey = `${g.inning}-${g.half}`;
     do {
-      for (let k = 0; k < 3 && !g.over; k++) { const s = DuelDice.autoStrategy(g); if (!s) break; logPlay(s, 'Computer\'s call'); }   // the computer's calls still happen when you auto-roll
+      for (let k = 0; k < 3 && !g.over; k++) { snapAB(); const s = DuelDice.autoStrategy(g); if (!s) break; logPlay(s, 'Computer\'s call'); }   // the computer's calls still happen when you auto-roll
       if (g.over) break;
-      const b = g.batter().short, p = g.pitcher().short;
+      snapAB(); const b = g.batter().short, p = g.pitcher().short;
       const r = DuelDice.autoAtBat(g);
       logPlay(r.play, `${String(r.roll).padStart(2, '0')} on ${r.owner === 'batter' ? b : p}'s card`);
     } while (!g.over && (!untilHalfEnd || `${g.inning}-${g.half}` === startKey));
@@ -1280,7 +1320,7 @@ body.war .dec { color: var(--wb-red); }
     $('act').textContent = 'Play again'; $('act').disabled = false; stage = 'again';
     $('autoInning').disabled = true; $('autoGame').disabled = true;
     $('batCard').hidden = true; $('pitCard').hidden = true;
-    boxScore(); recordResult();
+    boxScore(); recordResult(); showGM();
     const tok = advTok;   // the fanfare, then down to the box score (unless a new game has started)
     if (window.FX && FX.finale) FX.finale(g.winner === you, g.winner === you ? 'YOU WIN!' : 'FINAL', `${w.t.nick} ${w.runs}, ${l.t.nick} ${l.runs}`).then(() => { if (tok === advTok && g.over) scrollToBox(); });
     else setTimeout(() => { if (tok === advTok && g.over) scrollToBox(); }, 600);
@@ -1312,7 +1352,7 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function start() {
-    advTok++; busy = false;
+    advTok++; busy = false; plays = []; ab = { batter: '', pitcher: '' }; gmView = { state: 'idle' };
     const mine = $('youSel').value, others = teams.filter(t => t.key !== mine);
     cpuKey = others[Math.floor(Math.random() * others.length)].key;
     const [a, h] = pairing(); you = 1;
