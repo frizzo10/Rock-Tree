@@ -1221,6 +1221,16 @@ body.war .dec { color: var(--wb-red); }
     else if (!mine && (play.code === 'SO' || play.code === 'CS')) FX.reaction('k');
     else if (mine && play.code === 'CS') FX.reaction('groan');
   }
+  // a finished game goes on your record when you are signed in (once per game)
+  function recordResult() {
+    if (g.__recorded) return; g.__recorded = true;
+    const note = (text, link) => { const p = document.createElement('p'); p.className = 'note'; p.id = 'recNote'; p.textContent = text + (link ? ' ' : ''); if (link) { const a = document.createElement('a'); a.href = link.href; a.textContent = link.text; if (link.click) a.onclick = e => { e.preventDefault(); link.click(); }; p.appendChild(a); } const f = $('feed'); if (f) { f.appendChild(p); f.scrollTop = f.scrollHeight; } };
+    const cc = window.CC; if (!cc || !cc.user || !cc.client) { note('Sign in free to keep a record of your games.', { href: '#', text: 'Sign in', click: () => cc && cc.requireSignIn && cc.requireSignIn('Sign in to keep your record') }); return; }
+    const me = g.teams[you], opp = g.teams[1 - you];
+    Promise.resolve(cc.client.rpc('record_quick_game', { p_won: g.winner === you, p_my_club: `${me.t.year} ${me.t.nick}`, p_opp_club: `${opp.t.year} ${opp.t.nick}`, p_for: me.runs, p_against: opp.runs, p_innings: g.inning }))
+      .then(r => note(r && r.error ? 'This game could not be added to your record.' : 'Saved to your record.', r && r.error ? null : { href: 'career.html', text: 'See my record' }))
+      .catch(() => note('This game could not be added to your record.'));
+  }
   function scrollToBox() { const el = $('rightTitle') ? ($('rightTitle').closest('section') || $('right')) : $('right'); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
   function logPlay(play, note) {
     crowdReact(play);
@@ -1270,7 +1280,7 @@ body.war .dec { color: var(--wb-red); }
     $('act').textContent = 'Play again'; $('act').disabled = false; stage = 'again';
     $('autoInning').disabled = true; $('autoGame').disabled = true;
     $('batCard').hidden = true; $('pitCard').hidden = true;
-    boxScore();
+    boxScore(); recordResult();
     const tok = advTok;   // the fanfare, then down to the box score (unless a new game has started)
     if (window.FX && FX.finale) FX.finale(g.winner === you, g.winner === you ? 'YOU WIN!' : 'FINAL', `${w.t.nick} ${w.runs}, ${l.t.nick} ${l.runs}`).then(() => { if (tok === advTok && g.over) scrollToBox(); });
     else setTimeout(() => { if (tok === advTok && g.over) scrollToBox(); }, 600);
