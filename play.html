@@ -129,7 +129,7 @@ table.line { border-collapse: separate; border-spacing: 5px; min-width: 100%; }
 /* coming up the tunnel into the ballpark */
 .bp { position: fixed; inset: 0; z-index: 9998; overflow: hidden; background: #0A0C0D; cursor: pointer; transition: opacity .55s ease; }
 .bp.out { opacity: 0; pointer-events: none; }
-.bp-scene { position: absolute; inset: 0; transform-origin: 50% 46%; animation: bpsettle 3.4s ease-out forwards; }
+.bp-scene { position: absolute; inset: 0; transform-origin: 50% 46%; animation: bpsettle 3.4s ease-out forwards; background: #0A0C0D url(ballpark-entry.webp) center / cover no-repeat; }
 @keyframes bpsettle { from { transform: scale(1.45); } to { transform: scale(1); } }
 .bp-sky { position: absolute; left: 0; right: 0; top: 0; height: 24%; background: linear-gradient(#5E9BE0, #CFE6FF); }
 .bp-sky i { position: absolute; width: 90px; height: 26px; border-radius: 20px; background: rgba(255, 255, 255, .85); box-shadow: 30px -10px 0 -4px rgba(255, 255, 255, .85); }
@@ -141,14 +141,14 @@ table.line { border-collapse: separate; border-spacing: 5px; min-width: 100%; }
 .bp-wall { position: absolute; left: 0; right: 0; top: 66%; height: 4%; background: repeating-linear-gradient(90deg, #C8312B 0 14%, #F4F1E8 14% 28%, #2D5BB8 28% 42%, #F2B33D 42% 56%), #1E5A38; border-top: 3px solid #F2D23D; border-bottom: 3px solid #123A25; }
 .bp-field { position: absolute; left: 0; right: 0; top: 70%; bottom: 0; background: repeating-linear-gradient(90deg, #2F8F4E 0 9%, #3AA25B 9% 18%); }
 .bp-diamond { position: absolute; left: 50%; top: 22%; width: 150px; height: 150px; margin-left: -75px; background: #B98B5A; transform: rotate(45deg) scaleY(.55); border: 4px solid #F4F1E8; box-shadow: inset 0 0 0 26px #3AA25B; }
-.bp-banner { position: absolute; left: 0; right: 0; top: 30%; text-align: center; z-index: 5; pointer-events: none; color: #fff; text-shadow: 0 3px 0 #123A25, 0 6px 18px rgba(0, 0, 0, .6); opacity: 0; }
-.bp-banner b { display: block; font: 800 clamp(26px, 8.5vw, 46px)/1.05 var(--display); letter-spacing: .04em; }
-.bp-banner small { display: block; margin-top: 8px; font: 600 clamp(14px, 4.2vw, 19px) var(--display); color: #FFE9A0; }
+.bp-banner { position: absolute; left: 0; right: 0; top: 40%; padding: 0 6%; text-align: center; z-index: 5; pointer-events: none; opacity: 0; }
+.bp-banner b { display: block; font: 800 clamp(30px, 9.4vw, 50px)/1.05 var(--display); letter-spacing: .04em; color: #FFE69A; text-shadow: 0 2px 0 #9A7418, 0 4px 0 #5A400C, 0 7px 0 #2A1C05, 0 12px 20px rgba(0, 0, 0, .75); }
+.bp-banner small { display: block; margin-top: 10px; font: 700 clamp(15px, 4.4vw, 20px) var(--display); color: #FFE9A0; text-shadow: 0 2px 6px rgba(0, 0, 0, .8); }
 .bp-b1 { animation: bpb1 1.4s ease both 2.6s; }
 @keyframes bpb1 { 0% { opacity: 0; transform: translateY(14px); } 20%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 .bp-b2 { animation: bpb2 .6s cubic-bezier(.2, 1.6, .4, 1) both 4.05s; }
 @keyframes bpb2 { 0% { opacity: 0; transform: scale(.4); } 100% { opacity: 1; transform: scale(1); } }
-.bp-b2 b { color: #FFD24A; font-size: clamp(38px, 13vw, 70px); }
+.bp-b2 b { font-size: clamp(40px, 13vw, 72px); }
 .bp-tunnel { position: absolute; left: 50%; top: 46%; width: 400vmax; height: 400vmax; margin: -200vmax 0 0 -200vmax; z-index: 3; pointer-events: none;
   background: radial-gradient(circle closest-side, transparent 0, transparent 70px, #8A9094 74px, #3A3F42 120px, #15181A 220px, #0A0C0D 420px);
   animation: bpdive 2.7s cubic-bezier(.55, .05, .85, .45) .35s forwards; }
@@ -1386,6 +1386,7 @@ body.war .dec { color: var(--wb-red); }
     for (let i = 0; i < 20; i++) h += `<i class="bp-flash" style="left:${(Math.random() * 96).toFixed(1)}%;top:${(4 + Math.random() * 90).toFixed(1)}%;--dl:${(Math.random() * 1.2).toFixed(2)}s"></i>`;
     return h;
   }
+  function flashHtml() { let h = ''; for (let i = 0; i < 26; i++) h += `<i class="bp-flash" style="left:${(Math.random() * 96).toFixed(1)}%;top:${(4 + Math.random() * 90).toFixed(1)}%;--dl:${(Math.random() * 1.2).toFixed(2)}s"></i>`; return h; }
   let entering = false;
   function ballparkEntrance(done) {
     if (entering) return;
@@ -1394,8 +1395,7 @@ body.war .dec { color: var(--wb-red); }
     if (window.FX && FX.cheer) FX.cheer(); // inside the tap, so the browser lets the roar play
     const club = $('youSel').selectedOptions[0] ? $('youSel').selectedOptions[0].textContent : '';
     const b = document.createElement('div'); b.className = 'bp'; b.setAttribute('aria-hidden', 'true');
-    b.innerHTML = `<div class="bp-scene"><div class="bp-sky"><i style="left:12%;top:22%"></i><i style="left:62%;top:48%"></i></div>
-        <div class="bp-stands">${crowdHtml()}</div><div class="bp-wall"></div><div class="bp-field"><div class="bp-diamond"></div></div></div>
+    b.innerHTML = `<div class="bp-scene">${flashHtml()}</div>
       <div class="bp-tunnel"></div><div class="bp-glow"></div>
       <div class="bp-banner bp-b1"><b>WELCOME TO THE BALLPARK</b></div>
       <div class="bp-banner bp-b2"><b>PLAY BALL!</b>${club ? `<small>You're managing the ${esc(club)}</small>` : ''}</div>
