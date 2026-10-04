@@ -99,6 +99,22 @@ textarea#notes { width: 100%; min-height: 260px; font: 17px/1.5 var(--text); pad
 html.nolock, html.nolock body { overflow: hidden; }
 .embed .crumbs, .embed .board, .embed footer { display: none !important; } .embed .wrap { padding-top: 6px; } .embed .tabs { position: sticky; top: 0; z-index: 5; background: #F3ECD8; padding-top: 6px; } .picker ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; } .picker li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 6px; padding: 6px 10px; } .pw { min-width: 0; font-size: 16px; line-height: 1.5; } .btn.sm { min-height: 44px; padding: 6px 14px; font-size: 16px; flex: none; }
 details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 4px 14px 10px; } details.opp summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; font-size: 17px; } #oppTable { overflow-x: auto; } #oppTable table { border-collapse: collapse; width: 100%; font-size: 15px; } #oppTable th, #oppTable td { padding: 2px 8px; border-bottom: 1px solid #E6E9EC; text-align: left; vertical-align: middle; } #oppTable th { font-size: 13px; color: #4A5560; }
+
+.pn { all: unset; box-sizing: border-box; cursor: pointer; font-weight: 700; color: var(--ink); text-decoration: underline dotted; text-underline-offset: 3px; display: inline; padding: 7px 2px; } .pn:hover { color: var(--wb-ink); } .pn:focus-visible { outline: 3px solid var(--lamp); outline-offset: 1px; }
+.dback { z-index: 90; } .dsheet { z-index: 91; }
+.dsheet .dact { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 0; }
+.dsheet .card { display: flex; flex-direction: column; background: #F3EAD3; color: #3A2E12; border-radius: 10px; padding: 9px; box-shadow: 0 4px 0 #C9B27A; }
+.dsheet .card .in { border: 3px double #8C6D2F; border-radius: 6px; padding: 12px 14px; background: linear-gradient(#FBF5E3, #F0E4C4); }
+.dsheet .card .yr { font: 400 40px/1 var(--marker); color: #9E2B22; } .dsheet .card .nm { font: 400 24px/1.08 var(--marker); color: var(--wb-ink); margin: 4px 0 2px; }
+.dsheet .card .meta { font-size: 12.5px; color: #6B5A2C; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.dsheet .card .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; text-align: center; } .dsheet .card .stats div { background: rgba(31,63,143,.08); border-radius: 5px; padding: 5px 0 4px; }
+.dsheet .card .stats b { display: block; font: 400 24px/1.1 var(--marker); color: var(--wb-ink); } .dsheet .card .stats small { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #6B5A2C; }
+.dsheet .card .gl { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #1E7B45; }
+.dsheet .card .stats.game { margin: 4px 0 10px; } .dsheet .card .stats.game div { background: rgba(30,123,69,.12); } .dsheet .card .stats.game b { color: #17603A; font-size: 21px; }
+.dsheet .card .roll { list-style: none; margin: 2px 0 10px; padding: 0; display: grid; gap: 1px; font-size: 13px; } .dsheet .card .roll li { display: flex; justify-content: flex-start; gap: 8px; background: none; border-radius: 0; padding: 0; } .dsheet .card .roll b { min-width: 4.7em; font-weight: 700; color: #6B5A2C; } .dsheet .card .roll li.g span { font-weight: 600; color: #17603A; }
+.dsheet .card .badgeL { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 10px; background: #F0DFA0; color: #5B4712; font: 700 12px var(--text); letter-spacing: .06em; text-transform: uppercase; vertical-align: 6px; }
+.dsheet .card .bargain { margin: 0 0 8px; padding: 4px 8px; border-radius: 4px; background: rgba(30,123,69,.14); color: #17603A; font-size: 13px; font-weight: 700; }
+.dsheet .card .foot { border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
 </style>
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
@@ -183,6 +199,12 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
   </section>
   <footer><a href="terms.html">Terms of Service</a> &middot; <a href="privacy.html">Privacy Policy</a></footer>
 </div>
+    <div class="pback dback" id="dBack" hidden></div>
+    <div class="picker dsheet" id="dSheet" role="dialog" aria-modal="true" aria-labelledby="dTitle" tabindex="-1" hidden>
+      <div class="phead"><h3 id="dTitle">Player details</h3><button class="btn btn-alt" id="dClose" type="button">Close</button></div>
+      <div class="pbody"><div id="dCard"></div><div class="dact" id="dAct"></div></div>
+    </div>
+
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -195,7 +217,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
   const progress = () => { try { return JSON.parse(localStorage.getItem('gts-progress')) || {}; } catch (e) { return {}; } };
   // Rookie mode (a setting on the draft screen, on for new players) gives the computer an $80M cap instead of $100M
   const rookie = () => { let r = null; try { r = JSON.parse(localStorage.getItem('gts-rookie')); } catch (e) {} return r === null ? (progress().wins || 0) < 1 : !!r; };
-  let ALL = [], BYK = new Map(), mode = 'mock', picker = null, pLimit = null, RISK = null, pKey = null;
+  let ALL = [], BYK = new Map(), mode = 'mock', picker = null, pLimit = null, RISK = null, pKey = null; let OUTL = {}, dKey = null, dFrom = null;
   const EMBED = /[?&]embed=1\b/.test(location.search) && window.parent !== window; if (EMBED) document.documentElement.classList.add('embed');
 
   function slotsOf(m) {
@@ -255,6 +277,38 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     if (!choose) return alert('Every spot he could fill already has three choices.');
     NB.setPick(mode, choose.id, plan[choose.id] ? plan[choose.id].picks.indexOf(null) : 0, p.k);
   }
+
+  // ---- a player's card, opened from any name in the notebook (same card as the cards page) ----
+  const nm = p => `<button class="pn" type="button" data-detail="${esc(p.k)}" aria-label="Details for ${esc(p.n)}, ${p.y}">${esc(p.n)}</button>`;
+  const padn = n => n >= 100 ? '00' : String(n).padStart(2, '0');
+  const rollsOf = p => p.c.split(',').map(s => { const m = s.match(/^(\d?[A-Z]+)(\d+)-(\d+)$/); return m ? [+m[2], +m[3], m[1]] : null; }).filter(Boolean);
+  function cardHtml(p) {
+    const hit = p.kd === 'H', q = p.l.split(' · '), strip = (s, w) => String(s).replace(' ' + w, '');
+    const real = hit ? [[q[0], 'AVG'], [strip(q[1], 'HR'), 'HR'], [strip(q[2], 'RBI'), 'RBI']] : p.kd === 'SP' ? [[strip(q[0], 'ERA'), 'ERA'], [q[1], 'W-L'], [strip(q[2], 'K'), 'K']] : [[strip(q[0], 'ERA'), 'ERA'], [strip(q[1], 'SV'), 'SV'], [strip(q[2], 'K'), 'K']];
+    const game = [[String(runsOf(p)), 'Runs+'], [p.sv[0], hit ? 'OBP' : 'WHIP'], [mon(p.s), 'Cap price']], tile = t => `<div><b>${esc(t[0])}</b><small>${esc(t[1])}</small></div>`;
+    const rows = rollsOf(p).map(([a, b, c]) => `<li class="${OUTL[c] && OUTL[c][1] ? 'g' : ''}"><b>${padn(a)}${a === b ? '' : '&ndash;' + padn(b)}</b><span>${esc(OUTL[c] ? OUTL[c][0] : c)}</span></li>`).join('');
+    return `<article class="card"><div class="in"><div class="yr">${p.y}</div><div class="nm">${esc(p.n)}${p.g ? '<span class="badgeL">Legend</span>' : ''}</div><div class="meta">${hit ? esc(p.p.toUpperCase()) : p.kd} &middot; ${esc(p.t)}</div>
+      <div class="stats">${real.map(tile).join('')}</div><p class="gl">In the game</p><div class="stats game">${game.map(tile).join('')}</div>${p.st > 0 ? `<p class="bargain">Bargain: priced ${mon(p.st)} under what his season is worth.</p>` : ''}
+      <p class="gl">His roll card, 1 to 100</p><ol class="roll">${rows}</ol>
+      ${p.g ? '<div class="foot">Legend card: locked in mock drafts until you win 3 games with a team you drafted</div>' : ''}</div></article>`;
+  }
+  function renderDetail(focus) {
+    const box = $('dSheet'), back = $('dBack'), p = dKey && BYK.get(dKey);
+    if (!p) { const was = !box.hidden; box.hidden = true; back.hidden = true; if (!picker) document.documentElement.classList.remove('nolock'); if (was && dFrom) { const k = dFrom; dFrom = null; setTimeout(() => { const el = [...document.querySelectorAll('[data-detail="' + k + '"]')].find(x => x.offsetParent !== null); if (el) el.focus({ preventScroll: true }); else if (picker) $('picker').focus({ preventScroll: true }); }, 0); } return; }
+    const on = NB.has(p.k), fromPicker = !!picker && !!document.querySelector('#pList [data-detail="' + p.k + '"]');
+    box.hidden = false; back.hidden = false; document.documentElement.classList.add('nolock');
+    $('dTitle').textContent = p.n + ', ' + p.y;
+    if (focus || !$('dCard').firstChild) $('dCard').innerHTML = cardHtml(p);
+    $('dAct').innerHTML = (fromPicker && !locked(p, mode) ? `<button class="btn btn-main" type="button" id="dChoose">Choose him</button>` : '') + `<button class="btn btn-alt" type="button" id="dStar" aria-pressed="${on}">${on ? '★ On your shortlist (tap to remove)' : '☆ Add to shortlist'}</button>`;
+    $('dStar').onclick = () => toggle(p.k);
+    if ($('dChoose')) $('dChoose').onclick = () => { NB.setPick(mode, picker.slot, picker.i, p.k); picker = null; dKey = null; dFrom = null; renderDetail(); renderPicker(); };
+    if (focus) { box.focus({ preventScroll: true }); box.querySelector('.pbody').scrollTop = 0; }
+  }
+  const closeDetail = () => { dKey = null; renderDetail(); };
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-detail]'); if (!b) return;
+    e.preventDefault(); dKey = b.dataset.detail; dFrom = dKey; renderDetail(true);
+  });
   const star = (p, on, attr = 'data-star') => `<button class="star" type="button" ${attr}="${esc(p.k)}" aria-pressed="${on}" aria-label="${on ? 'Remove' : 'Add'} ${esc(p.n)} ${on ? 'from' : 'to'} your shortlist">${on ? '★' : '☆'}</button>`;
   function toggle(k) { if (NB.toggle(k) === null) alert(`Your notebook holds ${NB.MAX} shortlist players. Remove one to add another.`); }
 
@@ -280,17 +334,17 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     // the computer
     if (mock && RISK) {
       const top = [...RISK.entries()].map(([k, v]) => [BYK.get(k), v]).sort((a, b) => b[1][0] - a[1][0]).slice(0, 10);
-      $('oppTable').innerHTML = `<table><thead><tr><th></th><th>Player</th><th>Price</th><th>Gone in its first 3 picks</th><th>First 9</th></tr></thead><tbody>${top.map(([p, v]) => `<tr><td>${star(p, set.has(p.k))}</td><td><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)} &middot; ${esc(posTxt(p))}</span></td><td>${mon(p.s)}</td><td>${Math.round(v[0] * 100)}%</td><td>${Math.round(v[1] * 100)}%</td></tr>`).join('')}</tbody></table>`;
+      $('oppTable').innerHTML = `<table><thead><tr><th></th><th>Player</th><th>Price</th><th>Gone in its first 3 picks</th><th>First 9</th></tr></thead><tbody>${top.map(([p, v]) => `<tr><td>${star(p, set.has(p.k))}</td><td>${nm(p)} <span class="muted">${p.y} ${esc(p.t)} &middot; ${esc(posTxt(p))}</span></td><td>${mon(p.s)}</td><td>${Math.round(v[0] * 100)}%</td><td>${Math.round(v[1] * 100)}%</td></tr>`).join('')}</tbody></table>`;
     }
     // your shortlist (starred players), ready to drop into the plan
     const inPlan = NB.planKeys(mode), sl = NB.targets().map(k => BYK.get(k)).filter(Boolean);
-    $('short').innerHTML = sl.length ? `<ul class="slots">${sl.map(p => `<li class="slot"><span class="sl">${star(p, true)}</span><div class="who"><div class="line"><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${esc(posTxt(p))} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)}</div>${inPlan.has(p.k) ? '<span class="muted">In your plan</span>' : `<button class="lk" type="button" data-auto="${esc(p.k)}">Add to my plan</button>`}</div></li>`).join('')}</ul>` : '<p class="muted">Star players in the draft room, in the roster builder, or in the lists below and they collect here. Then add them to your plan with one tap.</p>';
+    $('short').innerHTML = sl.length ? `<ul class="slots">${sl.map(p => `<li class="slot"><span class="sl">${star(p, true)}</span><div class="who"><div class="line">${nm(p)} <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${esc(posTxt(p))} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)}</div>${inPlan.has(p.k) ? '<span class="muted">In your plan</span>' : `<button class="lk" type="button" data-auto="${esc(p.k)}">Add to my plan</button>`}</div></li>`).join('')}</ul>` : '<p class="muted">Star players in the draft room, in the roster builder, or in the lists below and they collect here. Then add them to your plan with one tap.</p>';
     // the plan board
     $('board').innerHTML = [...new Set(S.map(s => s.grp))].map(g => `<h3 class="gh">${g}</h3><ul class="slots">${S.filter(s => s.grp === g).map(s => {
       const e = plan[s.id] || { when: 'mid', picks: [null, null, null] };
       return `<li class="slot prow"><span class="sl">${s.label}</span><div class="who">
         ${mock ? `<label class="when">Take him <select data-when="${s.id}" ${plan[s.id] ? '' : 'disabled'} aria-label="When to take your ${s.label}">${Object.entries(WIN).map(([k, v]) => `<option value="${k}" ${e.when === k ? 'selected' : ''}>${v[1]}</option>`).join('')}</select></label>` : ''}
-        <div class="chs">${e.picks.map((k, i) => { const p = k && BYK.get(k); return p ? `<div class="ch"><span class="cl">${CH[i]}</span><div><div class="line"><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)}</div><div>${riskTxt(p, e.when)} ${badge(p)}</div></div><button class="lk" type="button" data-clear="${s.id}:${i}" aria-label="Remove ${esc(p.n)} as your ${CHN[i]} choice at ${s.label}">&times;</button></div>` : `<div class="ch empty"><span class="cl">${CH[i]}</span><button class="lk" type="button" data-open="${s.id}:${i}">${i === 0 ? 'Choose your first choice' : 'Add a ' + CHN[i] + ' choice'}</button></div>`; }).join('')}</div></div></li>`;
+        <div class="chs">${e.picks.map((k, i) => { const p = k && BYK.get(k); return p ? `<div class="ch"><span class="cl">${CH[i]}</span><div><div class="line">${nm(p)} <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)}</div><div>${riskTxt(p, e.when)} ${badge(p)}</div></div><button class="lk" type="button" data-clear="${s.id}:${i}" aria-label="Remove ${esc(p.n)} as your ${CHN[i]} choice at ${s.label}">&times;</button></div>` : `<div class="ch empty"><span class="cl">${CH[i]}</span><button class="lk" type="button" data-open="${s.id}:${i}">${i === 0 ? 'Choose your first choice' : 'Add a ' + CHN[i] + ' choice'}</button></div>`; }).join('')}</div></div></li>`;
     }).join('')}</ul>`).join('');
     // the order you plan to take them in
     if (mock) { const by = { early: [], mid: [], late: [] }; S.forEach(s => { if (plan[s.id]) by[plan[s.id].when].push(s.label); }); $('orderBody').innerHTML = Object.entries(WIN).map(([k, v]) => `<p><b>${v[1]}:</b> ${by[k].length ? by[k].join(', ') : '<span class="muted">nothing planned</span>'}</p>`).join(''); }
@@ -308,7 +362,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     box.hidden = false; back.hidden = false; document.documentElement.classList.add('nolock'); $('pTitle').textContent = `Choose your ${CHN[picker.i]} choice at ${s.label}`;
     if (document.activeElement !== $('pLimit')) $('pLimit').value = pLimit;
     const list = candidates(s, $('q').value.trim().toLowerCase(), pLimit, NB.targets(), chosen);
-    $('pList').innerHTML = list.length ? list.map(p => `<li><div class="pw"><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${NB.has(p.k) ? '<span class="bg">On your shortlist</span>' : ''} ${badge(p)} ${riskTxt(p, e.when)}</div><button class="btn btn-main sm" type="button" data-choose="${esc(p.k)}">Choose</button></li>`).join('') : '<li class="muted">Nobody fits that. Raise the price limit or change the search.</li>';
+    $('pList').innerHTML = list.length ? list.map(p => `<li><div class="pw">${nm(p)} <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${NB.has(p.k) ? '<span class="bg">On your shortlist</span>' : ''} ${badge(p)} ${riskTxt(p, e.when)}</div><button class="btn btn-main sm" type="button" data-choose="${esc(p.k)}">Choose</button></li>`).join('') : '<li class="muted">Nobody fits that. Raise the price limit or change the search.</li>';
     $('pList').querySelectorAll('[data-choose]').forEach(b => b.onclick = () => { NB.setPick(mode, picker.slot, picker.i, b.dataset.choose); picker = null; renderPicker(); });
     if (focus) { box.focus({ preventScroll: true }); box.querySelector('.pbody').scrollTop = 0; }
   }
@@ -317,9 +371,9 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     $('hint').textContent = `The best players at each spot who cost ${mon(limit)} or less, by Runs+. Star a player to move him to your shortlist.${mode === 'mock' && (progress().wins || 0) < 3 ? ' Locked legends are left out until you win 3 games with a team you drafted.' : ''}`;
     const G = [['Catcher', 'c'], ['First base', '1b'], ['Second base', '2b'], ['Third base', '3b'], ['Shortstop', 'ss'], ['Left field', 'lf'], ['Center field', 'cf'], ['Right field', 'rf'], ['Starting pitchers', 'SP'], ['Relievers', 'RP']];
     const sl = NB.targets().map(k => BYK.get(k)).filter(Boolean);
-    const slHtml = sl.length ? `<h3 class="gh">Your shortlist (${sl.length})</h3><ul class="slots buy">${sl.map(p => `<li>${star(p, true)}<span><b>${esc(p.n)}</b> ${p.y} ${esc(p.t)} &middot; ${esc(posTxt(p))} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)} ${inPlan.has(p.k) ? '<span class="muted">In your plan</span>' : ''}</span></li>`).join('')}</ul>` : '';
+    const slHtml = sl.length ? `<h3 class="gh">Your shortlist (${sl.length})</h3><ul class="slots buy">${sl.map(p => `<li>${star(p, true)}<span>${nm(p)} ${p.y} ${esc(p.t)} &middot; ${esc(posTxt(p))} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)} ${inPlan.has(p.k) ? '<span class="muted">In your plan</span>' : ''}</span></li>`).join('')}</ul>` : '';
     const groups = G.map(([name, g]) => { const list = ALL.filter(p => (g === 'SP' || g === 'RP' ? p.kd === g : p.kd === 'H' && p.e.includes(g)) && p.s <= limit + 1e-9 && (!barg || p.st > 0) && !locked(p, mode) && !set.has(p.k) && !inPlan.has(p.k)).sort((a, b) => runsOf(b) - runsOf(a) || a.s - b.s).slice(0, 8);
-      return `<h3 class="gh">${name}</h3>${list.length ? `<ul class="slots buy">${list.map(p => `<li>${star(p, false)}<span><b>${esc(p.n)}</b> ${p.y} ${esc(p.t)} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)}</span></li>`).join('')}</ul>` : '<p class="muted">Nobody at that price.</p>'}`; }).join('');
+      return `<h3 class="gh">${name}</h3>${list.length ? `<ul class="slots buy">${list.map(p => `<li>${star(p, false)}<span>${nm(p)} ${p.y} ${esc(p.t)} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)}</span></li>`).join('')}</ul>` : '<p class="muted">Nobody at that price.</p>'}`; }).join('');
     $('buys').innerHTML = slHtml + (inPlan.size ? '<p class="muted">Players already in your plan are not listed below.</p>' : '') + groups;
     $('buys').querySelectorAll('[data-star]').forEach(b => b.onclick = () => toggle(b.dataset.star));
   }
@@ -336,15 +390,15 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
   async function start() {
     tabs(document.querySelector('[aria-label="Notebook"]'));
     mode = NB.read().mode; $('mode').value = mode; $('notes').value = NB.read().notes;
-    $('mode').onchange = () => { mode = $('mode').value; NB.setMode(mode); picker = null; pLimit = null; if (mode === 'mock' && ALL.length && !RISK) RISK = simulate(); render(); };
+    $('mode').onchange = () => { mode = $('mode').value; NB.setMode(mode); picker = null; dKey = null; renderDetail(); pLimit = null; if (mode === 'mock' && ALL.length && !RISK) RISK = simulate(); render(); };
     $('clear').onclick = () => { if (Object.keys(NB.plan(mode)).length && confirm('Clear your whole plan for this ' + (mode === 'mock' ? 'mock draft' : 'league roster') + '? Your shortlist stays.')) { picker = null; NB.clearPlan(mode); } };
-    $('q').oninput = () => renderPicker(); $('pLimit').oninput = () => { pLimit = Math.max(1, parseFloat($('pLimit').value) || 1); renderPicker(); }; const closePicker = () => { picker = null; renderPicker(); }; $('pClose').onclick = closePicker; $('pBack').onclick = closePicker; document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (picker) { closePicker(); e.preventDefault(); } else if (EMBED) parent.postMessage({ nbClose: true }, location.origin); });
+    $('q').oninput = () => renderPicker(); $('pLimit').oninput = () => { pLimit = Math.max(1, parseFloat($('pLimit').value) || 1); renderPicker(); }; const closePicker = () => { picker = null; renderPicker(); }; $('pClose').onclick = closePicker; $('pBack').onclick = closePicker; $('dClose').onclick = closeDetail; $('dBack').onclick = closeDetail; document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (dKey) { closeDetail(); e.preventDefault(); } else if (picker) { closePicker(); e.preventDefault(); } else if (EMBED) parent.postMessage({ nbClose: true }, location.origin); });
     $('limit').oninput = renderBuys; $('barg').onchange = renderBuys;
     let nt = null; $('notes').oninput = () => { $('saved').textContent = ''; clearTimeout(nt); nt = setTimeout(() => { NB.setNotes($('notes').value); $('saved').textContent = 'Saved.'; }, 400); };
-    window.addEventListener('nb-change', () => { if (!ALL.length) return; const m = NB.read().mode; if (m !== mode) { mode = m; $('mode').value = m; pLimit = null; } if (document.activeElement !== $('notes')) $('notes').value = NB.read().notes; render(); });
+    window.addEventListener('nb-change', () => { if (!ALL.length) return; const m = NB.read().mode; if (m !== mode) { mode = m; $('mode').value = m; pLimit = null; } if (document.activeElement !== $('notes')) $('notes').value = NB.read().notes; render(); if (dKey) renderDetail(); });
     window.addEventListener('storage', e => { if (e.key === 'gts-rookie' && ALL.length && mode === 'mock') { RISK = simulate(); render(); } });
     window.addEventListener('cc-auth', sync); (window.CC ? window.CC.whenReady.bind(window.CC) : f => f())(sync);
-    try { const r = await fetch('cards-data.json'); if (!r.ok) throw new Error(r.status); ALL = (await r.json()).p; } catch (e) { $('check').innerHTML = '<p class="sum bad">We could not load the player list. Please refresh the page.</p>'; return; }
+    try { const r = await fetch('cards-data.json'); if (!r.ok) throw new Error(r.status); const D = await r.json(); ALL = D.p; OUTL = D.labels || {}; } catch (e) { $('check').innerHTML = '<p class="sum bad">We could not load the player list. Please refresh the page.</p>'; return; }
     BYK = new Map(ALL.map(p => [p.k, p])); $('limit').value = 5.5; if (mode === 'mock') RISK = simulate(); render();
   }
   start();
