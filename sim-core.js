@@ -43,9 +43,16 @@ const ip = outs => Math.floor(outs / 3) + '.' + (outs % 3);
 // Both clubs' starters follow their rotation: game day 1 is SP1, day 2 is SP2, and so on around.
 export function playGame({ away, home, day, data }) {
   const A = buildClub(away.name, away.slots, data, away), H = buildClub(home.name, home.slots, data, home);
-  const g = new DuelDice.Game(A, H, { starters: [starterIndex(away, day), starterIndex(home, day)] });
+  const strat = c => ({ steals: c.steals, bunts: c.bunts, walks: c.walks });   // each manager's saved choices; anything missing or invalid means off
+  const g = new DuelDice.Game(A, H, { starters: [starterIndex(away, day), starterIndex(home, day)], strategy: [strat(away), strat(home)] });
   const starters = [g.teams[0].pitcher.name, g.teams[1].pitcher.name], log = [];
   while (!g.over && log.length < 600) {
+    // steals, bunts and intentional walks that the two managers' settings call for come before the at-bat, each as its own entry in the play-by-play
+    for (let k = 0; k < 3 && !g.over && log.length < 600; k++) {
+      const batter0 = g.batter(), pitcher0 = g.pitcher(), s = DuelDice.autoStrategy(g); if (!s) break;
+      log.push({ n: log.length + 1, inning: s.inning, half: s.half, batter: batter0.name, pitcher: pitcher0.name, bat: null, pit: null, roll: null, owner: 'manager', code: s.code, label: s.label, lo: null, hi: null, txt: s.txt, scored: s.scored, outs: s.outs, runners: s.runners, score: s.score, pre: s.pre });
+    }
+    if (g.over) break;
     const batter = g.batter(), pitcher = g.pitcher(), [bat, pit] = DuelDice.duel(), roll = DuelDice.d(100);
     const owner = bat > pit ? batter : pitcher, row = DuelDice.readCard(owner.card, roll), play = g.resolve(row.code);
     log.push({ n: log.length + 1, inning: play.inning, half: play.half, batter: batter.name, pitcher: pitcher.name, bat, pit, roll, owner: bat > pit ? 'batter' : 'pitcher',
@@ -54,7 +61,7 @@ export function playGame({ away, home, day, data }) {
   if (!g.over) throw new Error('The game did not finish.');
   const last = log[log.length - 1]; last.final = true; last.walkOff = g.inning >= 9 && last.half === 1 && last.scored > 0;
   const [a, h] = g.teams;
-  const bats = t => [...t.bat.values()].map(r => ({ name: r.b.name, pos: r.b.fpos, AB: r.AB, R: r.R, H: r.H, RBI: r.RBI, BB: r.BB, SO: r.SO, HR: r.HR }));
+  const bats = t => [...t.bat.values()].map(r => ({ name: r.b.name, pos: r.b.fpos, AB: r.AB, R: r.R, H: r.H, RBI: r.RBI, BB: r.BB, SO: r.SO, HR: r.HR, SB: r.SB, CS: r.CS }));
   const pits = t => t.pit.map(r => ({ name: r.p.name, IP: ip(r.outs), H: r.H, R: r.R, ER: r.ER, BB: r.BB, SO: r.SO, HR: r.HR, dec: r.dec || null }));
   return { log, result: { away_runs: a.runs, home_runs: h.runs, winner: g.winner, names: [away.name, home.name], starters, lineups: [A.order.map(b => b.name), H.order.map(b => b.name)], line: [a.line, h.line], hits: [a.hits, h.hits], errors: [a.errors, h.errors],
     batting: [bats(a), bats(h)], pitching: [pits(a), pits(h)] } };
