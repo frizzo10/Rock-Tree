@@ -32,8 +32,19 @@
   };
   function schedule() { if (!user) return; clearTimeout(timer); timer = setTimeout(push, 1500); }
 
+  // before progress goes up, fold in what the account already has, so a device that is behind can never upload a smaller total over a bigger one
+  async function foldCloudProgress() {
+    try {
+      const { data } = await client.from('saves').select('slot, data'), row = (data || []).find(r => r.slot === 'gts-progress'), local = localStorage.getItem('gts-progress');
+      if (!row || local == null) return;
+      const merged = JSON.stringify(mergeProgress(JSON.parse(local), row.data));
+      if (merged !== local) rawSet.call(localStorage, 'gts-progress', merged);
+    } catch (e) { /* if the account can't be read, upload as before */ }
+  }
+
   async function push() {
     if (!client || !user) return;
+    if (dirty.has('gts-progress')) await foldCloudProgress();
     const m = readMeta(), rows = [];
     for (const k of dirty) {
       const v = localStorage.getItem(k); if (v == null) continue;
@@ -45,7 +56,12 @@
   }
   window.addEventListener('pagehide', () => { if (dirty.size || removed.size) push(); });
 
-  // on sign-in: newest copy of each slot wins; local-only saves go up, newer cloud saves come down
+  // Progress is merged, never replaced: your wins, games and cleared modes only ever go up, so a legend unlock can't be lost to a newer-but-smaller copy
+  function mergeProgress(a, b) {
+    const A = a || {}, B = b || {}, n = x => (Number.isFinite(+x) && +x > 0 ? Math.floor(+x) : 0);
+    return Object.assign({}, B, A, { wins: Math.max(n(A.wins), n(B.wins)), games: Math.max(n(A.games), n(B.games)), cleared: Object.assign({}, B.cleared || {}, A.cleared || {}) });
+  }
+  // on sign-in: newest copy of each slot wins (except progress, which is merged); local-only saves go up, newer cloud saves come down
   async function sync() {
     const { data, error } = await client.from('saves').select('slot, data, updated_at');
     if (error) { setStatus('Signed in, but saved progress could not be loaded.'); return; }
@@ -54,6 +70,14 @@
     for (const k of SLOTS) {
       const c = cloud.get(k), local = localStorage.getItem(k);
       const localTime = m[k] ? Date.parse(m[k]) : 0, cloudTime = c ? Date.parse(c.updated_at) : 0;
+      if (k === 'gts-progress' && c && local != null) {
+        try {
+          const merged = JSON.stringify(mergeProgress(JSON.parse(local), c.data));
+          if (merged !== local) { rawSet.call(localStorage, k, merged); pulled = true; }
+          if (merged !== JSON.stringify(c.data)) { dirty.add(k); m[k] = new Date().toISOString(); } else m[k] = c.updated_at;
+          continue;
+        } catch (e) { /* a damaged local copy falls through to the usual newest-wins rule */ }
+      }
       if (c && (local == null || cloudTime > localTime)) {
         const v = JSON.stringify(c.data);
         if (v !== local) { rawSet.call(localStorage, k, v); pulled = true; }

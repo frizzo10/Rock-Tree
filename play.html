@@ -311,6 +311,22 @@ body.war .dec { color: var(--wb-red); }
 .calls { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; } .calls[hidden] { display: none; } .calls .calls-t { flex: 1 0 100%; font-weight: 700; font-size: 14px; }
 .calls .call { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; flex: 1 1 190px; } .calls .call small { font-weight: 400; font-size: 13px; opacity: .85; line-height: 1.3; }
 </style>
+<style>
+.fieldview { max-width: 440px; margin: 0 auto 12px; } .fieldview .parkwrap { border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 3px #0F2A4A, 0 6px 16px rgba(0,0,0,.28); background: #0F2A4A; }
+.fieldview svg.park { width: 100%; height: auto; max-height: 270px; display: block; }
+.pk-sb { font: 700 9.5px 'Courier New', monospace; fill: #FFD86B; letter-spacing: .5px; } .pk-in { fill: #9FE0A8; }
+.pk-ad { font: 700 7.2px 'Arial Narrow', Arial, sans-serif; letter-spacing: 1.1px; fill: #F4F1E8; }
+.pk-base { fill: #fff; opacity: .95; } .pk-base.on { fill: #F2B33D; stroke: #fff; stroke-width: 1.4; }
+.pk-run circle { fill: #F2B33D; stroke: #10261c; stroke-width: 1.6; } .pk-tag { font: 700 9px 'Arial Narrow', Arial, sans-serif; fill: #fff; stroke: #10261c; stroke-width: 2.6px; paint-order: stroke; }
+.fieldview .fv-row { color: var(--ink, #1B1F24); }
+@media (prefers-reduced-motion: no-preference) {
+  .pk-fan { animation: pktw 5.5s ease-in-out infinite; animation-delay: var(--d); } @keyframes pktw { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
+  .pk-lamp { animation: pklamp 3.2s ease-in-out infinite; } @keyframes pklamp { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+  .pk-flag { animation: pkflag 2.2s ease-in-out infinite; } @keyframes pkflag { 0%, 100% { transform: skewY(0deg); } 50% { transform: skewY(7deg); } }
+  .park.pk-wave .pk-fan { animation: pkwave .55s ease-in-out 4; animation-delay: var(--d); } @keyframes pkwave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+}
+@media (max-width: 720px) { .fieldview { max-width: 100%; } .fieldview svg.park { max-height: 230px; } }
+</style>
 </head>
 <body class="war">
 <div class="wrap">
@@ -983,25 +999,57 @@ body.war .dec { color: var(--wb-red); }
   }
 
   // the field in the dice tray: runners by name on their bases, outs lamps, inning
+  // ---------- the ballpark ----------
+  const PK = { first: [216, 190], second: [170, 150], third: [124, 190], plate: [170, 232] };
+  function parkSvg() {
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const shirts = ['#C8312B', '#F4F1E8', '#2D5BB8', '#F2B33D', '#2F8F57', '#D9D9D9'];
+    let fans = ''; for (let row = 0; row < 4; row++) for (let i = 0; i < 38; i++) { const x = 6 + i * 8.8 + (row % 2 ? 4 : 0) + rnd() * 2, y = 44 + row * 9 + rnd() * 2; fans += `<circle class="pk-fan" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${shirts[Math.floor(rnd() * shirts.length)]}" style="--d:${(x / 340 * .9).toFixed(2)}s"/>`; }
+    let stripes = ''; for (let k = 0; k < 12; k++) { if (k % 2) continue; const a0 = (-60 + k * 10) * Math.PI / 180, a1 = (-60 + (k + 1) * 10) * Math.PI / 180, R = 300; stripes += `<polygon points="170,232 ${(170 + R * Math.sin(a0)).toFixed(1)},${(232 - R * Math.cos(a0)).toFixed(1)} ${(170 + R * Math.sin(a1)).toFixed(1)},${(232 - R * Math.cos(a1)).toFixed(1)}" fill="#277A36"/>`; }
+    const tower = x => `<g><rect x="${x - 2}" y="6" width="4" height="40" fill="#59636E"/><rect x="${x - 13}" y="0" width="26" height="10" rx="2" fill="#26323F"/><g class="pk-lamp">${[-9, -3, 3, 9].map(d => `<circle cx="${x + d}" cy="3.5" r="2" fill="#FFE9A8"/><circle cx="${x + d}" cy="7.5" r="2" fill="#FFE9A8"/>`).join('')}</g></g>`;
+    const flag = (x, c) => `<g class="pk-flag" style="transform-origin:${x}px 14px"><line x1="${x}" y1="14" x2="${x}" y2="29" stroke="#C9CED3" stroke-width="1.2"/><path d="M${x} 14 L${x + 11} 17.5 L${x} 21 Z" fill="${c}"/></g>`;
+    return `<svg class="park" id="park" viewBox="0 0 340 250" role="img" aria-label="The ballpark" preserveAspectRatio="xMidYMid meet">
+      <defs><linearGradient id="pkSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F2A4A"/><stop offset="1" stop-color="#2B5C8E"/></linearGradient><clipPath id="pkClip"><path d="M0 118 Q170 90 340 118 L340 250 L0 250 Z"/></clipPath></defs>
+      <rect width="340" height="130" fill="url(#pkSky)"/>
+      <path d="M0 96 L0 30 Q170 6 340 30 L340 96 Z" fill="#35465A"/><path d="M0 62 Q170 40 340 62 L340 66 Q170 44 0 66 Z" fill="#2B394A"/><path d="M0 30 Q170 6 340 30 L340 40 Q170 16 0 40 Z" fill="#222D3A"/>
+      ${fans}${tower(24)}${tower(316)}${flag(110, '#C8312B')}${flag(170, '#F2B33D')}${flag(230, '#2D5BB8')}
+      <g><rect x="130" y="56" width="80" height="34" rx="2" fill="#0B1510" stroke="#59636E" stroke-width="1.2"/><text id="pkA" class="pk-sb" x="136" y="68"></text><text id="pkB" class="pk-sb" x="136" y="82"></text><text id="pkI" class="pk-sb pk-in" x="204" y="75" text-anchor="end"></text></g>
+      <path d="M0 118 Q170 90 340 118 L340 250 L0 250 Z" fill="#2E8B3F"/>
+      <g clip-path="url(#pkClip)">${stripes}<path d="M0 118 Q170 90 340 118 L340 130 Q170 102 0 130 Z" fill="#9C7040"/>
+        <circle cx="170" cy="200" r="68" fill="#B98756"/><path d="M170 226 L218 190 L170 152 L122 190 Z" fill="#33953F"/>
+        <path d="M170 232 L42 104 M170 232 L298 104" stroke="#fff" stroke-width="1.6" opacity=".85" fill="none"/>
+        <path d="M170 232 L216 190 L170 150 L124 190 Z" fill="none" stroke="#EFE3CB" stroke-width="2.2" stroke-linejoin="round"/>
+        <ellipse cx="170" cy="190" rx="9" ry="5" fill="#C79A66"/><rect x="167" y="189" width="6" height="1.8" fill="#fff"/></g>
+      <path d="M0 104 Q170 76 340 104 L340 118 Q170 90 0 118 Z" fill="#1E5632"/><path d="M0 104 Q170 76 340 104" stroke="#F2B33D" stroke-width="3" fill="none"/>
+      <path id="pkWall" d="M0 113 Q170 85 340 113" fill="none"/><text class="pk-ad"><textPath href="#pkWall" startOffset="50%" text-anchor="middle">COOPERSTOWN CASH  ·  DRAFT IT  ·  PLAY IT  ·  WIN IT</textPath></text>
+      <path d="M42 104 L42 82 M298 104 L298 82" stroke="#F2B33D" stroke-width="2.4"/>
+      <g id="parkDyn"></g><g id="parkBall"></g>
+      <path d="M170 241 L177 237 L177 232 L163 232 L163 237 Z" fill="#fff"/>
+    </svg>`;
+  }
+  function crowdWave() { const s = $('park'); if (!s || matchMedia('(prefers-reduced-motion: reduce)').matches) return; s.classList.remove('pk-wave'); void s.getBoundingClientRect(); s.classList.add('pk-wave'); setTimeout(() => s.classList.remove('pk-wave'), 2600); }
+  function ballFlight(play) { // a ball for the play, over the grass, drawn once
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; const dyn = $('parkBall'); if (!dyn) return;
+    const side = Math.random() < .5 ? -1 : 1, x = k => (170 + side * k).toFixed(0), P = PK.plate;
+    const paths = { HR: [`M${P[0]} ${P[1] - 6} Q${x(60)} 6 ${x(120)} 58`, 1.8], '3B': [`M${P[0]} ${P[1] - 6} Q${x(90)} 70 ${x(128)} 126`, 1.3], '2B': [`M${P[0]} ${P[1] - 6} Q${x(70)} 80 ${x(100)} 134`, 1.2], S: [`M${P[0]} ${P[1] - 6} Q${x(30)} 120 ${x(44)} 146`, 1], BH: [`M${P[0]} ${P[1] - 6} L${x(16)} 214`, .6], FB: [`M${P[0]} ${P[1] - 6} Q${x(14)} 30 ${x(24)} 130`, 1.6], LD: [`M${P[0]} ${P[1] - 6} L${x(34)} 168`, .7], GB: [`M${P[0]} ${P[1] - 6} L${x(50)} 200`, .9] };
+    const pick = paths[play.code] || null; if (!pick) return; const [d, secs] = pick;
+    dyn.insertAdjacentHTML('beforeend', `<circle class="pk-ball" r="3" fill="#fff" stroke="#8A8F96" stroke-width=".8"><animateMotion dur="${secs}s" path="${d}" fill="freeze"/><animate attributeName="opacity" values="1;1;0" keyTimes="0;.85;1" dur="${secs + .5}s" fill="freeze"/></circle>`);
+    setTimeout(() => { dyn.querySelectorAll('.pk-ball').forEach(e => e.remove()); }, (secs + .7) * 1000);
+  }
   function drawField(snap) {
     if (!g) return;
+    const fv = $('fieldView'); if (!fv.querySelector('#parkDyn')) fv.innerHTML = `<div class="parkwrap">${parkSvg()}</div><div id="fvRow"></div>`;
     const outs = snap ? snap.outs : g.outs;
     const run = snap ? snap.runners : g.bases.map(r => r ? r.b.short : null);
     const inn = snap ? `${snap.half ? 'Bottom' : 'Top'} ${ord(snap.inning)}` : `${g.half ? 'Bottom' : 'Top'} ${ord(g.inning)}`;
-    const shown = outs >= 3 ? [null, null, null] : run;
-    const base = (x, y, i) => `<rect class="bag ${shown[i] ? 'on' : ''}" x="${x - 11}" y="${y - 11}" width="22" height="22" transform="rotate(45 ${x} ${y})"/>`;
-    const tag = (x, y, i, anchor) => shown[i] ? `<text class="runner" x="${x}" y="${y}" text-anchor="${anchor}">${esc(shown[i])}</text>` : '';
+    const shown = outs >= 3 ? [null, null, null] : run, spots = [PK.first, PK.second, PK.third], anchors = ['start', 'middle', 'end'];
     const names = ['first', 'second', 'third'].map((b, i) => shown[i] ? `${shown[i]} on ${b}` : '').filter(Boolean).join(', ') || 'bases empty';
-    $('fieldView').innerHTML = `
-      <svg viewBox="0 0 260 176" role="img" aria-label="${esc(names)}, ${Math.min(outs, 3)} out">
-        <path class="infield" d="M130 160 L214 84 L130 12 L46 84 Z"/>
-        ${base(214, 84, 0)}${base(130, 16, 1)}${base(46, 84, 2)}
-        <path class="plate" d="M121 152 h18 v8 l-9 8 l-9 -8 Z"/>
-        ${tag(236, 70, 0, 'end')}${tag(130, 52, 1, 'middle')}${tag(24, 70, 2, 'start')}
-      </svg>
-      <div class="fv-row"><span class="fv-inn">${inn}</span>
-        <span class="lamps">Outs ${[0, 1, 2].map(i => `<span class="lamp ${i < outs ? 'on' : ''}"></span>`).join('')}</span></div>
-      ${outs >= 3 && !g.over ? '<p class="fv-note">Three outs. Side retired.</p>' : ''}`;
+    $('parkDyn').innerHTML = spots.map((p, i) => `<rect class="pk-base${shown[i] ? ' on' : ''}" x="${p[0] - 5}" y="${p[1] - 5}" width="10" height="10" transform="rotate(45 ${p[0]} ${p[1]})"/>`).join('') + spots.map((p, i) => shown[i] ? `<g class="pk-run"><circle cx="${p[0]}" cy="${p[1] - 1}" r="4.2"/><text class="pk-tag" x="${p[0] + (i === 0 ? 9 : i === 2 ? -9 : 0)}" y="${p[1] + (i === 1 ? -9 : 3)}" text-anchor="${anchors[i] === 'middle' ? 'middle' : i === 0 ? 'start' : 'end'}">${esc(shown[i])}</text></g>` : '').join('');
+    const nk = i => esc(String(g.teams[i].t.nick).slice(0, 8).toUpperCase());
+    $('pkA').textContent = `${String(g.teams[0].t.nick).slice(0, 8).toUpperCase()} ${g.teams[0].runs}`; $('pkB').textContent = `${String(g.teams[1].t.nick).slice(0, 8).toUpperCase()} ${g.teams[1].runs}`; $('pkI').textContent = `${g.half ? 'B' : 'T'}${g.inning}`;
+    $('park').setAttribute('aria-label', `${names}, ${Math.min(outs, 3)} out`);
+    $('fvRow').innerHTML = `<div class="fv-row"><span class="fv-inn">${inn}</span><span class="lamps">Outs ${[0, 1, 2].map(i => `<span class="lamp ${i < outs ? 'on' : ''}"></span>`).join('')}</span></div>${outs >= 3 && !g.over ? '<p class="fv-note">Three outs. Side retired.</p>' : ''}`;
+    if (snap && !snap.__shown) { snap.__shown = true; ballFlight(snap); if (snap.scored) crowdWave(); }
   }
 
   function cardHtml(pl, isBatter, mineSide, hitRoll) {
@@ -1096,7 +1144,7 @@ body.war .dec { color: var(--wb-red); }
       setTimeout(() => { if (tok !== advTok) return; busy = false; $('result').textContent = ''; $('result').className = 'result'; prompt(); }, 1800);
       return;
     }
-    const hk = `${g.inning}-${g.half}`; if (hk !== peekKey) { peekKey = hk; inningPeek(); if (g.half === 0) ballparkRun(); if (window.FX && FX.crowdUp) FX.crowdUp(g.half === 0); } // a new half-inning just began, so the last one ended
+    const hk = `${g.inning}-${g.half}`; if (hk !== peekKey) { peekKey = hk; inningPeek(); if (g.half === 0) ballparkRun(); if (window.FX && FX.crowdUp) FX.crowdUp(g.half === 0); if (window.FX && FX.organ && g.half === 0 && g.inning > 1) FX.organ('between'); } // a new half-inning just began, so the last one ended
     const youBat = g.half === you, b = g.batter(), p = g.pitcher();
     $('trayTitle').textContent = youBat ? `${b.short} at the plate` : `${p.short} on the mound`;
     $('hint').textContent = youBat ? `You're batting. Roll your d20 to win the duel against ${p.short}.` : `You're pitching. Roll your d20 to win the duel against ${b.short}.`;
@@ -1161,7 +1209,21 @@ body.war .dec { color: var(--wb-red); }
     prompt();
   }
 
+  // the home crowd: cheers for your hits and runs, groans for theirs
+  function crowdReact(play) {
+    if (!window.FX) return; const mine = play.half === you, hit = ['S', 'BH', 'SB'].includes(play.code);
+    if (play.code === 'HR') { if (mine) FX.organ && FX.organ('charge'); else FX.reaction && FX.reaction('groan'); return; } // the home run celebration has its own roar
+    if (!FX.reaction) return;
+    if (play.scored > 0) FX.reaction(mine ? 'run' : 'groan');
+    else if (mine && (play.code === '2B' || play.code === '3B')) FX.reaction('xbh');
+    else if (mine && hit) FX.reaction('hit');
+    else if (!mine && /double play/i.test(play.txt)) FX.reaction('dp');
+    else if (!mine && (play.code === 'SO' || play.code === 'CS')) FX.reaction('k');
+    else if (mine && play.code === 'CS') FX.reaction('groan');
+  }
+  function scrollToBox() { const el = $('rightTitle') ? ($('rightTitle').closest('section') || $('right')) : $('right'); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
   function logPlay(play, note) {
+    crowdReact(play);
     if (play.code === 'HR' && window.FX) FX.homeRun({ text: play.txt, runs: play.scored, walkOff: g.over && play.half === 1 && play.inning >= 9 });
     const f = $('feed');
     if (f.querySelector('.how')) f.innerHTML = '';
@@ -1209,6 +1271,9 @@ body.war .dec { color: var(--wb-red); }
     $('autoInning').disabled = true; $('autoGame').disabled = true;
     $('batCard').hidden = true; $('pitCard').hidden = true;
     boxScore();
+    const tok = advTok;   // the fanfare, then down to the box score (unless a new game has started)
+    if (window.FX && FX.finale) FX.finale(g.winner === you, g.winner === you ? 'YOU WIN!' : 'FINAL', `${w.t.nick} ${w.runs}, ${l.t.nick} ${l.runs}`).then(() => { if (tok === advTok && g.over) scrollToBox(); });
+    else setTimeout(() => { if (tok === advTok && g.over) scrollToBox(); }, 600);
   }
 
   function boxScore() {

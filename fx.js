@@ -88,6 +88,7 @@
   function audio() {
     if (!ac) {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { ac = new C(); } catch (e) { return null; }
+      ac.onstatechange = () => checkAudio();
       // everything goes through one master gain and a compressor: phone speakers are small, so it needs to be loud, and the compressor keeps it from clipping
       const master = ac.createGain(); master.gain.value = 3.4;
       const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = .003; comp.release.value = .25;
@@ -229,23 +230,24 @@
     let i; do { i = Math.floor(Math.random() * vendorBufs.length); } while (i === lastVendor && vendorBufs.length > 1);
     lastVendor = i; playBuf(vendorBufs[i], VENDOR_GAIN * rnd(.8, 1.2), 0, rnd(-.85, .85));
   }
-  function scheduleVendor(first) { vendorTimer = setTimeout(() => { if (!amb) return; vendor(); scheduleVendor(); }, first ? rnd(7000, 13000) : rnd(16000, 38000)); }
+  function scheduleVendor(first) { vendorTimer = setTimeout(() => { if (!amb) return; vendor(); scheduleVendor(); }, first ? rnd(10000, 18000) : rnd(30000, 60000)); }
   // the crowd rises at the end of an inning (bigger when the whole inning is over): a swell of murmur, a roar and a couple of shouts
   function crowdUp(big) {
     if (!soundOn || !amb || !crowd || !ac) return;
     const t = ac.currentTime;
     amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(amb.bed.gain.value, t);
-    amb.bed.gain.linearRampToValueAtTime(amb.level * (big ? 3.4 : 2.3), t + 1); amb.bed.gain.linearRampToValueAtTime(amb.level, t + (big ? 7 : 4.5));
-    playBuf(crowd.roar, big ? .95 : .5, .1);
+    amb.bed.gain.linearRampToValueAtTime(amb.level * (big ? 2.6 : 1.9), t + 1); amb.bed.gain.linearRampToValueAtTime(amb.level, t + (big ? 7 : 4.5));
+    playBuf(crowd.roar, big ? .7 : .35, .1);
     if (big) [.7, 1.6].forEach(d => playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], .45, d, rnd(-.8, .8)));
   }
 
   // plays a buffer over and over, overlapping each pass with the next by a second or so (equal-power fade), so the loop point can't be heard
-  function startLoop(a, buf, dest) {
+  function startCrowdLoop(a, buf, dest) {
     const dur = buf.duration, fade = Math.min(1.6, dur / 4), up = new Float32Array(32), down = new Float32Array(32);
     for (let i = 0; i < 32; i++) { up[i] = Math.sin(i / 31 * Math.PI / 2); down[i] = Math.cos(i / 31 * Math.PI / 2); }
-    let live = [], timer = 0, stopped = false;
+    let live = [], timer = 0, stopped = false, last = performance.now();
     const spawn = at => {
+      last = performance.now();
       const s = a.createBufferSource(), g = a.createGain(); s.buffer = buf; s.connect(g); g.connect(dest);
       g.gain.setValueAtTime(0.0001, at); g.gain.setValueCurveAtTime(up, at, fade);
       g.gain.setValueAtTime(1, at + dur - fade); g.gain.setValueCurveAtTime(down, at + dur - fade, fade);
@@ -254,7 +256,7 @@
       timer = setTimeout(() => { if (!stopped) spawn(next); }, Math.max(0, (next - a.currentTime - .5) * 1000));
     };
     spawn(a.currentTime + .05);
-    return { stop(t) { stopped = true; clearTimeout(timer); for (const x of live) { try { x.s.stop(t); } catch (e) {} } } };
+    return { stop(t) { stopped = true; clearTimeout(timer); for (const x of live) { try { x.s.stop(t); } catch (e) {} } }, lastSpawn: () => last };
   }
   // ---------- ballpark ambience: a crowd murmur with the odd swell and shout (follows the Sound button) ----------
   let amb = null, ambWanted = false, ambTimer = 0;
@@ -267,15 +269,15 @@
       const len = a.sampleRate * 8; buf = a.createBuffer(2, len, a.sampleRate);
       for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); let b0 = 0, b1 = 0, b2 = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; } }
     }
-    const level = crowd && crowd.babble ? .15 : .55;
+    const level = crowd && crowd.babble ? .085 : .32;
     const bed = a.createGain(); bed.gain.value = 0.0001;
     const sway = a.createGain(); sway.gain.value = 1;
     const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .12; // slow breathing, like a crowd
     lfo.connect(lfoAmt); lfoAmt.connect(sway.gain);
     bed.connect(sway); sway.connect(outNode || a.destination);
-    const loop = startLoop(a, buf, bed); lfo.start();
+    const loop = startCrowdLoop(a, buf, bed); lfo.start();
     bed.gain.setValueAtTime(0.0001, a.currentTime); bed.gain.linearRampToValueAtTime(level, a.currentTime + 2.5);
-    amb = { loop, lfo, bed, level };
+    amb = { loop, lfo, bed, level, loopMs: buf.duration * 1000 };
     const swell = () => { // now and then the crowd rises: a murmur swell, sometimes a roar or a lone shout
       ambTimer = setTimeout(() => {
         if (!amb) return; const t = a.currentTime, big = Math.random() < .3;
@@ -283,7 +285,7 @@
         amb.bed.gain.linearRampToValueAtTime(level * (big ? 1.8 : 1.4), t + 1.3); amb.bed.gain.linearRampToValueAtTime(level, t + (big ? 6 : 4));
         if (crowd) { if (big) playBuf(crowd.roar, .35, .2); if (Math.random() < .6) playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], rnd(.3, .6), rnd(.4, 1.6), rnd(-.8, .8)); }
         swell();
-      }, rnd(7000, 18000));
+      }, rnd(14000, 32000));
     };
     swell();
     loadVendors().then(() => { if (amb) scheduleVendor(true); });
@@ -297,7 +299,21 @@
     const m = amb, t = ac.currentTime; amb = null;
     try { m.bed.gain.cancelScheduledValues(t); m.bed.gain.setValueAtTime(Math.max(.0001, m.bed.gain.value), t); m.bed.gain.linearRampToValueAtTime(.0001, t + .6); m.loop.stop(t + .7); m.lfo.stop(t + .7); } catch (e) {}
   }
-  document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else if (soundOn) ac.resume(); });
+  function stopAmbNow() { clearTimeout(ambTimer); clearTimeout(vendorTimer); const m = amb; amb = null; if (m) { try { m.loop.stop(0); m.lfo.stop(0); m.bed.disconnect(); } catch (e) {} } }
+  let sleeping = false;
+  function paintSound() { if (!soundBtn) return; soundBtn.textContent = !soundOn ? 'Sound off' : sleeping ? 'Tap for sound' : 'Sound on'; soundBtn.setAttribute('aria-pressed', String(soundOn)); }
+  function wake() { if (!ac || !soundOn) return; if (ac.state !== 'running') { try { const p = ac.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) {} } }
+  function checkAudio() {
+    if (!ac || !soundOn) { if (sleeping) { sleeping = false; paintSound(); } return; }
+    const was = sleeping; sleeping = ac.state !== 'running'; if (sleeping) wake(); if (was !== sleeping) paintSound();
+    if (!sleeping && ambWanted) {
+      if (!amb) startAmb();
+      else if (amb.loop && amb.loop.lastSpawn && performance.now() - amb.loop.lastSpawn() > amb.loopMs + 6000) { stopAmbNow(); startAmb(); } // the crowd loop stopped renewing itself: start it again
+    }
+  }
+  ['touchend', 'pointerdown', 'click', 'keydown'].forEach(e => addEventListener(e, () => { wake(); checkAudio(); }, true));
+  setInterval(checkAudio, 2500);
+  document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else { wake(); setTimeout(checkAudio, 300); } });
 
   // walking into the park: a roar that builds, cheers and whistles on top, and scattered claps
   function cheer() {
@@ -310,7 +326,7 @@
   }
   function setSound(on) {
     soundOn = !!on; store.set('cc-sound2', soundOn ? '1' : '0');
-    if (soundBtn) { soundBtn.setAttribute('aria-pressed', String(soundOn)); soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; }
+    if (soundBtn) { soundBtn.setAttribute('aria-pressed', String(soundOn)); soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off'; paintSound(); }
     if (soundOn) { unlock(); audio(); noise(.08, 3000, .3, 0, 'bandpass'); if (ambWanted) startAmb(); } else { stopAmb(); if (silentEl) silentEl.pause(); }
   }
   function mountSoundButton() {
@@ -318,6 +334,75 @@
     ensureStyle(); // the button needs its stylesheet from the start, not only after the first home run
     soundBtn = document.createElement('button'); soundBtn.type = 'button'; soundBtn.className = 'fx-sound'; soundBtn.setAttribute('aria-label', 'Home run sound effects');
     soundBtn.onclick = () => setSound(!soundOn); document.body.appendChild(soundBtn); setSound(soundOn);
+  }
+
+  // ---------- the organ, the brass and the crowd's reactions ----------
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12); // a MIDI note number as a pitch
+  let bus = null, organUntil = 0, lastTune = '', lastReact = 0;
+  function music() { const a = audio(); if (!a) return null; if (!bus) { const g = a.createGain(); g.gain.value = .5; const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3400; g.connect(lp); lp.connect(outNode || a.destination); bus = g; } return bus; }
+  function organTone(a, dst, midi, t0, dur, vol) { // drawbars (sub-octave, fundamental, octave, twelfth, two octaves, three) with the Leslie speaker's wobble
+    const env = a.createGain(); env.gain.setValueAtTime(.0001, t0); env.gain.exponentialRampToValueAtTime(vol, t0 + .025); env.gain.setValueAtTime(vol, t0 + Math.max(.03, dur - .06)); env.gain.exponentialRampToValueAtTime(.0001, t0 + dur + .1); env.connect(dst);
+    const lfo = a.createOscillator(), depth = a.createGain(); lfo.frequency.value = 6.4; depth.gain.value = 6; lfo.connect(depth); lfo.start(t0); lfo.stop(t0 + dur + .2);
+    for (const [mult, amp] of [[.5, .5], [1, .7], [2, .5], [3, .22], [4, .26], [6, .1]]) { const o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = hz(midi) * mult; g.gain.value = amp; depth.connect(o.detune); o.connect(g); g.connect(env); o.start(t0); o.stop(t0 + dur + .2); }
+  }
+  function brassTone(a, dst, midi, t0, dur, vol) { // two slightly detuned saw waves through a filter that opens as the note starts
+    const env = a.createGain(); env.gain.setValueAtTime(.0001, t0); env.gain.exponentialRampToValueAtTime(vol, t0 + .05); env.gain.setValueAtTime(vol * .85, t0 + Math.max(.06, dur - .1)); env.gain.exponentialRampToValueAtTime(.0001, t0 + dur + .12);
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.2; lp.frequency.setValueAtTime(500, t0); lp.frequency.exponentialRampToValueAtTime(2600, t0 + .12); lp.connect(env); env.connect(dst);
+    [-5, 5].forEach(c => { const o = a.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(midi); o.detune.value = c; o.connect(lp); o.start(t0); o.stop(t0 + dur + .2); });
+  }
+  const TUNES = { // [note, start, length] in beats
+    charge: { beat: .17, notes: [[67, 0, .9], [72, 1, .9], [76, 2, .9], [79, 3, 2], [76, 5.4, .9], [79, 6.4, 3], [48, 0, 9]] },
+    between1: { beat: .22, notes: [[60, 0, 1], [64, 1, 1], [67, 2, 1], [72, 3, 1], [76, 4, 1], [79, 5, 3], [72, 5, 3], [64, 5, 3]] },
+    between2: { beat: .24, notes: [[67, 0, .8], [67, 1, .8], [67, 2, .8], [64, 3, .8], [67, 4, 3], [60, 4, 3], [69, 8, .8], [69, 9, .8], [69, 10, .8], [65, 11, .8], [69, 12, 3], [62, 12, 3]] },
+    between3: { beat: .22, notes: [[57, 0, 1], [60, 1, 1], [64, 2, 1], [69, 3, 2], [67, 5, 1], [64, 6, 1], [60, 7, 3], [55, 7, 3]] },
+    between4: { beat: .2, notes: [[60, 0, 1], [64, 1, 1], [67, 2, 1], [69, 3, 1], [70, 4, 1], [69, 5, 1], [67, 6, 1], [64, 7, 1], [60, 8, 3], [55, 8, 3], [64, 8, 3]] },
+    lose: { beat: .3, notes: [[67, 0, 2], [64, 2, 2], [62, 4, 2], [60, 6, 5], [55, 6, 5]] },
+    win: { beat: .28, notes: [[67, 0, .5], [67, .6, .5], [67, 1.2, .5], [72, 1.8, 1.4], [76, 3.4, .6], [79, 4.1, 2.6], [72, 4.1, 2.6], [76, 4.1, 2.6]] }
+  };
+  function playTune(name, kind) { // returns how long it lasts, in seconds
+    const a = audio(), dst = music(); if (!a || !dst || !soundOn) return 0; const T = TUNES[name]; if (!T) return 0;
+    const t0 = a.currentTime + .05, tone = kind === 'brass' ? brassTone : organTone, vol = kind === 'brass' ? .26 : .2; let end = 0;
+    for (const [m, s, l] of T.notes) { tone(a, dst, m, t0 + s * T.beat, l * T.beat * .94, vol); end = Math.max(end, (s + l) * T.beat); }
+    return end;
+  }
+  function duck(secs, to) { // the crowd murmur steps back while the organ plays
+    if (!amb || !ac) return; const t = ac.currentTime, lo = amb.level * (to == null ? .35 : to);
+    try { amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(Math.max(.0001, amb.bed.gain.value), t); amb.bed.gain.linearRampToValueAtTime(lo, t + .4); amb.bed.gain.setValueAtTime(lo, t + secs); amb.bed.gain.linearRampToValueAtTime(amb.level, t + secs + 2.5); } catch (e) {}
+  }
+  function organ(kind) { // 'between' (an inning break), 'charge' (a run scores), 'lose'
+    if (!soundOn) return 0; const now = Date.now(); if (now < organUntil) return 0; // one tune at a time
+    let name = kind; if (kind === 'between') name = pick(['between1', 'between2', 'between3', 'between4'].filter(n => n !== lastTune));
+    const len = playTune(name, 'organ'); if (!len) return 0; lastTune = name; organUntil = now + len * 1000 + 400; duck(len + .3); return len;
+  }
+  function fanfare(win) {
+    if (!soundOn) return 0; unlock(); if (!audio()) return 0; organUntil = 0;
+    if (win) {
+      const len = playTune('win', 'brass'); noise(1.6, 6500, .1, 0, 'highpass', .01); duck(len, .15);
+      if (crowd) { playBuf(crowd.roar, .95, .25); [.9, 1.8, 2.7, 3.4].forEach(d => playBuf(pick(crowd.shouts), .5, d, rnd(-.8, .8))); } else noise(4, 2600, .3, .2, 'lowpass', 1.5);
+      return len;
+    }
+    const len = playTune('lose', 'organ'); if (crowd) playBuf(crowd.roar, .22, .3); duck(len, .25); return len;
+  }
+  // the crowd reacts to what just happened, for or against the home side
+  function reaction(kind) { // 'hit', 'xbh', 'k', 'dp', 'run', 'groan'
+    if (!soundOn || !audio()) return; const now = Date.now(); if (now - lastReact < 600 && kind !== 'run') return; lastReact = now;
+    const shout = (g, d) => { if (crowd) playBuf(pick(crowd.shouts), g, d, rnd(-.8, .8)); };
+    const swell = m => { if (!amb || !ac) return; const t = ac.currentTime; try { amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(Math.max(.0001, amb.bed.gain.value), t); amb.bed.gain.linearRampToValueAtTime(amb.level * m, t + .6); amb.bed.gain.linearRampToValueAtTime(amb.level, t + 4.5); } catch (e) {} };
+    if (kind === 'hit') { if (crowd) playBuf(crowd.roar, .3, 0); else noise(1.2, 1800, .14, 0, 'lowpass', .3); shout(.35, .3); swell(1.7); }
+    else if (kind === 'xbh') { if (crowd) playBuf(crowd.roar, .55, 0); else noise(1.8, 1800, .2, 0, 'lowpass', .3); shout(.45, .25); shout(.4, .8); swell(2.2); }
+    else if (kind === 'k') { if (crowd) playBuf(crowd.roar, .25, 0); else noise(1, 1800, .1, 0, 'lowpass', .2); shout(.3, .25); }
+    else if (kind === 'dp') { if (crowd) playBuf(crowd.roar, .5, 0); else noise(1.6, 1800, .16, 0, 'lowpass', .3); shout(.4, .3); shout(.4, .9); swell(2); }
+    else if (kind === 'run') { if (crowd) playBuf(crowd.roar, 1, 0); else noise(3, 2200, .34, 0, 'lowpass', .5); [.3, .9, 1.5, 2.1].forEach(d => shout(.5, d)); noise(.5, 5200, .1, .1, 'bandpass'); swell(3); setTimeout(() => organ('charge'), 700); }
+    else if (kind === 'groan') { noise(1.4, 520, .28, 0, 'lowpass', .25); noise(1.1, 340, .22, .15, 'lowpass', .3); duck(1.2, .5); }
+  }
+  // the end of a game: the banner, the fanfare (or a quiet organ if you lost) and, for a win, fireworks. Resolves when it is time to look at the box score.
+  function finale(win, title, sub) {
+    ensureStyle(); document.querySelectorAll('.fx-banner').forEach(b => b.remove()); clearTimeout(bannerT);
+    const el = document.createElement('div'); el.className = 'fx-banner' + (win ? ' big' : ''); el.setAttribute('aria-hidden', 'true');
+    const b = document.createElement('b'); b.textContent = title; el.appendChild(b); if (sub) { const s = document.createElement('small'); s.textContent = sub; el.appendChild(s); }
+    document.body.appendChild(el); bannerT = setTimeout(() => el.remove(), 4200);
+    const len = fanfare(win); if (win && !reduced()) fireworks(10, true);
+    return new Promise(res => setTimeout(res, Math.max(3600, (len || 0) * 1000 + 600)));
   }
 
   // ---------- the celebration ----------
@@ -346,7 +431,7 @@
     homeRun(o) { queue.push(o || {}); if (!flushT) flushT = setTimeout(flush, 0); }, // same-moment home runs become one celebration
     setSound,
     cheer,
-    crowdUp,
+    crowdUp, reaction, organ, finale, fanfare,
     vendor,
     prepare() { return prepCrowd(); }, // pages that play games call this early so the crowd voices are ready
     ambience(on) { ambWanted = !!on; if (ambWanted) startAmb(); else stopAmb(); }, // ballpark crowd noise while a game is being played
