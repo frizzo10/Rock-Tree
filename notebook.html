@@ -137,7 +137,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
   </div>
   <section class="page" id="pPlan" role="tabpanel" aria-labelledby="tPlan">
     <div class="row">
-      <label>Plan for<select id="mode"><option value="mock">Mock draft: $100M, 18 spots</option><option value="league">League roster: $150M, 25 spots</option></select></label>
+      <label>Plan for<select id="mode"><option value="mock">Drafts and leagues: $100M, 18 spots</option></select></label>
       <button class="btn btn-alt" id="clear" type="button">Clear this plan</button>
     </div>
     <p id="lead"></p>
@@ -212,7 +212,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
   const KR = { H: .21, SP: .26, RP: .30 }, runsOf = p => Math.round((p.s - 1) / KR[p.kd]);
   const mon = x => '$' + (Number.isInteger(x) ? x : x.toFixed(1)) + 'M', r1 = x => Math.round(x * 10) / 10;
   const LAB = { c: 'C', '1b': '1B', '2b': '2B', '3b': '3B', ss: 'SS', lf: 'LF', cf: 'CF', rf: 'RF' };
-  const MODES = { mock: { name: 'Mock draft', cap: 100, tight: 4, rp: 4 }, league: { name: 'League roster', cap: 150, tight: 6, rp: 7 } };
+  const MODES = { mock: { name: 'Mock draft', cap: 100, tight: 4, rp: 4 } };
   const WIN = { early: [3, 'Early: your first 3 picks'], mid: [9, 'Middle: picks 4 to 9'], late: [18, 'Late: picks 10 to 18'] }, CH = ['A', 'B', 'C'], CHN = ['first', 'second', 'third'];
   const progress = () => { try { return JSON.parse(localStorage.getItem('gts-progress')) || {}; } catch (e) { return {}; } };
   // Rookie mode (a setting on the draft screen, on for new players) gives the computer an $80M cap instead of $100M
@@ -389,13 +389,13 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
   }
   async function start() {
     tabs(document.querySelector('[aria-label="Notebook"]'));
-    mode = NB.read().mode; $('mode').value = mode; $('notes').value = NB.read().notes;
+    mode = 'mock'; if (NB.read().mode !== 'mock') NB.setMode('mock'); $('mode').value = mode; $('notes').value = NB.read().notes;
     $('mode').onchange = () => { mode = $('mode').value; NB.setMode(mode); picker = null; dKey = null; renderDetail(); pLimit = null; if (mode === 'mock' && ALL.length && !RISK) RISK = simulate(); render(); };
     $('clear').onclick = () => { if (Object.keys(NB.plan(mode)).length && confirm('Clear your whole plan for this ' + (mode === 'mock' ? 'mock draft' : 'league roster') + '? Your shortlist stays.')) { picker = null; NB.clearPlan(mode); } };
     $('q').oninput = () => renderPicker(); $('pLimit').oninput = () => { pLimit = Math.max(1, parseFloat($('pLimit').value) || 1); renderPicker(); }; const closePicker = () => { picker = null; renderPicker(); }; $('pClose').onclick = closePicker; $('pBack').onclick = closePicker; $('dClose').onclick = closeDetail; $('dBack').onclick = closeDetail; document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (dKey) { closeDetail(); e.preventDefault(); } else if (picker) { closePicker(); e.preventDefault(); } else if (EMBED) parent.postMessage({ nbClose: true }, location.origin); });
     $('limit').oninput = renderBuys; $('barg').onchange = renderBuys;
     let nt = null; $('notes').oninput = () => { $('saved').textContent = ''; clearTimeout(nt); nt = setTimeout(() => { NB.setNotes($('notes').value); $('saved').textContent = 'Saved.'; }, 400); };
-    window.addEventListener('nb-change', () => { if (!ALL.length) return; const m = NB.read().mode; if (m !== mode) { mode = m; $('mode').value = m; pLimit = null; } if (document.activeElement !== $('notes')) $('notes').value = NB.read().notes; render(); if (dKey) renderDetail(); });
+    window.addEventListener('nb-change', () => { if (!ALL.length) return; const m = 'mock'; if (m !== mode) { mode = m; $('mode').value = m; pLimit = null; } if (document.activeElement !== $('notes')) $('notes').value = NB.read().notes; render(); if (dKey) renderDetail(); });
     window.addEventListener('storage', e => { if (e.key === 'gts-rookie' && ALL.length && mode === 'mock') { RISK = simulate(); render(); } });
     window.addEventListener('cc-auth', sync); (window.CC ? window.CC.whenReady.bind(window.CC) : f => f())(sync);
     try { const r = await fetch('cards-data.json'); if (!r.ok) throw new Error(r.status); const D = await r.json(); ALL = D.p; OUTL = D.labels || {}; } catch (e) { $('check').innerHTML = '<p class="sum bad">We could not load the player list. Please refresh the page.</p>'; return; }

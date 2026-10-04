@@ -114,7 +114,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
         <button class="btn btn-alt" id="clear" type="button">Clear roster</button>
         <span class="saved" id="saved"></span>
       </div>
-      <p class="note" style="margin-top:10px">25 spots: a lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH), four bench hitters, five starters and seven relievers. Same cap for everyone. Two clubs can have the same player. A person can be on your roster once, in one season.</p>
+      <p class="note" style="margin-top:10px">18 spots: a lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH), five starters and four relievers. Same cap for everyone. Two clubs can have the same player. A person can be on your roster once, in one season.</p>
     </div>
   </header>
 
@@ -154,14 +154,13 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   const SLOTS = [];
   ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf'].forEach(id => SLOTS.push({ id, label: POS[id], grp: 'Lineup', type: 'f' }));
   SLOTS.push({ id: 'dh', label: 'DH', grp: 'Lineup', type: 'dh' });
-  for (let i = 1; i <= 4; i++) SLOTS.push({ id: 'bn' + i, label: 'Bench', grp: 'Bench', type: 'bn' });
   for (let i = 1; i <= 5; i++) SLOTS.push({ id: 'sp' + i, label: 'SP' + i, grp: 'Rotation', type: 'sp' });
-  for (let i = 1; i <= 7; i++) SLOTS.push({ id: 'rp' + i, label: 'RP' + i, grp: 'Bullpen', type: 'rp' });
+  for (let i = 1; i <= 4; i++) SLOTS.push({ id: 'rp' + i, label: 'RP' + i, grp: 'Bullpen', type: 'rp' });
   const slotById = Object.fromEntries(SLOTS.map(s => [s.id, s]));
   // the same rules the server checks
-  const canFill = (s, p) => s.type === 'f' ? (p.r == null && p.e.includes(s.id)) : (s.type === 'dh' || s.type === 'bn') ? p.r == null : s.type === 'sp' ? p.r === 'SP' : p.r != null;
+  const canFill = (s, p) => s.type === 'f' ? (p.r == null && p.e.includes(s.id)) : s.type === 'dh' ? p.r == null : s.type === 'sp' ? p.r === 'SP' : p.r != null;
 
-  const S = { id: new URLSearchParams(location.search).get('league'), cap: 150, league: null, seat: null, pool: [], byKey: new Map(), roster: {}, ready: false, locked: false,
+  const S = { id: new URLSearchParams(location.search).get('league'), cap: 100, league: null, seat: null, pool: [], byKey: new Map(), roster: {}, ready: false, locked: false,
     target: null, tab: 'H', pos: 'all', era: 'all', q: '', sort: 'sal-desc', afford: false, hideOwned: true, limit: 60, dirty: false, saving: false, saveT: 0, board: [] };
   const say = (t, kind) => { const el = $('status'); el.textContent = t || ''; el.className = 'status' + (kind ? ' ' + kind : ''); };
   const client = () => window.CC && window.CC.client;
@@ -218,12 +217,12 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   function render() { renderHead(); renderRoster(); renderFilters(); renderPool(); renderPlan(); }
   function renderHead() {
     const pay = payroll(), left = S.cap - pay, n = count(), pct = Math.min(100, (pay / S.cap) * 100);
-    $('pay').textContent = '$' + money(pay) + 'M'; $('cap').textContent = 'of $' + money(S.cap) + 'M cap · ' + n + ' of 25 players';
+    $('pay').textContent = '$' + money(pay) + 'M'; $('cap').textContent = 'of $' + money(S.cap) + 'M cap · ' + n + ' of 18 players';
     $('leftTxt').textContent = left >= 0 ? '$' + money(left) + 'M left' : '$' + money(-left) + 'M over'; $('leftTxt').className = 'left' + (left < 0 ? ' over' : '');
     const f = $('fill'); f.style.width = pct + '%'; f.className = left < 0 ? 'over' : pct > 92 ? 'warn' : '';
     const ready = S.board.filter(b => b.ready).length;
     $('sub').textContent = `${S.league.name}. ${ready} of ${S.board.length || 10} rosters submitted so far.` + (S.locked ? ' Rosters are locked, so this one can no longer be changed.' : S.league.is_public && S.league.roster_deadline_at ? ` Rosters lock automatically at ${new Date(S.league.roster_deadline_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Anyone without a finished roster gets one built from their picks, and the season starts.` : '');
-    $('submit').disabled = S.locked || n < 25 || left < -1e-9; $('submit').textContent = S.ready && !S.dirty ? 'Submitted. Resubmit after changes' : 'Submit my roster';
+    $('submit').disabled = S.locked || n < 18 || left < -1e-9; $('submit').textContent = S.ready && !S.dirty ? 'Submitted. Resubmit after changes' : 'Submit my roster';
     ['auto', 'clear', 'scoutBtn'].forEach(id => { $(id).disabled = S.locked; });
     $('saved').textContent = S.saving ? 'Saving…' : S.dirty ? 'Unsaved changes' : S.ready ? 'Roster submitted' : n ? 'Draft saved' : '';
   }
@@ -270,7 +269,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   window.addEventListener('nb-change', () => { if (S.byKey && S.byKey.size) { renderPlan(); renderPool(); } });
   function renderPlan() {
     if (!S.byKey || !S.byKey.size) return;
-    const plan = NB.plan('league'), have = new Set(Object.values(S.roster)), own = owned(), left = S.cap - payroll(), inPlan = NB.planKeys('league');
+    const plan = NB.plan('mock'), have = new Set(Object.values(S.roster)), own = owned(), left = S.cap - payroll(), inPlan = NB.planKeys('mock');
     const spots = SLOTS.filter(s => plan[s.id] && !S.roster[s.id] && plan[s.id].picks.some(k => k && S.byKey.has(k)));
     const short = NB.targets().filter(k => S.byKey.has(k) && !have.has(k) && !inPlan.has(k));
     const state = k => { const p = S.byKey.get(k); return have.has(k) ? 'on' : own.has(pidOf(k)) ? 'other' : p.s > left + 1e-9 ? 'dear' : 'ok'; };
@@ -295,14 +294,14 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     const t = S.target && slotById[S.target];
     if (t && !S.roster[t.id] && canFill(t, p)) return t;
     const open = id => !S.roster[id] && slotById[id];
-    if (p.r == null) { for (const pos of p.e) if (open(pos)) return slotById[pos]; return open('dh') || ['bn1', 'bn2', 'bn3', 'bn4'].map(open).find(Boolean) || null; }
-    const rot = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'].map(open).find(Boolean), pen = ['rp1', 'rp2', 'rp3', 'rp4', 'rp5', 'rp6', 'rp7'].map(open).find(Boolean);
+    if (p.r == null) { for (const pos of p.e) if (open(pos)) return slotById[pos]; return open('dh') || null; }
+    const rot = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'].map(open).find(Boolean), pen = ['rp1', 'rp2', 'rp3', 'rp4'].map(open).find(Boolean);
     return p.r === 'SP' ? (rot || pen || null) : (pen || null);
   }
   function add(k) {
     if (S.locked) return; const p = S.byKey.get(k); if (!p) return;
     if (owned().has(pidOf(k))) return say(p.n + ' is already on your roster in another season.', 'err');
-    const slot = pickSlot(p); if (!slot) return say(p.r ? 'No open pitching spot. Remove a pitcher first.' : 'Your lineup and bench are full. Remove a hitter first.', 'err');
+    const slot = pickSlot(p); if (!slot) return say(p.r ? 'No open pitching spot. Remove a pitcher first.' : 'Your lineup is full. Remove a hitter first.', 'err');
     const over = payroll() + p.s - S.cap; if (over > 1e-9) return say(`That would put you $${money(over)}M over the $${money(S.cap)}M cap. Remove or swap someone first.`, 'err');
     S.roster[slot.id] = k; S.target = null; say(`${p.n} added at ${slot.label}.`, 'ok'); changed();
   }

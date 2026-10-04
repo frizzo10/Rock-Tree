@@ -536,7 +536,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const body = ['Hi,', '', `I'm starting a baseball league called ${l.name} and I'd like you in it. It's a simulation game with real player stats and dice, and I'm only inviting people I know.`, '',
       buy > 0 ? 'The money' : 'The cost', ...moneyLines, '',
       'The game',
-      `- You build a 25-player roster of real player-seasons from baseball history, under a ${cap} salary cap. An AI scout gives advice if you want it.`,
+      `- You build an 18-player roster of real player-seasons from baseball history, under a ${cap} salary cap. An AI scout gives advice if you want it.`,
       "- It's a 27-game season, then playoffs for the top four. I'll pick the pace, from one game day a day (about 4 weeks) to three a day (about 9 days).",
       '- You roll the dice on your game days, or have the site play your game for you. If you miss a deadline, the site plays it for you. It takes a few minutes a day.',
       "- The standings, and who is in the money, are on the league page all season.",
@@ -647,7 +647,7 @@ ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
       ${buy > 0 ? '<p class="note">The commissioner is playing free, so a full league\'s pot is nine buy-ins.</p>' : ''}
       ${lg ? `<h3>Seasons you could be drafting</h3><div class="minis">${lg}</div>` : ''}
       <p><a class="btn btn-main" href="highlights.html">See the greatest seasons ever played</a></p>
-      <h3>What you'll do</h3><ul class="doing"><li>Build a 25-player roster of real seasons from baseball history, under ${cap === 'a' ? 'a' : cap} salary cap. An AI scout helps if you want it.</li><li>Play a 27-game season, then playoffs for the top four. Roll the dice on your game days, or let the site play for you if you miss one.</li><li>${buy > 0 ? 'Watch the standings, and who is in the money, all season.' : 'Watch the standings all season.'}</li></ul>
+      <h3>What you'll do</h3><ul class="doing"><li>Build an 18-player roster of real seasons from baseball history, under ${cap === 'a' ? 'a' : cap} salary cap. An AI scout helps if you want it.</li><li>Play a 27-game season, then playoffs for the top four. Roll the dice on your game days, or let the site play for you if you miss one.</li><li>${buy > 0 ? 'Watch the standings, and who is in the money, all season.' : 'Watch the standings all season.'}</li></ul>
       ${buy > 0 ? `<p class="note"><b>How the money works.</b> After the commissioner approves you, the buy-in is collected and held by LeagueSafe, an independent service. The buy-in is never paid to Cooperstown Cash, and we never touch it.</p>` : ''}
       ${seatPassJoin()}
       <p class="note">The commissioner decides who joins, and you must be 18 or older.</p>`;

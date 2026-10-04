@@ -388,18 +388,18 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     const k = c.k, s = slotsOf(c), hit = c.g[1][0] === 'OBP', pr = k.ranks[0], a = k.ranks[1], b = k.ranks[2], w = (get('gts-progress') || {}).wins || 0;
     const rk = r => `his ${r.v} ${r.w} ${/s$/.test(r.w) ? 'rank' : 'ranks'} ${ord(r.r)}`;
     return [
-      `Price: ${mon(k.cost)}. That is the ${pr.r === 1 ? 'highest-priced' : ord(pr.r) + '-highest-priced'} of the ${pr.n} ${pr.u} in the game: ${pc(k.cost)} of a $100M mock-draft cap and ${pc(k.cost / 150 * 100)} of a $150M league cap.`,
+      `Price: ${mon(k.cost)}. That is the ${pr.r === 1 ? 'highest-priced' : ord(pr.r) + '-highest-priced'} of the ${pr.n} ${pr.u} in the game: ${pc(k.cost)} of the $100M cap.`,
       hit ? `On his roll card, ${s.onBase} of the 100 slots put him on base, and ${s.power} of those are extra-base hits (${s.hr} are home runs). He strikes out on ${s.so}.`
           : `On his roll card, ${s.outs} of the 100 slots are outs, and ${s.so} of those are strikeouts. The hitter reaches base on the other ${100 - s.outs}.`,
       `Where he stands: ${rk(a)} of ${a.n} ${a.u}, and ${rk(b)}.`,
-      `He can fill ${listOf(k.pos)}${hit ? '' : ' (starters can pitch in relief too)'}. Taking him in a mock draft leaves about ${mon(perSpot(100, 17, k.cost))} a spot for your other 17; in a league, about ${mon(perSpot(150, 24, k.cost))} a spot for your other 24.`,
+      `He can fill ${listOf(k.pos)}${hit ? '' : ' (starters can pitch in relief too)'}. Taking him leaves about ${mon(perSpot(100, 17, k.cost))} a spot for your other 17.`,
       `He's a legend. In mock drafts he is ${w >= 3 ? 'unlocked for you' : `locked until you win 3 games with a team you drafted (you have ${w} so far)`}. In leagues and at free tables he is open to every manager.`
     ];
   }
   function scoutFacts(c) {
     const k = c.k, s = slotsOf(c), hit = c.g[1][0] === 'OBP';
-    return { player: c.n, season: c.y, team: c.t, kind: hit ? 'hitter' : 'starting pitcher', priceMillions: k.cost, mockDraftCapMillions: 100, leagueCapMillions: 150, percentOfMockDraftCap: Math.round(k.cost / 100 * 1000) / 10, percentOfLeagueCap: Math.round(k.cost / 150 * 1000) / 10,
-      leftPerSpotMockDraftMillions: perSpot(100, 17, k.cost), leftPerSpotLeagueMillions: perSpot(150, 24, k.cost), rollCardSlotsOutOf100: hit ? { onBase: s.onBase, extraBaseHits: s.power, homeRuns: s.hr, walks: s.walk, strikeouts: s.so } : { outs: s.outs, strikeouts: s.so },
+    return { player: c.n, season: c.y, team: c.t, kind: hit ? 'hitter' : 'starting pitcher', priceMillions: k.cost, mockDraftCapMillions: 100, percentOfMockDraftCap: Math.round(k.cost / 100 * 1000) / 10,
+      leftPerSpotMockDraftMillions: perSpot(100, 17, k.cost), rollCardSlotsOutOf100: hit ? { onBase: s.onBase, extraBaseHits: s.power, homeRuns: s.hr, walks: s.walk, strikeouts: s.so } : { outs: s.outs, strikeouts: s.so },
       standings: k.ranks.map(r => ({ stat: r.w, value: r.v, rank: r.r, outOf: r.n, among: r.u })), positions: k.pos, isLegend: true };
   }
   function openScout(btn) {

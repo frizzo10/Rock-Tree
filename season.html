@@ -112,7 +112,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   const regular = g => !g.round || g.round === 'regular';
   const mine = g => g.away_seat === S.mySeat || g.home_seat === S.mySeat;
   const POS = { c: 'C', '1b': '1B', '2b': '2B', '3b': '3B', ss: 'SS', lf: 'LF', cf: 'CF', rf: 'RF', dh: 'DH' };
-  const SLOTS = [['Lineup', ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']], ['Bench', ['bn1', 'bn2', 'bn3', 'bn4']], ['Rotation', ['sp1', 'sp2', 'sp3', 'sp4', 'sp5']], ['Bullpen', ['rp1', 'rp2', 'rp3', 'rp4', 'rp5', 'rp6', 'rp7']]];
+  const SLOTS = [['Lineup', ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']], ['Rotation', ['sp1', 'sp2', 'sp3', 'sp4', 'sp5']], ['Bullpen', ['rp1', 'rp2', 'rp3', 'rp4']]];
   const label = id => POS[id] || (id.startsWith('bn') ? 'Bench' : id.toUpperCase());
 
   async function load() {

@@ -120,19 +120,19 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
     const s = slotsOf(p), hit = p.kd === 'H', n = DATA.counts[p.kd], u = UNIT[p.kd], names = STATN[p.kd], w = progress().wins || 0;
     const rk = i => `his ${p.sv[i]} ${names[i]} ${/s$/.test(names[i]) ? 'rank' : 'ranks'} ${ord(p.rk[i + 1])}`;
     const L = [
-      `Price: ${mon(p.s)}. That is the ${p.rk[0] === 1 ? 'highest-priced' : ord(p.rk[0]) + '-highest-priced'} of the ${n} ${u} in the game: ${pc(p.s)} of a $100M mock-draft cap and ${pc(p.s / 150 * 100)} of a $150M league cap.`,
+      `Price: ${mon(p.s)}. That is the ${p.rk[0] === 1 ? 'highest-priced' : ord(p.rk[0]) + '-highest-priced'} of the ${n} ${u} in the game: ${pc(p.s)} of the $100M cap.`,
       hit ? `On his roll card, ${s.onBase} of the 100 slots put him on base, and ${s.power} of those are extra-base hits (${s.hr} are home runs). He strikes out on ${s.so}.`
           : `On his roll card, ${s.outs} of the 100 slots are outs, and ${s.so} of those are strikeouts. The hitter reaches base on the other ${100 - s.outs}.`,
       `Where he stands: ${rk(0)} of ${n} ${u}, and ${rk(1)}.`];
     if (p.st > 0) L.push(`He's a bargain: his price is ${mon(p.st)} under what his season is worth.`);
-    L.push(`He can fill ${listOf(posList(p))}${p.kd === 'SP' ? ' (starters can pitch in relief too)' : ''}. Taking him in a mock draft leaves about ${mon(perSpot(100, 17, p.s))} a spot for your other 17; in a league, about ${mon(perSpot(150, 24, p.s))} a spot for your other 24.`);
+    L.push(`He can fill ${listOf(posList(p))}${p.kd === 'SP' ? ' (starters can pitch in relief too)' : ''}. Taking him leaves about ${mon(perSpot(100, 17, p.s))} a spot for your other 17.`);
     if (p.g) L.push(`He's a legend. In mock drafts he is ${w >= 3 ? 'unlocked for you' : `locked until you win 3 games with a team you drafted (you have ${w} so far)`}. In leagues and at free tables he is open to every manager.`);
     return L;
   }
   function scoutFacts(p) {
     const s = slotsOf(p), hit = p.kd === 'H', n = DATA.counts[p.kd], names = STATN[p.kd];
-    return { player: p.n, season: p.y, team: p.t, kind: hit ? 'hitter' : p.kd === 'SP' ? 'starting pitcher' : 'reliever', priceMillions: p.s, mockDraftCapMillions: 100, leagueCapMillions: 150, percentOfMockDraftCap: Math.round(p.s / 100 * 1000) / 10, percentOfLeagueCap: Math.round(p.s / 150 * 1000) / 10,
-      leftPerSpotMockDraftMillions: perSpot(100, 17, p.s), leftPerSpotLeagueMillions: perSpot(150, 24, p.s), rollCardSlotsOutOf100: hit ? { onBase: s.onBase, extraBaseHits: s.power, homeRuns: s.hr, strikeouts: s.so } : { outs: s.outs, strikeouts: s.so },
+    return { player: p.n, season: p.y, team: p.t, kind: hit ? 'hitter' : p.kd === 'SP' ? 'starting pitcher' : 'reliever', priceMillions: p.s, mockDraftCapMillions: 100, percentOfMockDraftCap: Math.round(p.s / 100 * 1000) / 10,
+      leftPerSpotMockDraftMillions: perSpot(100, 17, p.s), rollCardSlotsOutOf100: hit ? { onBase: s.onBase, extraBaseHits: s.power, homeRuns: s.hr, strikeouts: s.so } : { outs: s.outs, strikeouts: s.so },
       standings: [{ stat: 'price', value: mon(p.s), rank: p.rk[0], outOf: n, among: UNIT[p.kd] }, { stat: names[0], value: p.sv[0], rank: p.rk[1], outOf: n, among: UNIT[p.kd] }, { stat: names[1], value: p.sv[1], rank: p.rk[2], outOf: n, among: UNIT[p.kd] }],
       positions: posList(p), pricedUnderHisWorthMillions: p.st > 0 ? p.st : null, isLegend: !!p.g };
   }
