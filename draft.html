@@ -667,6 +667,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
 <script src="nb.js"></script>
+<script src="nbsheet.js"></script>
 <script src="fx.js"></script>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -714,7 +715,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
         <div class="toggle" role="group" aria-label="Show roster">
           <button id="showYou" aria-pressed="true">Your team</button>
           <button id="showCpu" aria-pressed="false">Computer's team</button>
-          <a id="nbOpen" class="nb-btn" href="notebook.html" target="_blank" rel="noopener">Notebook</a>
+          <a id="nbOpen" class="nb-btn" href="notebook.html">Notebook</a>
         </div>
         <div id="fieldHost"></div>
         <div class="log" id="log" aria-label="Draft log"></div>
@@ -1614,6 +1615,12 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     if (!scoutHold) return;
     scoutHold = false;
     if (!paused && clockLeftMs > 0) { clockEnd = Date.now() + clockLeftMs; clockLeftMs = 0; clockTimer = setInterval(tickClock, 250); tickClock(); }
+  }
+  // the notebook opens over the draft, and your pick clock waits while it is open
+  let nbFroze = false;
+  if (window.NBSheet) {
+    NBSheet.onOpen = () => { nbFroze = !!(D && clockEnd && !paused && !scoutHold); freezeClock(); return nbFroze ? 'Your pick clock is paused while this is open.' : ''; };
+    NBSheet.onClose = () => { if (nbFroze) { nbFroze = false; thawClock(); } };
   }
   function setPaused(v) {
     if (!D || D.done || v === paused) return;

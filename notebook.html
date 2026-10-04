@@ -91,7 +91,13 @@ textarea#notes { width: 100%; min-height: 260px; font: 17px/1.5 var(--text); pad
 .chs { display: grid; gap: 6px; } .ch { display: flex; align-items: flex-start; gap: 10px; background: #F7F9FB; border: 1px solid #DDE3EA; border-radius: 6px; padding: 6px 10px; } .ch > div { flex: 1; min-width: 0; } .ch.empty { background: transparent; border-style: dashed; align-items: center; }
 .cl { flex: none; width: 1.7em; height: 1.7em; border-radius: 50%; background: var(--wb-ink); color: #fff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; margin-top: 2px; } .ch.empty .cl { background: #8C959E; margin-top: 0; }
 .rk { display: inline-block; margin: 0 6px 0 0; padding: 1px 9px; border-radius: 10px; font: 700 12px var(--text); } .rk.hi { background: #FBE3DF; color: #9E2B22; } .rk.md { background: #FFF1C9; color: #7A5200; } .rk.lo { background: #E4F2E9; color: #17603A; }
-.picker { background: #EEF3FA; border: 2px solid var(--wb-ink); border-radius: 6px; padding: 10px 14px 12px; margin: 14px 0; } .picker h3 { font: 400 22px var(--marker); color: var(--wb-ink); margin: 0 0 8px; } .picker ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; } .picker li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 6px; padding: 6px 10px; } .pw { min-width: 0; font-size: 16px; line-height: 1.5; } .btn.sm { min-height: 44px; padding: 6px 14px; font-size: 16px; flex: none; }
+.pback { position: fixed; inset: 0; background: rgba(15,25,20,.5); z-index: 80; } .pback[hidden], .picker[hidden] { display: none; }
+.picker { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; width: 100%; max-width: 680px; max-height: 86vh; max-height: 86dvh; z-index: 81; display: flex; flex-direction: column; background: #EEF3FA; border: 2px solid var(--wb-ink); border-bottom: 0; border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.35); outline: 0; }
+.picker .phead { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 16px; border-bottom: 1px solid #C9D3E3; flex: none; }
+.picker .pbody { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 10px 14px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.picker h3 { font: 400 22px var(--marker); color: var(--wb-ink); margin: 0; flex: 1; min-width: 0; } .picker #pClose { min-height: 44px; min-width: 84px; flex: none; }
+html.nolock, html.nolock body { overflow: hidden; }
+.embed .crumbs, .embed .board, .embed footer { display: none !important; } .embed .wrap { padding-top: 6px; } .embed .tabs { position: sticky; top: 0; z-index: 5; background: #F3ECD8; padding-top: 6px; } .picker ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; } .picker li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 6px; padding: 6px 10px; } .pw { min-width: 0; font-size: 16px; line-height: 1.5; } .btn.sm { min-height: 44px; padding: 6px 14px; font-size: 16px; flex: none; }
 details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 4px 14px 10px; } details.opp summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; font-size: 17px; } #oppTable { overflow-x: auto; } #oppTable table { border-collapse: collapse; width: 100%; font-size: 15px; } #oppTable th, #oppTable td { padding: 2px 8px; border-bottom: 1px solid #E6E9EC; text-align: left; vertical-align: middle; } #oppTable th { font-size: 13px; color: #4A5560; }
 </style>
 <script src="vendor/supabase-2.117.2.js"></script>
@@ -129,11 +135,14 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     </details>
     <h2>Your shortlist</h2>
     <div id="short"></div>
-    <div class="picker" id="picker" hidden>
-      <h3 id="pTitle"></h3>
-      <div class="row"><label class="grow">Search<input id="q" type="search" placeholder="Name, team or year" autocomplete="off"></label><label>Price limit ($M)<input id="pLimit" type="number" min="1" max="20" step="0.5" value="5.5"></label><button class="btn btn-alt" id="pClose" type="button">Close</button></div>
-      <p class="muted">Your starred players come first, then the best by Runs+ at or under your price limit. Search to see anyone.</p>
-      <ul id="pList"></ul>
+    <div class="pback" id="pBack" hidden></div>
+    <div class="picker" id="picker" role="dialog" aria-modal="true" aria-labelledby="pTitle" tabindex="-1" hidden>
+      <div class="phead"><h3 id="pTitle"></h3><button class="btn btn-alt" id="pClose" type="button">Close</button></div>
+      <div class="pbody">
+        <div class="row"><label class="grow">Search<input id="q" type="search" placeholder="Name, team or year" autocomplete="off"></label><label>Price limit ($M)<input id="pLimit" type="number" min="1" max="20" step="0.5" value="5.5"></label></div>
+        <p class="muted">Your starred players come first, then the best by Runs+ at or under your price limit. Search to see anyone.</p>
+        <ul id="pList"></ul>
+      </div>
     </div>
     <h2>Your plan</h2>
     <div id="board"></div>
@@ -186,7 +195,8 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
   const progress = () => { try { return JSON.parse(localStorage.getItem('gts-progress')) || {}; } catch (e) { return {}; } };
   // Rookie mode (a setting on the draft screen, on for new players) gives the computer an $80M cap instead of $100M
   const rookie = () => { let r = null; try { r = JSON.parse(localStorage.getItem('gts-rookie')); } catch (e) {} return r === null ? (progress().wins || 0) < 1 : !!r; };
-  let ALL = [], BYK = new Map(), mode = 'mock', picker = null, pLimit = null, RISK = null;
+  let ALL = [], BYK = new Map(), mode = 'mock', picker = null, pLimit = null, RISK = null, pKey = null;
+  const EMBED = /[?&]embed=1\b/.test(location.search) && window.parent !== window; if (EMBED) document.documentElement.classList.add('embed');
 
   function slotsOf(m) {
     const S = []; Object.keys(LAB).forEach(id => S.push({ id, label: LAB[id], grp: 'Lineup', type: 'f' })); S.push({ id: 'dh', label: 'DH', grp: 'Lineup', type: 'dh' });
@@ -285,29 +295,32 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     // the order you plan to take them in
     if (mock) { const by = { early: [], mid: [], late: [] }; S.forEach(s => { if (plan[s.id]) by[plan[s.id].when].push(s.label); }); $('orderBody').innerHTML = Object.entries(WIN).map(([k, v]) => `<p><b>${v[1]}:</b> ${by[k].length ? by[k].join(', ') : '<span class="muted">nothing planned</span>'}</p>`).join(''); }
     renderPicker(); renderBuys();
-    $('board').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const [s, i] = b.dataset.open.split(':'); picker = { slot: s, i: +i }; $('q').value = ''; renderPicker(true); });
+    $('board').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const [s, i] = b.dataset.open.split(':'); pKey = b.dataset.open; picker = { slot: s, i: +i }; $('q').value = ''; renderPicker(true); });
     $('board').querySelectorAll('[data-clear]').forEach(b => b.onclick = () => { const [s, i] = b.dataset.clear.split(':'); NB.setPick(mode, s, +i, null); });
     $('board').querySelectorAll('[data-when]').forEach(sel => sel.onchange = () => NB.setWhen(mode, sel.dataset.when, sel.value));
     $('short').querySelectorAll('[data-auto]').forEach(b => b.onclick = () => autoPlace(BYK.get(b.dataset.auto)));
     document.querySelectorAll('#short [data-star], #oppTable [data-star]').forEach(b => b.onclick = () => toggle(b.dataset.star));
   }
   function renderPicker(focus) {
-    const box = $('picker'); if (!picker) { box.hidden = true; return; }
+    const box = $('picker'), back = $('pBack'); if (!picker) { const was = !box.hidden; box.hidden = true; back.hidden = true; document.documentElement.classList.remove('nolock'); if (was && pKey) { const k = pKey; pKey = null; setTimeout(() => { const el = $('board').querySelector('[data-open="' + k + '"]'); if (el) el.focus({ preventScroll: true }); }, 0); } return; }
     const s = slotsOf(mode).find(x => x.id === picker.slot), plan = NB.plan(mode), e = plan[s.id] || { when: 'mid', picks: [null, null, null] }, chosen = new Set(e.picks.filter(Boolean)), C = check(mode, plan);
     if (pLimit === null) pLimit = Math.max(3, Math.round((C.open ? C.per : MODES[mode].cap / C.S.length) * 2) / 2);
-    box.hidden = false; $('pTitle').textContent = `Choose your ${CHN[picker.i]} choice at ${s.label}`;
+    box.hidden = false; back.hidden = false; document.documentElement.classList.add('nolock'); $('pTitle').textContent = `Choose your ${CHN[picker.i]} choice at ${s.label}`;
     if (document.activeElement !== $('pLimit')) $('pLimit').value = pLimit;
     const list = candidates(s, $('q').value.trim().toLowerCase(), pLimit, NB.targets(), chosen);
     $('pList').innerHTML = list.length ? list.map(p => `<li><div class="pw"><b>${esc(p.n)}</b> <span class="muted">${p.y} ${esc(p.t)}</span> &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${NB.has(p.k) ? '<span class="bg">On your shortlist</span>' : ''} ${badge(p)} ${riskTxt(p, e.when)}</div><button class="btn btn-main sm" type="button" data-choose="${esc(p.k)}">Choose</button></li>`).join('') : '<li class="muted">Nobody fits that. Raise the price limit or change the search.</li>';
     $('pList').querySelectorAll('[data-choose]').forEach(b => b.onclick = () => { NB.setPick(mode, picker.slot, picker.i, b.dataset.choose); picker = null; renderPicker(); });
-    if (focus) { box.scrollIntoView({ block: 'nearest' }); $('q').focus({ preventScroll: true }); }
+    if (focus) { box.focus({ preventScroll: true }); box.querySelector('.pbody').scrollTop = 0; }
   }
   function renderBuys() {
-    const limit = Math.max(1, parseFloat($('limit').value) || 1), barg = $('barg').checked, set = new Set(NB.targets());
-    $('hint').textContent = `The best players at each spot who cost ${mon(limit)} or less, by Runs+.${mode === 'mock' && (progress().wins || 0) < 3 ? ' Locked legends are left out until you win 3 games with a team you drafted.' : ''}`;
+    const limit = Math.max(1, parseFloat($('limit').value) || 1), barg = $('barg').checked, set = new Set(NB.targets()), inPlan = NB.planKeys(mode);
+    $('hint').textContent = `The best players at each spot who cost ${mon(limit)} or less, by Runs+. Star a player to move him to your shortlist.${mode === 'mock' && (progress().wins || 0) < 3 ? ' Locked legends are left out until you win 3 games with a team you drafted.' : ''}`;
     const G = [['Catcher', 'c'], ['First base', '1b'], ['Second base', '2b'], ['Third base', '3b'], ['Shortstop', 'ss'], ['Left field', 'lf'], ['Center field', 'cf'], ['Right field', 'rf'], ['Starting pitchers', 'SP'], ['Relievers', 'RP']];
-    $('buys').innerHTML = G.map(([name, g]) => { const list = ALL.filter(p => (g === 'SP' || g === 'RP' ? p.kd === g : p.kd === 'H' && p.e.includes(g)) && p.s <= limit + 1e-9 && (!barg || p.st > 0) && !locked(p, mode)).sort((a, b) => runsOf(b) - runsOf(a) || a.s - b.s).slice(0, 8);
-      return `<h3 class="gh">${name}</h3>${list.length ? `<ul class="slots buy">${list.map(p => `<li>${star(p, set.has(p.k))}<span><b>${esc(p.n)}</b> ${p.y} ${esc(p.t)} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)}</span></li>`).join('')}</ul>` : '<p class="muted">Nobody at that price.</p>'}`; }).join('');
+    const sl = NB.targets().map(k => BYK.get(k)).filter(Boolean);
+    const slHtml = sl.length ? `<h3 class="gh">Your shortlist (${sl.length})</h3><ul class="slots buy">${sl.map(p => `<li>${star(p, true)}<span><b>${esc(p.n)}</b> ${p.y} ${esc(p.t)} &middot; ${esc(posTxt(p))} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)} ${inPlan.has(p.k) ? '<span class="muted">In your plan</span>' : ''}</span></li>`).join('')}</ul>` : '';
+    const groups = G.map(([name, g]) => { const list = ALL.filter(p => (g === 'SP' || g === 'RP' ? p.kd === g : p.kd === 'H' && p.e.includes(g)) && p.s <= limit + 1e-9 && (!barg || p.st > 0) && !locked(p, mode) && !set.has(p.k) && !inPlan.has(p.k)).sort((a, b) => runsOf(b) - runsOf(a) || a.s - b.s).slice(0, 8);
+      return `<h3 class="gh">${name}</h3>${list.length ? `<ul class="slots buy">${list.map(p => `<li>${star(p, false)}<span><b>${esc(p.n)}</b> ${p.y} ${esc(p.t)} &middot; ${mon(p.s)} &middot; Runs+ ${runsOf(p)} ${badge(p)}</span></li>`).join('')}</ul>` : '<p class="muted">Nobody at that price.</p>'}`; }).join('');
+    $('buys').innerHTML = slHtml + (inPlan.size ? '<p class="muted">Players already in your plan are not listed below.</p>' : '') + groups;
     $('buys').querySelectorAll('[data-star]').forEach(b => b.onclick = () => toggle(b.dataset.star));
   }
   function sync() {
@@ -325,7 +338,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     mode = NB.read().mode; $('mode').value = mode; $('notes').value = NB.read().notes;
     $('mode').onchange = () => { mode = $('mode').value; NB.setMode(mode); picker = null; pLimit = null; if (mode === 'mock' && ALL.length && !RISK) RISK = simulate(); render(); };
     $('clear').onclick = () => { if (Object.keys(NB.plan(mode)).length && confirm('Clear your whole plan for this ' + (mode === 'mock' ? 'mock draft' : 'league roster') + '? Your shortlist stays.')) { picker = null; NB.clearPlan(mode); } };
-    $('q').oninput = () => renderPicker(); $('pLimit').oninput = () => { pLimit = Math.max(1, parseFloat($('pLimit').value) || 1); renderPicker(); }; $('pClose').onclick = () => { picker = null; renderPicker(); };
+    $('q').oninput = () => renderPicker(); $('pLimit').oninput = () => { pLimit = Math.max(1, parseFloat($('pLimit').value) || 1); renderPicker(); }; const closePicker = () => { picker = null; renderPicker(); }; $('pClose').onclick = closePicker; $('pBack').onclick = closePicker; document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (picker) { closePicker(); e.preventDefault(); } else if (EMBED) parent.postMessage({ nbClose: true }, location.origin); });
     $('limit').oninput = renderBuys; $('barg').onchange = renderBuys;
     let nt = null; $('notes').oninput = () => { $('saved').textContent = ''; clearTimeout(nt); nt = setTimeout(() => { NB.setNotes($('notes').value); $('saved').textContent = 'Saved.'; }, 400); };
     window.addEventListener('nb-change', () => { if (!ALL.length) return; const m = NB.read().mode; if (m !== mode) { mode = m; $('mode').value = m; pLimit = null; } if (document.activeElement !== $('notes')) $('notes').value = NB.read().notes; render(); });
