@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: How the game is played</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.png">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #F0E8D2; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2;
+  --folder: #E8D5A4; --folder-edge: #C9B27A; --folder-ink: #3A2E12; --lamp: #F2B33D;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url(blueprint.webp) center / cover no-repeat; }
+body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(rgba(243,236,216,.10), rgba(243,236,216,.30)); }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 3px; }
+button { font: inherit; }
+.deck { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; align-items: start; }
+@media (max-width: 980px) { .deck { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .deck { grid-template-columns: 1fr; } }
+.card { display: flex; flex-direction: column; background: #F3EAD3; color: #3A2E12; border-radius: 10px; padding: 9px; box-shadow: 0 4px 0 #C9B27A, 0 12px 20px rgba(0,0,0,.22); transform: rotate(var(--r, 0deg)); transition: transform .25s, box-shadow .25s; }
+.card .in { border: 3px double #8C6D2F; border-radius: 6px; padding: 12px 14px 12px; background: linear-gradient(#FBF5E3, #F0E4C4); flex: 1 1 auto; display: flex; flex-direction: column; }
+.card .yr { font: 400 40px/1 var(--marker); color: #9E2B22; }
+.card .nm { font: 400 24px/1.08 var(--marker); color: var(--wb-ink); margin: 4px 0 2px; }
+.card .meta { font-size: 12.5px; color: #6B5A2C; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.card .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; text-align: center; }
+.card .stats div { background: rgba(31,63,143,.08); border-radius: 5px; padding: 5px 0 4px; }
+.card .stats b { display: block; font: 400 24px/1.1 var(--marker); color: var(--wb-ink); }
+.card .stats small { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: #6B5A2C; }
+.card .gl { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #1E7B45; }
+.card .stats.game { margin: 4px 0 10px; } .card .stats.game div { background: rgba(30,123,69,.12); } .card .stats.game b { color: #17603A; font-size: 21px; }
+.card .roll { list-style: none; margin: 2px 0 10px; padding: 0; display: grid; gap: 1px; font-size: 13px; } .card .roll li { display: flex; gap: 8px; } .card .roll b { min-width: 4.7em; font-weight: 700; color: #6B5A2C; } .card .roll li.g span { font-weight: 600; color: #17603A; }
+.card .ask { align-self: flex-start; min-height: 44px; margin: 0 0 10px; padding: 8px 16px; background: var(--wb-ink); color: #fff; border: 0; border-radius: 4px; font: 700 15px var(--text); cursor: pointer; } .card .ask:hover { background: #17306E; }
+.card .scoutbox { background: rgba(31,63,143,.07); border-left: 4px solid var(--wb-ink); padding: 8px 12px 6px; margin: 0 0 10px; font-size: 13.5px; line-height: 1.4; }
+.scoutbox h4 { font: 400 18px/1.15 var(--marker); margin: 0 0 4px; color: var(--wb-ink); } .scoutbox ul { margin: 4px 0; padding-left: 1.1em; } .scoutbox li { margin: 4px 0; } .scoutbox .voice { margin: 4px 0 6px; font-weight: 600; } .scoutbox .nudge { margin: 4px 0; font-size: 13px; color: #4A5560; }
+.scoutbox .slink { display: inline-block; background: none; border: 0; padding: 0 2px; min-height: 44px; font: 700 14px var(--text); color: var(--wb-ink); text-decoration: underline; cursor: pointer; }
+.card .txt { font-size: 13.5px; line-height: 1.4; margin: 0 0 10px; }
+.card .foot { margin-top: auto; border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
+.card .foot.open { color: var(--wb-green); }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) { .card:hover { transform: rotate(0deg) translateY(-6px); box-shadow: 0 4px 0 #C9B27A, 0 20px 28px rgba(0,0,0,.3); } .folder:hover { transform: translateY(-4px); box-shadow: 0 7px 0 var(--folder-edge), 0 16px 22px rgba(0,0,0,.18); } }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 22px 16px 48px; }
+.crumbs { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; } .crumbs a { color: var(--ink); font-weight: 600; } .badge img { width: 52px; height: 52px; display: block; }
+.acct { background: rgba(247,242,228,.92); border-radius: 4px; padding: 4px 12px; margin-left: auto; }
+.board { background: rgba(247,248,246,.92); color: #20262D; border-radius: 4px; padding: 18px 24px 20px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 6px 0 rgba(0,0,0,.18); }
+.board h1 { font: 400 clamp(34px, 6vw, 54px)/1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .board p { margin: 4px 0 0; font-size: 17px; line-height: 1.5; max-width: 70ch; }
+.gate { background: rgba(247,242,228,.95); border-radius: 4px; padding: 18px 24px 20px; margin: 18px 0 0; box-shadow: 0 2px 0 rgba(0,0,0,.12), inset 5px 0 0 var(--lamp); } .gate h2 { font: 400 28px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .gate p { margin: 4px 0 10px; font-size: 17px; max-width: 60ch; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 20px; border-radius: 4px; font: 600 17px var(--text); text-decoration: none; cursor: pointer; border: 1.5px solid transparent; } .btn-main { background: var(--wb-ink); color: #fff; } .btn-main:hover { background: #17306E; } .btn-alt { background: rgba(247,242,228,.95); color: var(--ink); border-color: #8C959E; } .btn[disabled] { opacity: .45; cursor: default; }
+.tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; background: rgba(247,242,228,.95); border-radius: 4px; padding: 12px 16px 14px; margin: 18px 0 8px; }
+.tools label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4A5560; } .tools input, .tools select { font: 16px var(--text); min-height: 44px; padding: 6px 10px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: var(--ink); min-width: 150px; } .tools .grow { flex: 1 1 220px; } .tools .grow input { width: 100%; }
+.count { margin: 10px 2px 12px; font-weight: 700; color: var(--ink); background: rgba(247,242,228,.9); display: inline-block; padding: 4px 12px; border-radius: 4px; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 26px 0 0; } .pager span { background: rgba(247,242,228,.92); padding: 6px 14px; border-radius: 4px; font-weight: 700; }
+.card { --r: 0deg; } .card .badgeL { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 10px; background: #F0DFA0; color: #5B4712; font: 700 12px var(--text); letter-spacing: .06em; text-transform: uppercase; vertical-align: 6px; }
+.card .bargain { margin: 0 0 8px; padding: 4px 8px; border-radius: 4px; background: rgba(30,123,69,.14); color: #17603A; font-size: 13px; font-weight: 700; }
+.card .ask { align-self: flex-start; min-height: 44px; margin: 6px 0 10px; padding: 8px 16px; background: var(--wb-ink); color: #fff; border: 0; border-radius: 4px; font: 700 15px var(--text); cursor: pointer; } .card .ask:hover { background: #17306E; }
+.card .foot { margin-top: auto; border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
+.empty { background: rgba(247,242,228,.95); border-radius: 4px; padding: 20px 24px; font-size: 17px; }
+footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); display: inline-block; padding: 8px 14px; border-radius: 4px; } footer a { color: inherit; font-weight: 600; }
+
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; }
+.tabbtn { min-height: 44px; padding: 8px 18px; border: 0; border-bottom: 4px solid transparent; border-radius: 6px 6px 0 0; background: rgba(247,242,228,.62); color: var(--ink); font: 700 16px var(--text); cursor: pointer; } .tabbtn:hover { background: rgba(247,242,228,.85); } .tabbtn[aria-selected="true"] { background: rgba(247,242,228,.98); border-bottom-color: var(--lamp); }
+.page { background: rgba(247,242,228,.97); border-radius: 0 4px 4px 4px; padding: 16px 20px 22px; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+.page h2 { font: 400 26px/1.1 var(--marker); color: var(--wb-ink); margin: 18px 0 8px; } .page > h2:first-child { margin-top: 0; } .page p { margin: 6px 0; font-size: 17px; line-height: 1.5; max-width: 74ch; } .page ol, .page ul.plain { font-size: 17px; line-height: 1.5; max-width: 74ch; padding-left: 1.3em; } .page li { margin: 4px 0; }
+.muted { color: #5A646E; font-size: 15px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; } .row label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4A5560; } .row .grow { flex: 1 1 240px; } .row .grow input { width: 100%; }
+.page input[type=search], .page input[type=number], .page select { font: 16px var(--text); min-height: 44px; padding: 6px 10px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: var(--ink); } .page input[type=number] { width: 110px; }
+.row label.chk { flex-direction: row; align-items: center; gap: 8px; min-height: 44px; text-transform: none; letter-spacing: 0; font-size: 16px; color: var(--ink); } .row label.chk input { width: 22px; height: 22px; }
+.sum { margin: 10px 0 0; padding: 10px 14px; border-radius: 4px; background: #EDF1F7; border-left: 5px solid var(--wb-ink); font-size: 17px; line-height: 1.5; max-width: none !important; } .sum.good { background: #E4F2E9; border-left-color: #1E7B45; } .sum.warn { background: #FFF4CF; border-left-color: #C69A2B; } .sum.bad { background: #FBE3DF; border-left-color: #B03A2E; }
+.gh { font: 400 21px/1.1 var(--marker); color: var(--wb-ink); margin: 18px 0 6px; }
+ul.slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .slot { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 8px 12px; }
+.sl { flex: none; min-width: 3.4em; font-weight: 700; color: #4A5560; padding-top: 2px; } .who { flex: 1; min-width: 0; } .line { font-size: 16px; line-height: 1.5; }
+.lk { background: none; border: 0; padding: 0 2px; min-height: 44px; min-width: 44px; font: 700 15px var(--text); color: var(--wb-ink); text-decoration: underline; cursor: pointer; }
+.bg { display: inline-block; margin: 0 6px 0 0; padding: 1px 9px; border-radius: 10px; background: rgba(30,123,69,.15); color: #17603A; font: 700 12px var(--text); } .bg.lk { background: #F0DFA0; color: #5B4712; text-decoration: none; min-height: 0; min-width: 0; }
+ul.buy li { display: flex; align-items: center; gap: 8px; margin: 2px 0; font-size: 16px; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 2px 10px; }
+.star { all: unset; cursor: pointer; font-size: 24px; line-height: 1; color: #B7BDC2; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; } .star[aria-pressed="true"] { color: #D4A017; } .star:focus-visible { outline: 3px solid var(--lamp); }
+#syncNote { margin: 8px 0 0; font-size: 15px; color: #4A5560; }
+textarea#notes { width: 100%; min-height: 260px; font: 17px/1.5 var(--text); padding: 10px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: var(--ink); resize: vertical; }
+.when { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; color: #4A5560; margin: 0 0 6px; font-weight: 600; }
+.chs { display: grid; gap: 6px; } .ch { display: flex; align-items: flex-start; gap: 10px; background: #F7F9FB; border: 1px solid #DDE3EA; border-radius: 6px; padding: 6px 10px; } .ch > div { flex: 1; min-width: 0; } .ch.empty { background: transparent; border-style: dashed; align-items: center; }
+.cl { flex: none; width: 1.7em; height: 1.7em; border-radius: 50%; background: var(--wb-ink); color: #fff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; margin-top: 2px; } .ch.empty .cl { background: #8C959E; margin-top: 0; }
+.rk { display: inline-block; margin: 0 6px 0 0; padding: 1px 9px; border-radius: 10px; font: 700 12px var(--text); } .rk.hi { background: #FBE3DF; color: #9E2B22; } .rk.md { background: #FFF1C9; color: #7A5200; } .rk.lo { background: #E4F2E9; color: #17603A; }
+.picker { background: #EEF3FA; border: 2px solid var(--wb-ink); border-radius: 6px; padding: 10px 14px 12px; margin: 14px 0; } .picker h3 { font: 400 22px var(--marker); color: var(--wb-ink); margin: 0 0 8px; } .picker ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; } .picker li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 6px; padding: 6px 10px; } .pw { min-width: 0; font-size: 16px; line-height: 1.5; } .btn.sm { min-height: 44px; padding: 6px 14px; font-size: 16px; flex: none; }
+details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 4px 14px 10px; } details.opp summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; font-size: 17px; } #oppTable { overflow-x: auto; } #oppTable table { border-collapse: collapse; width: 100%; font-size: 15px; } #oppTable th, #oppTable td { padding: 2px 8px; border-bottom: 1px solid #E6E9EC; text-align: left; vertical-align: middle; } #oppTable th { font-size: 13px; color: #4A5560; }
+
+.page h3 { font-size: 19px; margin: 18px 0 4px; color: #1B2430; } .page ul.plain li, .page ol li { margin: 5px 0; }
+.callout { background: #EDF1F7; border-left: 5px solid var(--wb-ink); padding: 10px 14px; border-radius: 4px; margin: 14px 0; font-size: 17px; line-height: 1.5; max-width: 74ch; } .callout.warn { background: #FFF4CF; border-left-color: #C69A2B; } .callout p { margin: 4px 0; }
+.scrollx { overflow-x: auto; margin: 10px 0; } table.facts { border-collapse: collapse; width: 100%; max-width: 760px; font-size: 16px; } table.facts th, table.facts td { padding: 6px 10px; border-bottom: 1px solid #DDD6C2; text-align: left; vertical-align: top; } table.facts th { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: #4A5560; }
+.board .crumbhint { margin-top: 6px; }
+</style>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a><a href="howtoplay.html" style="margin-left:14px" aria-current="page">How to play</a><a href="notebook.html" style="margin-left:14px">Notebook</a></nav>
+  <header class="board">
+    <h1>How the game is played</h1>
+    <p>Everything the game does, in plain language. Where we give a number, it comes straight from the game's own rules.</p>
+  </header>
+  <div class="tabs" role="tablist" aria-label="How the game is played">
+    <button class="tabbtn" role="tab" type="button" id="tBasics" aria-selected="true" aria-controls="pBasics">The basics</button>
+    <button class="tabbtn" role="tab" type="button" id="tDraft" aria-selected="false" aria-controls="pDraft" tabindex="-1">Drafting and the cap</button>
+    <button class="tabbtn" role="tab" type="button" id="tAtbat" aria-selected="false" aria-controls="pAtbat" tabindex="-1">An at-bat</button>
+    <button class="tabbtn" role="tab" type="button" id="tBases" aria-selected="false" aria-controls="pBases" tabindex="-1">On the bases</button>
+    <button class="tabbtn" role="tab" type="button" id="tPitch" aria-selected="false" aria-controls="pPitch" tabindex="-1">Pitchers</button>
+    <button class="tabbtn" role="tab" type="button" id="tSeason" aria-selected="false" aria-controls="pSeason" tabindex="-1">A league season</button>
+    <button class="tabbtn" role="tab" type="button" id="tLimits" aria-selected="false" aria-controls="pLimits" tabindex="-1">What it doesn't do</button>
+  </div>
+
+  <section class="page" id="pBasics" role="tabpanel" aria-labelledby="tBasics">
+    <h2>What you do</h2>
+    <p>You manage a team built from real player-seasons, 1901 to 2025: Babe Ruth in 1920, Pedro Martinez in 2000, and 1,428 others. You draft a roster under a salary cap, then play games where dice decide every at-bat, using cards built from each player's real stats.</p>
+    <h3>Ways to play</h3>
+    <ul class="plain">
+      <li><b>Mock draft.</b> Draft against the computer, get a report card, then play your team against its.</li>
+      <li><b>Quick game.</b> Pick two classic clubs and roll the dice yourself.</li>
+      <li><b>Free tables.</b> Ten managers, a roster built under a salary cap, and nothing to pay.</li>
+      <li><b>Private leagues.</b> Ten seats among people you know. A league can have a buy-in, which is held by an independent service and never by us.</li>
+    </ul>
+    <h3>Where your decisions matter</h3>
+    <p>Who you draft and what you spend. In a league you also set your batting order, the order of your five starters, how long a leash your starters get, and which starter takes the ball in a given game.</p>
+    <div class="callout"><p><b>The dice decide each game.</b> The better team wins more often, but any single game can go either way.</p></div>
+    <h3>What a player card shows</h3>
+    <p>The season and team, the positions he can play, his price, his real stats, and his <b>Runs+</b>, which is how many runs that season was worth above an average player. At the bottom is his <b>roll card</b>, the list of results the dice can produce for him.</p>
+  </section>
+
+  <section class="page" id="pDraft" role="tabpanel" aria-labelledby="tDraft" hidden>
+    <h2>Drafting and the salary cap</h2>
+    <h3>The mock draft</h3>
+    <ul class="plain">
+      <li>You and the computer take turns picking, 18 players each. A coin flip decides who goes first.</li>
+      <li>Your roster is 9 hitters (C, 1B, 2B, 3B, SS, LF, CF, RF and a DH), 5 starting pitchers and 4 relievers.</li>
+      <li>You have 60 seconds a pick, and you can pause the clock. If it runs out, the scout makes the best legal pick for you.</li>
+    </ul>
+    <h3>Five kinds of draft</h3>
+    <ul class="plain">
+      <li><b>Classic draft:</b> the whole all-time pool, with no salary cap. Just better picks.</li>
+      <li><b>Decade draft:</b> only seasons from one decade, which you choose.</li>
+      <li><b>Hometown draft:</b> one franchise's best seasons, split between you and the computer.</li>
+      <li><b>Payroll crunch:</b> both teams must fit under a <b>$100M</b> payroll. Stars cost you depth.</li>
+      <li><b>One per franchise:</b> no two players from the same franchise on either team.</li>
+    </ul>
+    <h3>How prices work</h3>
+    <p>Every price is $1M for taking a roster spot, plus a charge for the runs a player adds: about $0.21M per run of Runs+ for a hitter, $0.26M for a starter and $0.30M for a reliever. Bats are the cheapest source of runs and relievers the most expensive. A player's price is shown on his card and next to his name in the draft.</p>
+    <h3>What if you run out of salary cap?</h3>
+    <p>In a Payroll crunch draft, you can't overspend, and the game never lets you get stuck with an impossible roster. Before it allows a pick, it adds up the cheapest player still available for each of your other empty spots. If his price plus those would go over the cap, the pick is blocked and the button says <i>Over the payroll</i>.</p>
+    <div class="callout"><p>So the cap gets tighter as you fill the roster. A warning shows how much room you have above the cheapest way to finish, and the <i>Only players I can afford</i> switch hides everyone you can't take.</p></div>
+    <p>Late in the draft you may only be able to take bargain players. The computer follows the same rule. In the rare case that nobody left fits both your open spots and your cap, your turn is skipped, and an empty spot counts as an average player in the game.</p>
+    <p>In a league or at a free table there's no draft clock. Once the table fills, you have 48 hours to build a 25-player roster under the cap: 9 in the lineup, 4 on the bench, 5 starters and 7 relievers. A player who would put you over is marked <i>Over your cap</i>. Swap in someone cheaper to make room.</p>
+    <h3>Other rules</h3>
+    <ul class="plain">
+      <li><b>Legends</b> are the 45 highest-rated seasons. In a mock draft they are locked until you win 3 games with a team you drafted.</li>
+      <li><b>Rookie mode</b> (on for new players) gives the computer an $80M cap instead of $100M in a Payroll crunch draft.</li>
+      <li><b>Bargains</b> are players priced below what their real season says they are worth. The scout and the <a href="notebook.html">notebook</a> flag them.</li>
+    </ul>
+  </section>
+
+  <section class="page" id="pAtbat" role="tabpanel" aria-labelledby="tAtbat" hidden>
+    <h2>An at-bat</h2>
+    <ol>
+      <li><b>The duel.</b> The batter and the pitcher each roll a 20-sided die. If they tie, they roll again.</li>
+      <li><b>Whose card.</b> The higher die wins the at-bat's card: if the batter rolled higher, his card is read. If the pitcher did, his card is read.</li>
+      <li><b>The roll.</b> A roll of 1 to 100 picks the result on that card. A card is simply 100 numbers divided among the results.</li>
+    </ol>
+    <h3>Example: Babe Ruth, 1920</h3>
+    <p>On his card, a roll of 1 to 16 is a home run, 17 a triple, 18 to 24 a double, 25 to 31 a single, 32 to 64 a walk, 65 to 91 a strikeout, and 92 to 100 an out in play. Sixteen numbers out of 100 is a lot of home runs, and it is part of why he is the highest-priced hitter in the game.</p>
+    <h3>The possible results</h3>
+    <p>Walk, hit by pitch, strikeout, single, double, triple, home run, groundout, flyout, lineout and error. Of the outs that are in play, about 46% are groundouts, 42% flyouts and 12% lineouts. Errors appear only on pitchers' cards, about 1 in 60 of the balls in play that would otherwise be outs, and they stand in for the defense behind that pitcher.</p>
+    <h3>Why the cards are built this way</h3>
+    <ul class="plain">
+      <li>Each player's stats are compared with the league averages of his own year, so a 1968 pitcher and a 1999 slugger meet on fair terms.</li>
+      <li>Each card is read about half the time, so it is built to carry twice the player's edge over an average player. Over many at-bats, the results match his real season.</li>
+    </ul>
+  </section>
+
+  <section class="page" id="pBases" role="tabpanel" aria-labelledby="tBases" hidden>
+    <h2>On the bases</h2>
+    <p>After a result, runners move by fixed rules. Where there's a chance, a dice roll decides, using the odds below. Each hitter has a speed rating, taken from his real steals and triples, that nudges these odds.</p>
+    <div class="scrollx"><table class="facts"><thead><tr><th>Result</th><th>What the runners do</th></tr></thead><tbody>
+      <tr><td>Walk or hit by pitch</td><td>Runners move up only if they are forced.</td></tr>
+      <tr><td>Single</td><td>A runner on third scores. A runner on second scores about 6 times in 10 (about 8 in 10 with two outs), otherwise stops at third. A runner on first usually goes to second, and about 3 times in 10 to third when third is open (about 4 in 10 with two outs).</td></tr>
+      <tr><td>Double</td><td>Runners on second and third score. A runner on first scores about 4 times in 10 (about 6 in 10 with two outs), otherwise stops at third.</td></tr>
+      <tr><td>Triple or home run</td><td>Everyone scores.</td></tr>
+      <tr><td>Error</td><td>The batter reaches and every runner moves up a base. Runs that score on an error are unearned.</td></tr>
+      <tr><td>Groundout</td><td>With a runner on first and fewer than two outs, it becomes a double play about 4 times in 10 for an average hitter, less for a fast one. Otherwise forced runners move up. With first base empty, a runner on third scores about half the time.</td></tr>
+      <tr><td>Flyout</td><td>A runner on third tags up and scores about 6 times in 10 (a sacrifice fly). A runner on second tags up to third about a quarter of the time when third is open.</td></tr>
+      <tr><td>Lineout</td><td>Runners hold.</td></tr>
+    </tbody></table></div>
+    <p class="muted">Stolen bases, bunts and the hit-and-run are not played as separate plays. A hitter's speed shows up in how often runners take the extra base and how often he grounds into a double play.</p>
+  </section>
+
+  <section class="page" id="pPitch" role="tabpanel" aria-labelledby="tPitch" hidden>
+    <h2>Pitchers: tiring, being taken out, and relievers</h2>
+    <h3>Do starting pitchers get tired?</h3>
+    <p>Yes, but not by getting worse. A pitcher's card never changes during a game. Fatigue works as a limit: every pitcher has a number of batters he can face, and when he reaches it, or gets hit hard, he is taken out.</p>
+    <p>That limit comes from his real season. A starter's limit is the batters he faced per game that season, plus 5%, kept between 20 and 40. A reliever's is the batters he faced per appearance, kept between 4 and 12. So a pitcher who went deep into games in his real season goes deep in yours.</p>
+    <h3>When a pitcher is taken out</h3>
+    <ul class="plain">
+      <li><b>At the start of an inning:</b> if he has faced about his limit (a random point between 90% and 110% of it), or he has allowed 6 or more runs.</li>
+      <li><b>In the middle of an inning:</b> if he has faced 120% of his limit, allowed 7 or more runs, or, for a starter in the first five innings, allowed 5 or more runs.</li>
+      <li><b>The closer:</b> from the 9th inning on, if his team leads by 1 to 3 runs at the start of the inning, the closer comes in.</li>
+    </ul>
+    <h3>Who comes in</h3>
+    <ul class="plain">
+      <li>The best reliever still available, judged by his real strikeouts, walks and home runs. The closer is held back until the 9th inning.</li>
+      <li>The closer is the reliever with the most saves (at least 8). If nobody has 8, it is the best pitcher who mostly relieved.</li>
+      <li>A pitcher who has left the game never returns, and each reliever pitches once. If the bullpen runs out, the pitcher on the mound stays in.</li>
+    </ul>
+    <h3>Wins, losses and saves</h3>
+    <p>The game credits them the usual way. A starter needs at least 5 innings to get the win, otherwise it goes to the reliever who pitched the most. A save goes to the pitcher who finishes a win after coming in with a lead of 1 to 3 runs, if he isn't the winning pitcher.</p>
+    <h3>The leash (leagues)</h3>
+    <p>A manager can give starters a <b>short</b>, <b>normal</b> or <b>long</b> leash. Short cuts every starter's limit by 20% so he is taken out sooner. Long adds 25%. You can also set the order of your five starters, or choose who starts a particular game. Starters take the ball in order: game day 1 is the first starter, day 2 the second, and so on around.</p>
+  </section>
+
+  <section class="page" id="pSeason" role="tabpanel" aria-labelledby="tSeason" hidden>
+    <h2>A league season</h2>
+    <ul class="plain">
+      <li><b>Ten clubs.</b> Computer-run clubs take any seats that aren't filled by people.</li>
+      <li><b>27 game days,</b> with every club playing once a day: 135 games in all.</li>
+      <li><b>The pace</b> is chosen by the commissioner when the season starts: one, two or three game days a day.</li>
+      <li><b>Playing your game.</b> You play it whenever you're free before its deadline, rolling the dice yourself or simulating it. The server rolls every die, and any game left unplayed is finished for you at the deadline.</li>
+    </ul>
+    <h3>The standings and the playoffs</h3>
+    <p>Clubs are ranked by winning percentage, then run difference, then runs scored. The top four make the playoffs: first plays fourth and second plays third, each a best-of-3. The winners meet in a best-of-5 final, and the winner of that is the champion.</p>
+    <h3>Your roster</h3>
+    <p>A league roster has 25 players under a $150M cap: 9 in the lineup, 4 on the bench, 5 starters and 7 relievers. You can have only one season of any player.</p>
+    <p>See the <a href="private.html">private leagues page</a> for how buy-ins and prizes work.</p>
+  </section>
+
+  <section class="page" id="pLimits" role="tabpanel" aria-labelledby="tLimits" hidden>
+    <h2>What the game doesn't do</h2>
+    <p>This is a simple game on purpose, so you can play it in a few minutes. These things are not part of it today:</p>
+    <ul class="plain">
+      <li><b>The bench doesn't play.</b> Games use only the nine lineup spots, five starters and seven relievers. There are no pinch hitters and no defensive replacements.</li>
+      <li><b>No stolen bases, bunts or hit-and-run plays.</b></li>
+      <li><b>No injuries.</b> Everyone on your roster is available every game, except that a pitcher who has left a game doesn't return.</li>
+      <li><b>No ballpark or home-field effects.</b> Every game is played in the same neutral setting.</li>
+      <li><b>No left-right matchups.</b> A hitter's card is the same against any pitcher.</li>
+      <li><b>Fielding is not rated separately.</b> Defense shows up in the positions you have to fill and in errors, which come from the pitcher's card.</li>
+      <li><b>A pitcher's card doesn't fade as he tires.</b> He just reaches his limit and is taken out.</li>
+    </ul>
+  </section>
+  <footer><a href="terms.html">Terms of Service</a> &middot; <a href="privacy.html">Privacy Policy</a></footer>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id), list = document.querySelector('[aria-label="How the game is played"]'), all = [...list.querySelectorAll('[role=tab]')];
+  const show = (t, focus) => { all.forEach(x => { const on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; $(x.getAttribute('aria-controls')).hidden = !on; }); if (focus) t.focus(); history.replaceState(null, '', '#' + t.id.slice(1).toLowerCase()); };
+  all.forEach((t, i) => { t.onclick = () => show(t); t.onkeydown = e => { const k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!k) return; show(all[(i + k + all.length) % all.length], true); e.preventDefault(); }; });
+  const fromHash = () => { const h = location.hash.slice(1).toLowerCase(), want = all.find(t => t.id.slice(1).toLowerCase() === h); if (want) show(want); }; fromHash(); window.addEventListener('hashchange', fromHash);
+})();
+</script>
+</body>
+</html>

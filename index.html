@@ -168,6 +168,17 @@ footer p { margin: 0 0 6px; }
 .moneybox .fine { margin: 10px 0 0; font-size: 14px; color: #5B4A1F; }
 .vault-more { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; color: var(--wb-ink); text-decoration: underline; }
 a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; text-decoration: underline; color: var(--wb-ink); }
+/* ---------- the opening: a bigger logo, and the words centered and set to its right ---------- */
+.board { grid-template-columns: auto 1fr; gap: 44px; }
+.board .logo { width: 260px; height: 260px; }
+.board .herotext { text-align: center; padding-left: clamp(0px, 3vw, 48px); }
+.board .tag { font-size: 24px; margin: -2px auto 16px; }
+.board .lede { font: 600 clamp(22px, 2.9vw, 32px)/1.28 var(--text); max-width: 32ch; margin: 0 auto; color: #1B2430; }
+.board p { margin-left: auto; margin-right: auto; }
+.board .phone { margin-top: 18px; border-left: 0; border-radius: 8px; border: 1px solid rgba(242,179,61,.6); text-align: center; }
+.board .howto { margin-top: 14px; } .board .howto .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 26px; font-size: 18px; text-decoration: none; }
+.board .rec, .board .nbhint { text-align: center; }
+@media (max-width: 720px) { .board { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 10px; } .board .logo { width: 180px; height: 180px; } .board .herotext { padding-left: 0; } .board .lede { font-size: 23px; } }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -179,12 +190,13 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
 <script>document.documentElement.classList.add('js');</script>
 <div class="wrap">
   <header class="board reveal">
-    <img class="logo" src="logo.webp" alt="" width="170" height="170">
-    <div>
+    <img class="logo" src="logo.webp" alt="" width="260" height="260">
+    <div class="herotext">
     <h1>Cooperstown Cash</h1>
     <p class="tag">Historical simulation leagues</p>
-    <p>Real simulations of baseball's best seasons, on your phone. Learn the draft strategy, play games against the computer, play for free with your friends, and eventually play for a cash pot.</p>
+    <p class="lede">Do you have what it takes to be an epic manager? Play the best players from over the past 120 years all on your phone. Draft and strategize to beat the computer or your friends.</p>
     <p class="phone">Made for the few minutes of free time you get in a day: a draft can be paused, a game takes a few minutes, and a league plays one game day at a time. A free account is just your email, no password.</p>
+    <p class="howto"><a class="btn btn-main" href="howtoplay.html">How the game is played</a></p>
     <p class="nbhint"><a href="notebook.html">Open your manager's notebook</a> to plan your picks before the clock starts: three choices for every spot, who the computer is likely to take, and your budget. Your plan follows you from game to game.</p>
     <p class="rec" id="rec" hidden></p>
     </div>
