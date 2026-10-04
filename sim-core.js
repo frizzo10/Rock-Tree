@@ -28,6 +28,13 @@ export function buildClub(name, slots, data, opts = {}) {
     const by = new Map(club.order.map(b => [b.fpos, b])), ordered = opts.order.map(pos => by.get(pos));
     if (ordered.every(Boolean)) club.order = ordered;
   }
+  // the manager's bullpen plan: the order relievers come in (a list of the club's RP spots, each once) and who closes. Anything invalid is ignored.
+  const PEN = ['rp1', 'rp2', 'rp3', 'rp4', 'rp5', 'rp6', 'rp7'], have = PEN.filter(s => slots[s]), idOf = s => data.players[slots[s]].id;
+  if (isPerm(opts.pen, have)) {
+    const by = new Map(club.bullpen.map(p => [p.id, p])), ordered = opts.pen.map(s => by.get(idOf(s)));
+    if (ordered.every(Boolean)) club.bullpen = ordered;
+  }
+  if (have.includes(opts.closer)) { const c = club.bullpen.find(p => p.id === idOf(opts.closer)); if (c) club.closer = c; }
   const leash = LEASH[opts.leash];                                        // a shorter leash pulls a tiring starter sooner
   if (leash && leash !== 1) club.rotation.forEach(p => { p.stamina = p.stamina * leash; });
   return club;
