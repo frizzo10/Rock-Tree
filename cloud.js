@@ -88,7 +88,29 @@
     else { const bar = document.createElement('nav'); bar.className = 'acctbar'; bar.appendChild(host); const w = document.querySelector('.wrap') || document.body; w.insertBefore(bar, w.firstChild); }
     render();
   }
-  let pendingEmail = '';
+  let pendingEmail = '', sentOwn = false;
+  // Our own sender emails a code and a link on our own address. Until it is set up (or if it is down) the default email goes out instead, so signing in never stops working.
+  async function requestLoginEmail(email) {
+    const next = (location.pathname.split('/').pop() || 'index.html') + location.search;   // the link brings you back to this page
+    try {
+      const r = await fetch(SUPABASE_URL + '/functions/v1/send-login', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY }, body: JSON.stringify({ email, next }) });
+      if (r.ok) return { error: null, own: true };
+      let j = {}; try { j = await r.json(); } catch (e) {}
+      if (r.status === 429 || j.error === 'rate_limited') return { error: { message: 'rate limit' }, own: false };   // a refusal is a refusal: do not get round it with the default email
+      if (j.error === 'bad_email') return { error: { message: 'bad email' }, own: false };
+    } catch (e) { /* offline or blocked: use the default email */ }
+    const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+    return { error, own: false };
+  }
+  // the link in our email lands here with a one-time token in the address: use it, then take it out of the address bar and the history
+  async function finishEmailLink() {
+    const q = new URLSearchParams(location.search), th = q.get('token_hash');
+    if (!th) return;
+    q.delete('token_hash'); q.delete('type');
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '') + location.hash);
+    const { error } = await client.auth.verifyOtp({ token_hash: th, type: 'email' });
+    if (error) { forced = true; gateHead = 'Sign in'; gateState = 'form'; gateMsg = 'That sign-in link was already used or has expired. Ask for a new email, or use the code in it.'; drawGate(); }
+  }
   // sign in with the code from the email: it works even if the email's link goes somewhere unexpected, and it keeps you on this page
   async function verifyCode(email, raw) {
     const token = String(raw || '').replace(/\D/g, '');
@@ -123,13 +145,13 @@
         e.preventDefault();
         const email = host.querySelector('#accEmail').value.trim(); pendingEmail = email;
         setStatus('Sending…');
-        const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+        const { error, own } = await requestLoginEmail(email); sentOwn = own;
         if (error) setStatus(/rate/i.test(error.message) ? 'Too many sign-in emails right now. Try again in a few minutes.' : 'Could not send the email. Check the address and try again.');
         else { mode = 'sent'; setStatus(''); }
       };
       host.querySelector('#accEmail').focus();
     } else if (mode === 'sent') {
-      host.innerHTML = `<span>Check your email for the sign-in link. It opens this page and saves your progress.</span> <form id="accCodeForm"><label class="msg" for="accCode">Or, if the email has a code, type it here:</label><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button class="go" type="submit">Sign in</button></form><span class="msg" id="accCodeMsg" role="alert"></span>
+      host.innerHTML = `<span>${sentOwn ? 'We emailed you a sign-in code and link. Type the code here, or tap the link.' : 'Check your email for the sign-in link. It opens this page and saves your progress.'}</span> <form id="accCodeForm"><label class="msg" for="accCode">${sentOwn ? 'Code from the email:' : 'Or, if the email has a code, type it here:'}</label><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="12345678"><button class="go" type="submit">Sign in</button></form><span class="msg" id="accCodeMsg" role="alert"></span>
         <details class="rescue"><summary>The link opened a page that can't be reached?</summary><p class="msg">Your sign-in is in that page's address. Copy the whole address from the top of your browser, paste it here, and you're signed in.</p><form id="accRescueForm"><input id="accAddr" placeholder="Paste the address here" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="go" type="submit">Sign in</button></form><span class="msg" id="accRescueMsg" role="alert"></span></details>`;
       host.querySelector('#accRescueForm').onsubmit = async e => { e.preventDefault(); const m = host.querySelector('#accRescueMsg'); m.textContent = 'Checking…'; m.textContent = await rescueFromAddress(host.querySelector('#accAddr').value); };
       host.querySelector('#accCodeForm').onsubmit = async e => { e.preventDefault(); const m = host.querySelector('#accCodeMsg'); m.textContent = 'Checking…'; m.textContent = await verifyCode(pendingEmail, host.querySelector('#accCode').value); };
@@ -166,7 +188,7 @@
     let body;
     if (gateState === 'checking') body = `${head}<h2 id="ccgT">Cooperstown Cash</h2><p>One moment…</p>`;
     else if (gateState === 'offline') body = `${head}<h2 id="ccgT">We couldn't reach sign-in</h2><p>Check your connection and refresh the page. You need a free account to play.</p>`;
-    else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play.</p><form id="ccgCodeForm"><label for="ccgCode">Or, if the email has a code, type it here</label><input id="ccgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button type="submit" id="ccgCodeGo">Sign in with the code</button></form>${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600;display:inline-block;padding:13px 4px">try a different email</button>.</p>
+    else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>${sentOwn ? "We emailed you a sign-in code and a link. Type the code below, or open the link on this device and you'll land right back here, ready to play." : "We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play."}</p><form id="ccgCodeForm"><label for="ccgCode">${sentOwn ? 'Code from the email' : 'Or, if the email has a code, type it here'}</label><input id="ccgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="12345678"><button type="submit" id="ccgCodeGo">Sign in with the code</button></form>${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600;display:inline-block;padding:13px 4px">try a different email</button>.</p>
       <details class="rescue"${gateMsg ? ' open' : ''}><summary>The link opened a page that can't be reached?</summary><p class="small">Your sign-in is in that page's address. Copy the whole address from the top of your browser, paste it here, and you're signed in.</p><form id="ccgRescueForm"><input id="ccgAddr" placeholder="Paste the address here" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="submit" id="ccgRescueGo">Sign in</button></form></details>`;
     else body = `${head}<h2 id="ccgT">${esc(gateHead || 'Create your free account to play')}</h2><p>Play for fun or learn strategy. Your drafts, wins and unlocks are saved to your account. Just your email, no password.</p>
       <form id="ccgForm"><label for="ccgEmail">Email</label><input id="ccgEmail" type="email" required autocomplete="email" placeholder="you@example.com" value="${esc(pendingEmail)}"><button type="submit" id="ccgGo">Email me a sign-in link</button></form>
@@ -178,7 +200,7 @@
       form.onsubmit = async e => {
         e.preventDefault();
         const btn = gateEl.querySelector('#ccgGo'); btn.disabled = true; btn.textContent = 'Sending…'; pendingEmail = gateEl.querySelector('#ccgEmail').value.trim();
-        const { error } = await client.auth.signInWithOtp({ email: gateEl.querySelector('#ccgEmail').value.trim(), options: { emailRedirectTo: location.origin + location.pathname } });
+        const { error, own } = await requestLoginEmail(pendingEmail); sentOwn = own;
         if (error) { gateMsg = /rate|limit/i.test(error.message) ? 'Too many sign-in emails right now. Please try again in a few minutes.' : 'We could not send the email. Check the address and try again.'; gateState = 'form'; }
         else { gateMsg = ''; gateState = 'sent'; }
         drawGate();
@@ -219,6 +241,7 @@
       render();
       window.dispatchEvent(new CustomEvent('cc-auth', { detail: { user } }));
     });
+    finishEmailLink();
     markReady();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
