@@ -51,7 +51,7 @@ const ip = outs => Math.floor(outs / 3) + '.' + (outs % 3);
 // Both clubs' starters follow their rotation: game day 1 is SP1, day 2 is SP2, and so on around.
 export function playGame({ away, home, day, data }) {
   const A = buildClub(away.name, away.slots, data, away), H = buildClub(home.name, home.slots, data, home);
-  const strat = c => ({ steals: c.steals, bunts: c.bunts, walks: c.walks });   // each manager's saved choices; anything missing or invalid means off
+  const strat = c => ({ steals: c.steals, bunts: c.bunts, walks: c.walks, defense: c.defense });   // each manager's saved choices; anything missing or invalid means off
   const g = new DuelDice.Game(A, H, { starters: [starterIndex(away, day), starterIndex(home, day)], strategy: [strat(away), strat(home)] });
   const starters = [g.teams[0].pitcher.name, g.teams[1].pitcher.name], log = [];
   while (!g.over && log.length < 600) {

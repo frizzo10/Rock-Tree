@@ -63,10 +63,17 @@
 
   // ---- the manager's choices: steals, sacrifice bunts and intentional walks. Everything defaults to off, so a game without them plays exactly as it always did. ----
   const STEALS = ['off', 'selective', 'aggressive'], BUNTS = ['off', 'situational'], WALKS = ['off', 'situational'];
-  function cleanStrategy(s) { s = s || {}; return { steals: STEALS.includes(s.steals) ? s.steals : 'off', bunts: BUNTS.includes(s.bunts) ? s.bunts : 'off', walks: WALKS.includes(s.walks) ? s.walks : 'off' }; }
+  const INF = ['normal', 'corners', 'in', 'dp'], OUTF = ['normal', 'in', 'deep'], DKEYS = ['infield_in', 'dp_depth', 'corners_in', 'outfield_in', 'outfield_deep', 'hold'];
+  // infield / outfield / hold are the defense set right now (by the manager live, or by the policy below); defense is the saved league policy: each call 'off' or 'situational'
+  function cleanStrategy(s) {
+    s = s || {}; const dp = s.defense && typeof s.defense === 'object' ? s.defense : {}, defense = {}; DKEYS.forEach(k => { defense[k] = dp[k] === 'situational' ? 'situational' : 'off'; });
+    return { steals: STEALS.includes(s.steals) ? s.steals : 'off', bunts: BUNTS.includes(s.bunts) ? s.bunts : 'off', walks: WALKS.includes(s.walks) ? s.walks : 'off', infield: INF.includes(s.infield) ? s.infield : 'normal', outfield: OUTF.includes(s.outfield) ? s.outfield : 'normal', hold: s.hold === true, defense };
+  }
   const opsOf = b => (b.obp || 0) + (b.slg || 0);
   function opsRank(order) { const m = new Map(); [...order].sort((a, b) => opsOf(b) - opsOf(a)).forEach((b, i) => m.set(b.id, i + 1)); return m; }   // 1 = the best bat in the lineup
-  const BUNT = { dp: 0.02, fc: 0.10, fail: 0.04 };   // when a bunt is ordered: a double play (runner on first only), the lead runner thrown out, a popped-up bunt; bunt hits take 6% (more for fast hitters); the rest are sacrifices
+  const BUNT = { dp: 0.02, fc: 0.10, fail: 0.04 }, BUNT_CORNERS = { dp: 0.04, fc: 0.27, fail: 0.13 };   // corners in: a bunt works about 1 time in 2 instead of 3 in 4
+  // what each defensive call does, in its own situation (a call helps there and costs a little elsewhere)
+  const DEFN = { inGbScore: 0.15, inSingle: 0.06, dpTurn: 0.60, dpSingle: 0.04, corSingle: 0.05, ofInSf: 0.35, ofInSecond: 0.10, ofInDouble: 0.08, ofDeepHeld: 0.45, ofDeepFall: 0.05, ofDeepSecond: 0.03, ofDeepFirst: 0.03, holdSteal: 0.12, holdThird: 0.08, holdSingle: 0.05 };   // when a bunt is ordered: a double play (runner on first only), the lead runner thrown out, a popped-up bunt; bunt hits take 6% (more for fast hitters); the rest are sacrifices
 
   class Game {
     constructor(away, home, opts) {
@@ -99,8 +106,18 @@
       if (this.inning >= 9 && dl >= 1 && dl <= 3 && cl && !def.used.has(cl.id) && def.pitcher.id !== cl.id) this.change(def, cl);
       else if (def.cur.BF >= def.pitcher.stamina * (0.9 + rnd() * 0.2) || def.cur.R >= 6) { const n = this.avail(def, this.inning < 9)[0]; if (n) this.change(def, n); }
     }
+    // ---- the defense: which of the set calls are in effect for this batter (each only works in its own situation) ----
+    dfx() {
+      const s = this.def.strat, B = this.bases, o = this.outs;
+      return { inIn: s.infield === 'in' && !!B[2] && o < 2, dp: s.infield === 'dp' && !!B[0] && o < 2, cor: s.infield === 'corners' && !!(B[0] || B[1]) && !B[2] && o < 2, ofIn: s.outfield === 'in' && !!B[2] && o < 2, ofDeep: s.outfield === 'deep', hold: s.hold === true && !!B[0] };
+    }
+    setDef(team, key, val) {   // the manager sets his team's defense live: key is infield, outfield or hold
+      const s = this.teams[team] && this.teams[team].strat; if (!s || this.over) return false;
+      if (key === 'infield' && INF.includes(val)) s.infield = val; else if (key === 'outfield' && OUTF.includes(val)) s.outfield = val; else if (key === 'hold' && typeof val === 'boolean') s.hold = val; else return false;
+      return true;
+    }
     // ---- what the manager can choose right now ----
-    stealChance(r, third) { const s = typeof r.b.stealSucc === 'number' ? r.b.stealSucc : 0.7; return Math.min(0.92, Math.max(0.4, s + (third ? 0.03 : 0))); }
+    stealChance(r, third) { const s = typeof r.b.stealSucc === 'number' ? r.b.stealSucc : 0.7, held = !third && this.def.strat.hold === true; return Math.min(0.92, Math.max(held ? 0.3 : 0.4, s + (third ? 0.03 : 0) - (held ? DEFN.holdSteal : 0))); }
     decisions() {
       const B = this.bases, offense = [], defense = [];
       if (this.over) return { offense, defense };
@@ -128,8 +145,9 @@
     bunt() {
       const off = this.off, B = this.bases, pr = this.def.cur, b = this.batter(), bRec = off.bat.get(b.id), spd = typeof b.spd === 'number' ? b.spd : 0.3;
       off.idx++; pr.BF++;
-      const hit = Math.min(0.15, Math.max(0.02, 0.06 + (spd - 0.3) * 0.12)), dp = B[0] && !B[1] ? BUNT.dp : 0, x = rnd(), runner = { b, pr, unearned: false };
-      const kind = x < dp ? 'dp' : x < dp + BUNT.fc ? 'fc' : x < dp + BUNT.fc + BUNT.fail ? 'fail' : x < dp + BUNT.fc + BUNT.fail + hit ? 'hit' : 'sac';
+      const K = this.dfx().cor ? BUNT_CORNERS : BUNT;
+      const hit = Math.min(0.15, Math.max(0.02, 0.06 + (spd - 0.3) * 0.12)), dp = B[0] && !B[1] ? K.dp : 0, x = rnd(), runner = { b, pr, unearned: false };
+      const kind = x < dp ? 'dp' : x < dp + K.fc ? 'fc' : x < dp + K.fc + K.fail ? 'fail' : x < dp + K.fc + K.fail + hit ? 'hit' : 'sac';
       const advance = () => { if (B[1]) { B[2] = B[1]; B[1] = null; } if (B[0]) { B[1] = B[0]; B[0] = null; } };
       if (kind === 'sac') { this.outs++; pr.outs++; advance(); return this.action('SAC', 'Sacrifice bunt', `${b.short} lays down a sacrifice bunt.`, pr); }
       if (kind === 'hit') { bRec.AB++; bRec.H++; pr.H++; off.hits++; advance(); B[0] = runner; return this.action('BH', 'Bunt single', `${b.short} beats out a bunt for a single.`, pr); }
@@ -150,6 +168,10 @@
     resolve(code) {
       const off = this.off, def = this.def, b = this.batter(), bRec = off.bat.get(b.id), pr = def.cur, B = this.bases;
       off.idx++; pr.BF++;
+      const fx = this.dfx(); let dnote = '';
+      if (code === 'GB') { for (const [on, p, note] of [[fx.inIn, DEFN.inSingle, 'through the drawn-in infield'], [fx.dp, DEFN.dpSingle, 'through the middle'], [fx.cor, DEFN.corSingle, 'past the charging corners'], [fx.hold, DEFN.holdSingle, 'through the right side']]) if (on && rnd() < p) { code = 'S'; dnote = note; break; } }
+      else if (code === 'FB') { if (fx.ofIn && rnd() < DEFN.ofInDouble) { code = '2B'; dnote = 'over the drawn-in outfield'; } else if (fx.ofDeep && rnd() < DEFN.ofDeepFall) { code = 'S'; dnote = 'in front of the deep outfield'; } }
+      else if ((code === '2B' || code === '3B') && fx.ofDeep && rnd() < DEFN.ofDeepHeld) { code = 'S'; dnote = 'held to a single by the deep outfield'; }
       const runner = { b, pr, unearned: false }, before = off.runs, sp = r => (r.b.spd - 0.3) * 0.3;
       const hit = () => { bRec.AB++; bRec.H++; pr.H++; off.hits++; };
       let txt = '', err = false;
@@ -164,8 +186,8 @@
         case 'S':
           hit();
           if (B[2]) { this.score(B[2], bRec); B[2] = null; }
-          if (B[1]) { if (rnd() < (this.outs === 2 ? 0.82 : 0.58) + sp(B[1])) this.score(B[1], bRec); else B[2] = B[1]; B[1] = null; }
-          if (B[0]) { if (!B[2] && rnd() < (this.outs === 2 ? 0.38 : 0.28) + sp(B[0])) B[2] = B[0]; else B[1] = B[0]; B[0] = null; }
+          if (B[1]) { if (rnd() < (this.outs === 2 ? 0.82 : 0.58) + sp(B[1]) + (fx.ofDeep ? DEFN.ofDeepSecond : 0) - (fx.ofIn ? DEFN.ofInSecond : 0)) this.score(B[1], bRec); else B[2] = B[1]; B[1] = null; }
+          if (B[0]) { if (!B[2] && rnd() < (this.outs === 2 ? 0.38 : 0.28) + sp(B[0]) + (fx.ofDeep ? DEFN.ofDeepFirst : 0) - (fx.hold ? DEFN.holdThird : 0)) B[2] = B[0]; else B[1] = B[0]; B[0] = null; }
           B[0] = runner; txt = `${b.short} singles ${pick(FIELD.S)}.`; break;
         case '2B':
           hit(); bRec.D++;
@@ -189,7 +211,7 @@
           runner.unearned = true; B[0] = runner;
           txt = `${b.short} reaches on an error by the ${pick(['shortstop', 'third baseman', 'second baseman', 'left fielder'])}.`; break;
         default: { // GB / FB / LD
-          if (code === 'GB' && B[0] && this.outs < 2 && rnd() < 0.42 - b.spd * 0.15) {
+          if (code === 'GB' && B[0] && this.outs < 2 && rnd() < (fx.dp ? DEFN.dpTurn : 0.42) - b.spd * 0.15) {
             bRec.AB++; this.outs += 2; pr.outs += 2; B[0] = null;
             if (this.outs < 3) { if (B[2]) { this.score(B[2], bRec, false); B[2] = null; } if (B[1]) { B[2] = B[1]; B[1] = null; } }
             txt = `${b.short} grounds into a double play.`; break;
@@ -197,10 +219,11 @@
           this.outs++; pr.outs++; let sf = false;
           if (this.outs < 3) {
             if (code === 'GB') {
+              if (fx.dp && B[2] && !B[1]) { this.score(B[2], bRec); B[2] = null; }   // double-play depth gives up the run from third
               if (B[0]) { if (B[1]) { if (B[2]) this.score(B[2], bRec); B[2] = B[1]; } B[1] = B[0]; B[0] = null; }
-              else { if (B[2] && rnd() < 0.5) { this.score(B[2], bRec); B[2] = null; } if (B[1] && !B[2] && rnd() < 0.6) { B[2] = B[1]; B[1] = null; } }
+              else { if (B[2] && rnd() < (fx.inIn ? DEFN.inGbScore : 0.5)) { this.score(B[2], bRec); B[2] = null; } if (B[1] && !B[2] && rnd() < 0.6) { B[2] = B[1]; B[1] = null; } }
             } else if (code === 'FB') {
-              if (B[2] && rnd() < 0.62) { this.score(B[2], bRec); B[2] = null; sf = true; }
+              if (B[2] && rnd() < (fx.ofIn ? DEFN.ofInSf : 0.62)) { this.score(B[2], bRec); B[2] = null; sf = true; }
               if (B[1] && !B[2] && rnd() < 0.25) { B[2] = B[1]; B[1] = null; }
             }
           }
@@ -209,6 +232,7 @@
             sf ? `${b.short} hits a sacrifice fly ${pick(FIELD.FB)}.` : `${b.short} flies out ${pick(FIELD.FB)}.`;
         }
       }
+      if (dnote) txt = txt.replace(/\.$/, '') + ' ' + dnote + '.';
       const play = { txt, code, scored: off.runs - before, err, runners: B.map(r => r ? r.b.short : null), outs: this.outs, inning: this.inning, half: this.half,
         score: [this.teams[0].runs, this.teams[1].runs], pre: this.pending.splice(0) };
       this.advance(pr);
@@ -244,8 +268,21 @@
   }
 
   // Applies the two managers' saved settings before an at-bat. Returns the play it made, or null when nobody wants to do anything.
+  // a club's saved defensive calls become the defense for this batter. A club with none leaves the defense alone (a manager setting it live keeps his own settings).
+  function autoDefense(g) {
+    const sd = g.def.strat, P = sd.defense; if (!P || !DKEYS.some(k => P[k] === 'situational')) return;
+    const B = g.bases, o = g.outs, inn = g.inning, dd = -g.lead(g.half), b = g.batter(), rank = g.off.rank.get(b.id) || 5;
+    let inf = 'normal', out = 'normal';
+    if (P.infield_in === 'situational' && B[2] && o < 2 && inn >= 7 && Math.abs(dd) <= 1) inf = 'in';                                   // late and close, a run 90 feet away
+    else if (P.corners_in === 'situational' && (B[0] || B[1]) && !B[2] && o === 0 && rank >= 7 && Math.abs(dd) <= 2) inf = 'corners';     // where a weak bat would bunt
+    else if (P.dp_depth === 'situational' && B[0] && !B[2] && o < 2) inf = 'dp';
+    if (P.outfield_in === 'situational' && B[2] && o < 2 && inn >= 9 && dd <= 0 && dd >= -1) out = 'in';                                // the winning run on third in extras
+    else if (P.outfield_deep === 'situational' && inn >= 8 && dd >= 1 && dd <= 3) out = 'deep';                                          // protecting a late lead
+    sd.infield = inf; sd.outfield = out; sd.hold = P.hold === 'situational' && !!B[0] && !B[1] && (B[0].b.stealAtt || 0) >= 0.10;
+  }
   function autoStrategy(g) {
     if (g.over) return null;
+    autoDefense(g);
     const off = g.off, def = g.def, so = off.strat, sd = def.strat, d = g.decisions(), B = g.bases, diff = g.lead(g.half), has = id => d.offense.some(x => x.id === id) || d.defense.some(x => x.id === id);
     if (g.autoAt !== off.idx + ':' + g.inning + ':' + g.half) { g.autoAt = off.idx + ':' + g.inning + ':' + g.half; g.autoN = 0; }
     if (g.autoN >= 2) return null;

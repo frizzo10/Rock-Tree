@@ -71,8 +71,16 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const LINEUP = ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh'], SPS = ['sp1', 'sp2', 'sp3', 'sp4', 'sp5'], RPS = ['rp1', 'rp2', 'rp3', 'rp4'];
+  const DEF = [
+    ['infield_in', 'Infield in', 'From the 7th inning on, with a runner on third, fewer than two outs and the game within a run, your infield plays in. A runner on third then scores on a ground ball about 1 time in 5 instead of 1 in 2, but about 6 in 100 ground balls get through for singles.'],
+    ['dp_depth', 'Double-play depth', 'With a runner on first, nobody on third and fewer than two outs, your infield sets up for the double play. About 15 more double plays in every 100 ground balls, but about 4 in 100 ground balls get through and a runner on third scores on any ground ball.'],
+    ['corners_in', 'Corners in against the bunt', 'When a weak hitter is likely to bunt (nobody out, a runner on first or second, nobody on third, the game within two runs), your first and third basemen charge. A sacrifice bunt then works about 1 time in 2 instead of 3 in 4, but about 5 in 100 ground balls get through.'],
+    ['outfield_in', 'Outfield in', 'In the 9th inning or later, with the winning run on third, fewer than two outs and your club tied or one run behind, your outfield plays in. A fly ball scores that runner about 35 times in 100 instead of 62, and a runner on second scores less often on a single, but about 8 in 100 fly outs drop in for doubles.'],
+    ['outfield_deep', 'Outfield deep', 'From the 8th inning on, when you lead by one to three runs, your outfield plays deep. About 45 in 100 doubles and triples are held to singles, but about 5 in 100 fly outs fall in and runners take extra bases a little more.'],
+    ['hold', 'Hold the runner', 'With a runner on first and second base empty, if that runner really stole a lot that season, your first baseman holds him on. Steals succeed 12 points less often and the runner takes third on a single about 1 time in 4 instead of 3 in 10, but about 5 in 100 ground balls get through.']];
+
   const POS = { c: 'Catcher', '1b': 'First base', '2b': 'Second base', '3b': 'Third base', ss: 'Shortstop', lf: 'Left field', cf: 'Center field', rf: 'Right field', dh: 'Designated hitter' };
-  const S = { id: new URLSearchParams(location.search).get('league'), league: null, seat: null, slots: {}, byKey: new Map(), auto: true, order: LINEUP.slice(), rotation: SPS.slice(), pen: RPS.slice(), closer: '', penAuto: true, leash: 'normal', steals: 'off', bunts: 'off', walks: 'off', saved: null, dirty: false, ended: false, msg: '', msgKind: '' };
+  const S = { id: new URLSearchParams(location.search).get('league'), league: null, seat: null, slots: {}, byKey: new Map(), auto: true, order: LINEUP.slice(), rotation: SPS.slice(), pen: RPS.slice(), closer: '', penAuto: true, def: {}, leash: 'normal', steals: 'off', bunts: 'off', walks: 'off', saved: null, dirty: false, ended: false, msg: '', msgKind: '' };
   const client = () => window.CC && window.CC.client;
   const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
   const player = slot => S.byKey.get(S.slots[slot]);
@@ -84,21 +92,22 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     try {
       const [lg, seat, ros, set, pool] = await Promise.all([
         c.from('leagues').select('id,name,status').eq('id', S.id), c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
-        c.from('league_rosters').select('user_id,slots').eq('league_id', S.id), c.from('manager_settings').select('batting_order,rotation,leash,steals,bunts,walks,bullpen,closer').eq('league_id', S.id),
+        c.from('league_rosters').select('user_id,slots').eq('league_id', S.id), c.from('manager_settings').select('batting_order,rotation,leash,steals,bunts,walks,bullpen,closer,defense').eq('league_id', S.id),
         S.byKey.size ? Promise.resolve(null) : fetch('roster-pool.json').then(r => r.json())]);
       S.league = lg.data && lg.data[0]; S.seat = seat.data && seat.data[0];
       if (!S.league || !S.seat) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
       if (pool) S.byKey = new Map(pool.map(p => [p.k, p]));
       const mine = (ros.data || []).find(r => r.user_id === window.CC.user.id); S.slots = (mine && mine.slots) || {};
       const row = set.data && set.data[0]; S.auto = !(row && row.batting_order); S.order = row && row.batting_order ? row.batting_order.slice() : LINEUP.slice();
-      S.rotation = row && row.rotation ? row.rotation.slice() : SPS.slice(); S.penAuto = !(row && row.bullpen); S.pen = row && row.bullpen ? row.bullpen.slice() : RPS.slice(); S.closer = (row && row.closer) || ''; S.leash = (row && row.leash) || 'normal'; S.steals = (row && row.steals) || 'off'; S.bunts = (row && row.bunts) || 'off'; S.walks = (row && row.walks) || 'off'; S.ended = ['complete', 'canceled'].includes(S.league.status);
+      S.rotation = row && row.rotation ? row.rotation.slice() : SPS.slice(); S.penAuto = !(row && row.bullpen); S.pen = row && row.bullpen ? row.bullpen.slice() : RPS.slice(); S.closer = (row && row.closer) || ''; S.def = {}; DEF.forEach(([k]) => { if (row && row.defense && row.defense[k] === 'situational') S.def[k] = 'situational'; }); S.leash = (row && row.leash) || 'normal'; S.steals = (row && row.steals) || 'off'; S.bunts = (row && row.bunts) || 'off'; S.walks = (row && row.walks) || 'off'; S.ended = ['complete', 'canceled'].includes(S.league.status);
       S.saved = JSON.stringify(snapshot()); S.dirty = false;
       $('backSeason').href = S.league.status === 'started' || S.league.status === 'complete' ? 'season.html?league=' + S.id : 'private.html';
       $('title').textContent = 'Manager settings: ' + S.seat.club_name; $('sub').textContent = S.league.name + '. How your club plays when you\'re not in the dugout.';
       render();
     } catch (e) { $('sub').textContent = 'We couldn\'t load your settings. Please refresh the page.'; }
   }
-  const snapshot = () => ({ auto: S.auto, order: S.auto ? null : S.order, rotation: same(S.rotation, SPS) ? null : S.rotation, pen: S.penAuto ? null : S.pen, closer: S.penAuto ? '' : S.closer, leash: S.leash, steals: S.steals, bunts: S.bunts, walks: S.walks });
+  const defenseOut = () => { const o = {}; DEF.forEach(([k]) => { if (S.def[k] === 'situational') o[k] = 'situational'; }); return o; };   // an empty object turns every call off
+  const snapshot = () => ({ auto: S.auto, order: S.auto ? null : S.order, rotation: same(S.rotation, SPS) ? null : S.rotation, pen: S.penAuto ? null : S.pen, closer: S.penAuto ? '' : S.closer, def: DEF.map(([k]) => S.def[k] === 'situational' ? k : '').join('|'), leash: S.leash, steals: S.steals, bunts: S.bunts, walks: S.walks });
   function line(p) { return p ? `${p.y} ${esc(p.t)} · ${esc(p.l)}` : ''; }
 
   function render() {
@@ -118,6 +127,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     const STRAT = [['steals', 'Stolen bases', [['off', 'Off', 'Runners never try to steal. This is how every game has been played until now.'], ['selective', 'Selective', 'Runners go as often as they really did that season, and succeed about as often as they really did. A player who never ran stays put. They hold back late in a game that is out of reach.'], ['aggressive', 'Aggressive', 'Runners go about a third more often than in real life, and even players who rarely ran will go if they succeeded at least two times in three. More steals, and more runners thrown out.']]],
       ['bunts', 'Sacrifice bunts', [['off', 'Off', 'Nobody bunts.'], ['situational', 'Situational', 'With nobody out, a runner on first and the game within two runs, one of your three weakest hitters bunts the runner over. A bunt moves the runner up about three times in four. The rest become a bunt single, a runner thrown out, a pop-up or a double play.']]],
       ['walks', 'Intentional walks', [['off', 'Off', 'Your pitchers always pitch to the hitter.'], ['situational', 'Situational', 'From the 6th inning on, when the game is tied or you lead by up to two runs, with first base open and a runner on third (or on second with fewer than two outs), you walk one of the other team\'s four best hitters if the next one is clearly weaker.']]]];
+    const defense = `<section class="card"><h2>Defense</h2><p class="note">Your club sets its defense by these choices in every game it plays for you. Each call only works in its own spot. It helps there and costs a little anywhere else, so turn on the ones you want. In a quick game you set your defense live. These apply to your own club only, and nobody else can see them.</p>${DEF.map(([k, t, d]) => `<h3 style="margin:14px 0 4px">${t}</h3><label class="choice"><input type="radio" name="d_${k}" value="off" ${S.def[k] === 'situational' ? '' : 'checked'} ${off}><span><b>Off</b><small>Your club leaves it alone.</small></span></label><label class="choice"><input type="radio" name="d_${k}" value="situational" ${S.def[k] === 'situational' ? 'checked' : ''} ${off}><span><b>Situational</b><small>${d}</small></span></label>`).join('')}</section>`;
     const strategy = `<section class="card"><h2>Strategy</h2><p class="note">Your club plays by these choices in every game it plays for you. In a quick game you make these calls yourself, live. They apply to your own club only, and nobody else can see them.</p>${STRAT.map(([k, t, opts]) => `<h3 style="margin:14px 0 4px">${t}</h3>${opts.map(([v, n, d]) => `<label class="choice"><input type="radio" name="${k}" value="${v}" ${S[k] === v ? 'checked' : ''} ${off}><span><b>${n}</b><small>${d}</small></span></label>`).join('')}`).join('')}</section>`;
     $('main').innerHTML = `<section class="card"><h2>Batting order</h2>
         <label class="choice"><input type="radio" name="bo" value="auto" ${S.auto ? 'checked' : ''} ${off}><span><b>Let the scout set it</b><small>He builds the order from each player's season, and it's a good one.</small></span></label>
@@ -130,6 +140,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
       <section class="card"><h2>Starter leash</h2>${leashes.map(([v, t, d]) => `<label class="choice"><input type="radio" name="leash" value="${v}" ${S.leash === v ? 'checked' : ''} ${off}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}</section>
       ${bullpen}
       ${strategy}
+      ${defense}
       <section class="card"><div class="row" style="margin-top:0"><button class="btn" type="button" id="save" ${off || !S.dirty ? 'disabled' : ''}>Save my settings</button>${S.dirty ? '<span class="dirty">You have unsaved changes.</span>' : ''}${S.ended ? '<span class="note">This league has ended, so the settings are locked.</span>' : ''}</div><p class="msg ${S.msgKind}" id="msg" role="status">${esc(S.msg)}</p></section>`;
     bind();
   }
@@ -139,6 +150,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     document.querySelectorAll('input[name=pen]').forEach(r => r.onchange = () => { S.penAuto = r.value === 'auto'; touch(); });
     const cs = $('closerSel'); if (cs) cs.onchange = () => { S.closer = cs.value; touch(); };
     document.querySelectorAll('input[name=leash]').forEach(r => r.onchange = () => { S.leash = r.value; touch(); });
+    DEF.forEach(([k]) => document.querySelectorAll('input[name=d_' + k + ']').forEach(r => r.onchange = () => { if (r.value === 'situational') S.def[k] = 'situational'; else delete S.def[k]; touch(); }));
     ['steals', 'bunts', 'walks'].forEach(k => document.querySelectorAll('input[name=' + k + ']').forEach(r => r.onchange = () => { S[k] = r.value; touch(); }));
     document.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { const list = b.dataset.mv === 'order' ? S.order : b.dataset.mv === 'pen' ? S.pen : S.rotation, i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; touch(); });
     const rr = $('resetRot'); if (rr) rr.onclick = () => { S.rotation = SPS.slice(); touch(); };
@@ -146,7 +158,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   }
   async function save() {
     const snap = snapshot(); $('save').disabled = true; S.msg = 'Saving…'; S.msgKind = ''; $('msg').textContent = S.msg;
-    const { error } = await client().rpc('save_manager_settings', { p_league_id: S.id, p_batting_order: snap.order, p_rotation: snap.rotation, p_leash: snap.leash, p_steals: snap.steals, p_bunts: snap.bunts, p_walks: snap.walks, p_bullpen: snap.pen || [], p_closer: snap.closer });   // an empty list means: back to the game's own choice
+    const { error } = await client().rpc('save_manager_settings', { p_league_id: S.id, p_batting_order: snap.order, p_rotation: snap.rotation, p_leash: snap.leash, p_steals: snap.steals, p_bunts: snap.bunts, p_walks: snap.walks, p_bullpen: snap.pen || [], p_closer: snap.closer, p_defense: defenseOut() });   // an empty list means: back to the game's own choice
     if (error) { S.msg = error.message || 'We couldn\'t save that. Please try again.'; S.msgKind = 'err'; render(); return; }
     S.saved = JSON.stringify(snap); S.dirty = false; S.msg = 'Saved. Your next game uses these settings.'; S.msgKind = 'ok'; render();
   }

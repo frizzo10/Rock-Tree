@@ -140,7 +140,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     <ul class="plain">
       <li><b>Who you draft and what you spend.</b></li>
       <li><b>Stealing, bunting and walking hitters on purpose.</b> In a quick game you make each call live, with the runner's chance of making it shown. In a league you choose how often your club does them.</li>
-      <li><b>Your defense:</b> infield in, corners in, double-play depth, outfield in or deep, and holding the runner. In a quick game you set it live before each pitch. League games don't take defense settings yet.</li>
+      <li><b>Your defense:</b> infield in, corners in, double-play depth, outfield in or deep, and holding the runner. In a quick game you set it live before each pitch. In a league you turn each call on or off, and your club uses it in its own spot.</li>
       <li><b>Your pitching:</b> in a quick game you bring in any reliever who hasn't pitched, whenever you like. In a league you set the order your relievers come in and who closes. In a league you also set how long a leash your starters get and which starter takes the ball.</li>
       <li><b>Your lineup:</b> in a league, your batting order and the order of your five starters.</li>
     </ul>
@@ -211,7 +211,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
 
   <section class="page" id="pCalls" role="tabpanel" aria-labelledby="tCalls" hidden>
     <h2>Manager calls</h2>
-    <p>Three calls are yours on offense and defense at the plate: a steal, a sacrifice bunt and an intentional walk. On defense you also set your infield, your outfield and whether to hold the runner (see <b>Defense</b> below). In a quick game you make them all live, in the moment. In a league your club makes the steal, bunt and walk calls for you, following the settings you choose on your manager page. Defense settings for leagues aren't in yet.</p>
+    <p>Three calls are yours on offense and defense at the plate: a steal, a sacrifice bunt and an intentional walk. On defense you also set your infield, your outfield and whether to hold the runner (see <b>Defense</b> below). In a quick game you make them all live, in the moment. In a league your club makes the steal, bunt and walk calls for you, following the settings you choose on your manager page. In a league you turn each defensive call on or off on your manager page, and your club uses it only in its own spot.</p>
     <h3>When each call is possible</h3>
     <div class="scrollx"><table class="facts"><thead><tr><th>Call</th><th>When it is offered</th></tr></thead><tbody>
       <tr><td>Steal second</td><td>A runner on first and second base empty, with any number of outs.</td></tr>
@@ -227,8 +227,8 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     </ul>
     <h3>In a quick game</h3>
     <p>Buttons for the calls that fit appear above Swing or Pitch, with the runner's chance of making it. You can ignore them and swing. The computer manages too: it steals the way its runners really did, bunts with its weakest hitters in close games, and walks a dangerous hitter late. You never get an automatic call.</p>
-    <h3>Defense (quick game)</h3>
-    <p>When your club is in the field, <b>Set your defense</b> opens the choices. They stay set until you change them, and each one only works in its own spot. The tradeoff is real: a call helps where it fits, and costs you a little anywhere else.</p>
+    <h3>Defense</h3>
+    <p>In a quick game, <b>Set your defense</b> opens the choices when your club is in the field. They stay set until you change them. In a league you turn each one on or off (<i>off</i> or <i>situational</i>) on your manager page. Either way, each one only works in its own spot. The tradeoff is real: a call helps where it fits, and costs you a little anywhere else.</p>
     <div class="scrollx"><table class="facts"><thead><tr><th>Call</th><th>Works when</th><th>What it does</th></tr></thead><tbody>
       <tr><td>Infield in</td><td>Runner on third, fewer than 2 outs</td><td>A runner on third scores on a ground ball about 1 time in 5 instead of 1 in 2. About 6 in 100 ground balls get through for singles.</td></tr>
       <tr><td>Double-play depth</td><td>Runner on first, fewer than 2 outs</td><td>About 15 more double plays in every 100 ground balls, less for fast hitters as always. About 4 in 100 ground balls get through, and a runner on third scores on any ground ball.</td></tr>
@@ -237,7 +237,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
       <tr><td>Outfield deep</td><td>All the time</td><td>About 45 in 100 doubles and triples are held to singles. About 5 in 100 fly outs fall in for singles, and runners take extra bases a little more.</td></tr>
       <tr><td>Hold the runner</td><td>Runner on first</td><td>Steals succeed 12 points less often, and the runner takes third on a single about 1 time in 4 instead of 3 in 10. About 5 in 100 ground balls get through.</td></tr>
       </tbody></table></div>
-    <p>The computer sets its own defense in the same spots: infield in late and close with a runner on third, double-play depth with a runner on first, corners in against a weak bat that is likely to bunt, outfield in with the winning run on third in the 9th or later, outfield deep to protect a late lead, and a hold on runners who really did steal a lot.</p>
+    <p>A league club set to <i>situational</i>, and the computer's clubs, use each call in these spots: infield in from the 7th inning on with a runner on third, fewer than two outs and the game within a run; double-play depth with a runner on first, nobody on third and fewer than two outs; corners in when a weak hitter is likely to bunt; outfield in in the 9th or later with the winning run on third and the club tied or one behind; outfield deep from the 8th inning on with a lead of one to three runs; and a hold on a runner who really did steal a lot.</p>
     <div class="callout"><p>In thousands of test games, each call is a small edge in its own spot and a small loss when it is out of place. If you used every call in its best spot, a team's scoring would change by about 1%. They change how a game is played more than how many runs a team scores.</p></div>
     <h3>In a league: your settings</h3>
     <div class="scrollx"><table class="facts"><thead><tr><th>Setting</th><th>What your club does</th></tr></thead><tbody>
@@ -283,14 +283,14 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
       <tr><td>Taking extra bases</td><td>Runners advance by fixed odds, nudged by the hitter's speed. There are no outfield arm ratings. The odds are on the <a href="#bases">On the bases</a> tab.</td></tr>
       <tr><td>Tagging up</td><td>It's automatic. About 6 times in 10 a runner on third scores on a fly ball, and a runner on second tags up to third about a quarter of the time when third is open.</td></tr>
       <tr><td>Trailing and forced runners</td><td>They advance by the rules, with no choice. A walk or a groundout moves forced runners up, and other runners move by the odds on the On the bases tab.</td></tr>
-      <tr><td>Double plays</td><td>The chance depends on the hitter's speed: with a runner on first and fewer than two outs, about 4 times in 10 for an average hitter on a groundout, less for a fast one. In a quick game you can set double-play depth or play the infield in (see <a href="#calls">Defense</a>). In a league the game decides for now.</td></tr>
+      <tr><td>Double plays</td><td>The chance depends on the hitter's speed: with a runner on first and fewer than two outs, about 4 times in 10 for an average hitter on a groundout, less for a fast one. You can set double-play depth or play the infield in, live in a quick game or as a setting in a league (see <a href="#calls">Defense</a>).</td></tr>
       <tr><td>Pitching changes and the closer</td><td>These follow the stamina and run rules on the <a href="#pitch">Pitchers</a> tab. In a league, the next reliever follows the bullpen order you set, or is the best one available if you let the game choose. In a quick game you can take out your own pitcher and choose who comes in (see <a href="#pitch">Pitchers</a>).</td></tr>
     </tbody></table></div>
     <h3>What you do decide</h3>
     <ul class="plain">
       <li>The draft or roster: who you take and what you spend.</li>
       <li>Steals, sacrifice bunts and intentional walks: live in a quick game, or as settings in a league.</li>
-      <li>Your defense: infield in, double-play depth, corners in, outfield in or deep, and holding the runner. Live in a quick game. Not in leagues yet.</li>
+      <li>Your defense: infield in, double-play depth, corners in, outfield in or deep, and holding the runner. Live in a quick game, or as settings in a league.</li>
       <li>Which reliever comes in: live in a quick game, or as your bullpen order and closer in a league. When a pitcher is taken out is still the game's call in a league.</li>
       <li>In a league: your batting order, the order of your five starters, which starter takes the ball in a given game, and how long a leash your starters get.</li>
     </ul>
@@ -319,7 +319,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
       <li><b>There is no bench.</b> A roster is the nine lineup spots, five starters and four relievers. There are no pinch hitters and no defensive replacements.</li>
       <li><b>No squeezes, hit-and-run plays, double steals or steals of home,</b> and no choosing when a runner goes on a hit.</li>
       <li><b>No pitching around a hitter,</b> and no choosing the count to hit in.</li>
-      <li><b>No fielder positioning in leagues yet.</b> In a quick game you can play the infield in, corners in or at double-play depth, play the outfield in or deep, and hold the runner. A league game doesn't take those settings yet.</li>
+      <li><b>No fielder-by-fielder positioning.</b> You choose how the infield and outfield play (in, corners in, double-play depth, deep) and whether to hold the runner, but you can't move individual fielders, shift against a hitter or call a pitchout.</li>
       <li><b>No choosing where fielders throw,</b> and no warming up relievers: the one you call is ready at once. In a league you set the order in advance, since the server rolls every die before the game is played.</li>
       <li><b>No injuries.</b> Everyone on your roster is available every game, except that a pitcher who has left a game doesn't return.</li>
       <li><b>No ballpark or home-field effects.</b> Every game is played in the same neutral setting.</li>

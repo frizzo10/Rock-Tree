@@ -13,7 +13,7 @@
     '<li><b>Taking extra bases:</b> runners advance by fixed odds, nudged by the hitter\'s speed. There are no outfield arm ratings.</li>' +
     '<li><b>Tagging up:</b> it\'s automatic. About 6 times in 10 a runner on third scores on a fly ball, and a runner on second tags up to third about a quarter of the time when third is open.</li>' +
     '<li><b>Trailing and forced runners:</b> they advance by the rules, with no choice.</li>' +
-    '<li><b>Double plays:</b> the chance depends on the hitter\'s speed. In a quick game you can set double-play depth, the infield in and the rest of your defense. In a league the game decides for now.</li>' +
+    '<li><b>Double plays:</b> the chance depends on the hitter\'s speed. You can set double-play depth, the infield in and the rest of your defense, live in a quick game or as settings on your manager page in a league.</li>' +
     '<li><b>Pitching changes and the closer:</b> the game decides when a pitcher is taken out, by the stamina and run rules. In a league, the next reliever follows the bullpen order you set on your manager page (or the best one available, if you let the game choose). In a quick game you choose who comes in.</li>' +
     '</ul><p>Steals, sacrifice bunts and intentional walks are your calls: live in a quick game, or set on your manager page in a league. There are no pinch hitters or fielder positioning. <a href="howtoplay.html#calls">Read the full rules</a></p></div>';
   if (before) anchor.parentNode.insertBefore(d, anchor); else anchor.parentNode.insertBefore(d, anchor.nextSibling);
