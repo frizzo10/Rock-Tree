@@ -131,6 +131,7 @@ footer p { margin: 0 0 6px; }
 <script>
 (() => {
   const $ = id => document.getElementById(id), esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const EMOJIS = ["⚾", "🧢", "🏟️", "🌭", "🧤", "🔥", "⭐", "🏆", "🥇", "🎯", "🦅", "🐻", "🐯", "🦁", "🐺", "🦊", "🐸", "🐢", "🐙", "🦈", "🐝", "🦉", "🐴", "🐘", "🦬", "🚀", "⚡", "🌟", "👑", "💎", "🍀", "🌵", "🌲", "🌊", "☀️", "🌙", "🎩", "😎", "🤠", "🧠", "💪", "🎸", "🍕", "🥎"], COLORS = [["#1F3F8F", "Blue"], ["#9E2B22", "Red"], ["#1E7B45", "Green"], ["#B07D10", "Gold"], ["#5B3A8C", "Purple"], ["#0F6E7A", "Teal"], ["#C2571A", "Orange"], ["#3A3F47", "Slate"], ["#C0457B", "Pink"], ["#2B2B2B", "Black"]];   // the same lists the server accepts
   const STATUS = { open: 'Filling up', full: 'Full, waiting to start', started: 'Season under way', complete: 'Season finished', canceled: 'Canceled' };
   const THEME = { eighties: '1980s Legends', modern: 'Modern All-Stars', dynasty: 'All-Time Dynasty' };
   const when = d => { try { return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }); } catch (e) { return ''; } };
@@ -140,24 +141,54 @@ footer p { margin: 0 0 6px; }
     if (!cc || !cc.client) { $('who').textContent = ''; box.innerHTML = '<section class="board"><p><b>We couldn\'t reach the server.</b> Check your connection and refresh the page.</p></section>'; return; }
     if (!cc.user) { $('who').textContent = ''; box.innerHTML = '<section class="board"><h2 style="margin-top:0">Sign in to see your account</h2><p>You sign in with your email. We send you a code, so there is no password to remember. If this is your first time, signing in creates your account.</p><p><button class="btn btn-main" id="go" type="button">Sign in</button></p></section>'; $('go').onclick = () => cc.requireSignIn && cc.requireSignIn('Sign in to see your account'); return; }
     const uid = cc.user.id, c = cc.client;
-    const [pr, st, nt] = await Promise.all([c.from('profiles').select('created_at').eq('id', uid), c.from('seats').select('league_id,seat_no,club_name').eq('user_id', uid), c.rpc('get_email_notices')]);
-    const since = pr.data && pr.data[0] && pr.data[0].created_at, seats = st.data || [];
+    const [pr, st, nt] = await Promise.all([c.from('profiles').select('created_at,avatar_emoji,avatar_color').eq('id', uid), c.from('seats').select('league_id,seat_no,club_name').eq('user_id', uid), c.rpc('get_email_notices')]);
+    const prow = (pr.data && pr.data[0]) || {}, since = prow.created_at, seats = st.data || [];
     let leagues = []; if (seats.length) { const r = await c.from('leagues').select('id,name,status,is_public,theme').in('id', seats.map(s => s.league_id)); leagues = r.data || []; }
     const by = new Map(leagues.map(l => [l.id, l])), mine = seats.map(s => ({ s, l: by.get(s.league_id) })).filter(x => x.l);
     const order = { started: 0, open: 1, full: 2, complete: 3, canceled: 4 }; mine.sort((a, b) => (order[a.l.status] ?? 9) - (order[b.l.status] ?? 9));
     $('who').innerHTML = `Signed in as <b>${esc(cc.user.email || 'your email')}</b>${since ? `. Member since ${esc(when(since))}.` : '.'}`;
     box.innerHTML = `
+      <section class="board" id="avSec"><h2 style="margin-top:0">Your avatar</h2><p>Pick an emoji and a color. It shows at the top of every page, and you tap it to come back here.</p>
+        <div class="avrow"><span class="av big" id="avPrev" aria-hidden="true"></span><span id="avName" class="note"></span></div>
+        <div role="radiogroup" aria-label="Emoji" class="avgrid">${EMOJIS.map(e => `<button type="button" role="radio" class="avb" data-emoji="${e}" aria-checked="false" aria-label="${e}">${e}</button>`).join('')}</div>
+        <div role="radiogroup" aria-label="Color" class="avcols">${COLORS.map(([c, n]) => `<button type="button" role="radio" class="avc" data-color="${c}" aria-checked="false" aria-label="${n}" title="${n}" style="background:${c}"></button>`).join('')}</div>
+        <p class="avact"><button class="btn btn-main" id="avSave" type="button" disabled>Save my avatar</button> <button class="btn btn-alt" id="avReset" type="button">Use the default</button></p>
+        <p class="note" id="avMsg" role="status" aria-live="polite"></p></section>
       <section class="board"><h2 style="margin-top:0">Your leagues and tables</h2>${mine.length ? `<ul class="acl">${mine.map(({ s, l }) => `<li><a href="${where(l)}"><b>${esc(l.name)}</b></a><span class="note">${esc(s.club_name)} &middot; ${esc(STATUS[l.status] || l.status)}${THEME[l.theme] ? ' &middot; ' + esc(THEME[l.theme]) : ''}</span></li>`).join('')}</ul>` : '<p>You aren\'t in a league yet.</p><p><a class="btn btn-main" href="lobby.html">Find a free table</a> <a class="btn btn-alt" href="private.html">Start a private league</a></p>'}</section>
       <section class="board"><h2 style="margin-top:0">Your record</h2><p>Your wins, your quick games and the legends you have unlocked.</p><p><a class="btn btn-alt" href="career.html">See my record</a></p></section>
       <section class="board"><h2 style="margin-top:0">Emails</h2><p>We send league emails to <b>${esc(cc.user.email || 'the email on your account')}</b>.</p><label class="opt" style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="on" ${nt.data ? 'checked' : ''} style="width:22px;height:22px"> Email me about my tables and leagues</label><p class="note" id="saved" role="status" aria-live="polite"></p></section>
       <section class="board"><h2 style="margin-top:0">Signing in</h2><p>There is no password. Each time you sign in we email you a one-time code, and a link that does the same thing.</p><p><button class="btn btn-alt" id="out" type="button">Sign out</button></p></section>`;
     $('on').onchange = async () => { const want = $('on').checked; $('on').disabled = true; const r = await c.rpc('set_email_notices', { p: want }); $('on').disabled = false; if (r.error) { $('on').checked = !want; $('saved').style.color = '#9E2B22'; $('saved').textContent = 'We could not save that. Please try again.'; return; } $('saved').style.color = ''; $('saved').textContent = want ? 'Saved. You will get league emails.' : 'Saved. You will not get league emails.'; };
+    // ---- the avatar picker ----
+    const ini = String(cc.user.email || '?').trim().charAt(0).toUpperCase() || '?', saved = prow.avatar_emoji ? { emoji: prow.avatar_emoji, color: prow.avatar_color } : null;
+    let pick = saved ? { ...saved } : { emoji: '', color: '' }, base = JSON.stringify(saved || { emoji: '', color: '' });
+    const drawAv = () => {
+      const p = $('avPrev'), has = pick.emoji && pick.color; p.textContent = has ? pick.emoji : ini; p.style.background = pick.color || '#1F3F8F';
+      document.querySelectorAll('.avb').forEach(b => b.setAttribute('aria-checked', String(b.dataset.emoji === pick.emoji)));
+      document.querySelectorAll('.avc').forEach(b => b.setAttribute('aria-checked', String(b.dataset.color === pick.color)));
+      $('avName').textContent = has ? 'Your avatar' : saved ? '' : 'The default shows the first letter of your email. Pick an emoji and a color to make your own.';
+      $('avSave').disabled = !(pick.emoji && pick.color) || JSON.stringify(pick) === base; $('avReset').disabled = !saved && !pick.emoji && !pick.color;
+    };
+    document.querySelectorAll('.avb').forEach(b => b.onclick = () => { pick.emoji = b.dataset.emoji; if (!pick.color) pick.color = COLORS[0][0]; $('avMsg').textContent = ''; drawAv(); });
+    document.querySelectorAll('.avc').forEach(b => b.onclick = () => { pick.color = b.dataset.color; if (!pick.emoji) pick.emoji = EMOJIS[0]; $('avMsg').textContent = ''; drawAv(); });
+    const sendAv = async (emoji, color) => {
+      $('avSave').disabled = true; $('avReset').disabled = true; const r = await c.rpc('set_avatar', { p_emoji: emoji, p_color: color });
+      if (r.error) { $('avMsg').style.color = '#9E2B22'; $('avMsg').textContent = 'We could not save that. Please try again.'; drawAv(); return; }
+      const a = emoji && color ? { emoji, color } : null; try { if (a) localStorage.setItem('gts-avatar:' + cc.user.id, JSON.stringify(a)); else localStorage.removeItem('gts-avatar:' + cc.user.id); } catch (e) {}
+      window.dispatchEvent(new CustomEvent('cc-avatar', { detail: a })); $('avMsg').style.color = ''; $('avMsg').textContent = a ? 'Saved. Your avatar shows at the top of every page.' : 'Back to the default.';
+      base = JSON.stringify(a || { emoji: '', color: '' }); pick = a ? { ...a } : { emoji: '', color: '' }; drawAv();
+    };
+    $('avSave').onclick = () => sendAv(pick.emoji, pick.color); $('avReset').onclick = () => { pick = { emoji: '', color: '' }; sendAv('', '').then(() => {}); };
+    drawAv();
     $('out').onclick = async () => { $('out').disabled = true; const bar = document.getElementById('accOut'); if (bar) bar.click(); else await c.auth.signOut(); };   // the bar's button also saves your progress first
   }
   window.addEventListener('cc-auth', paint);
   (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(paint);
 })();
 </script>
-<style>.acl { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .acl li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid #D9DDE2; border-radius: 6px; background: #fff; } .acl a { min-height: 24px; }</style>
+<style>.avrow { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; } .av.big { width: 64px; height: 64px; font-size: 36px; } .av { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; font-weight: 700; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); flex: none; }
+.avgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; margin: 6px 0; } .avb { min-width: 44px; min-height: 48px; font-size: 26px; line-height: 1; background: #fff; border: 2px solid #D9DDE2; border-radius: 8px; cursor: pointer; } .avb[aria-checked="true"] { border-color: #1F3F8F; background: #E6ECFA; }
+.avcols { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; } .avc { width: 44px; height: 44px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px #8C959E; cursor: pointer; } .avc[aria-checked="true"] { box-shadow: 0 0 0 3px #1F3F8F; } .avact { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; } .avb:focus-visible, .avc:focus-visible { outline: 3px solid #E0A81E; outline-offset: 2px; }
+.acl { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .acl li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid #D9DDE2; border-radius: 6px; background: #fff; } .acl a { min-height: 24px; }</style>
 </body>
 </html>

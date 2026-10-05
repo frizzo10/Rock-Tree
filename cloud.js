@@ -96,12 +96,34 @@
   const css = `.acct { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
     .acct button, .acct input { font: inherit; }
     .acct .lnk { background: none; border: 0; color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 4px 2px; }
+    .acct .acclink { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; color: inherit; font-weight: 600; text-decoration: underline; }
+    .av { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; font-size: 19px; line-height: 1; color: #fff; font-weight: 700; border: 2px solid rgba(255,255,255,.75); box-shadow: 0 1px 3px rgba(0,0,0,.35); flex: none; text-decoration: none; }
     .acct form { display: flex; gap: 6px; flex-wrap: wrap; }
     .acct input { padding: 7px 9px; border: 1px solid #9AA2A0; border-radius: 4px; min-width: 210px; background: #fff; color: #1B1F24; }
     .acct .go { background: #1F3F8F; color: #fff; border: 0; border-radius: 4px; padding: 7px 12px; font-weight: 600; cursor: pointer; }
     .acct .msg { width: 100%; font-size: 13px; opacity: .85; }
     .acctbar { display: flex; margin: 0 0 10px; }
     .crumbs { flex-wrap: wrap; row-gap: 6px; }`;
+  // the avatar: an emoji on a colored circle, picked on the account page. It is remembered on this device so the bar draws it at once, then checked against the account.
+  let avatar = null;
+  const avKey = () => 'gts-avatar:' + (user && user.id);
+  const avOk = a => a && typeof a.emoji === 'string' && a.emoji.length <= 8 && /^#[0-9A-Fa-f]{6}$/.test(a.color || '');
+  function avatarHtml() {
+    const a = avOk(avatar) ? avatar : null, ini = String((user && user.email) || '?').trim().charAt(0).toUpperCase() || '?';
+    return `<span class="av" aria-hidden="true" style="background:${a ? a.color : '#1F3F8F'}">${esc(a ? a.emoji : ini)}</span>`;
+  }
+  async function loadAvatar() {
+    if (!user || !client) return; const id = user.id;
+    try { const raw = localStorage.getItem(avKey()); if (raw) { const a = JSON.parse(raw); if (avOk(a)) { avatar = a; render(); } } } catch (e) {}
+    try {
+      const { data, error } = await client.from('profiles').select('avatar_emoji,avatar_color').eq('id', id);
+      if (error || !user || user.id !== id) return; const row = data && data[0], a = row && row.avatar_emoji ? { emoji: row.avatar_emoji, color: row.avatar_color } : null;
+      avatar = avOk(a) ? a : null;
+      try { if (avatar) localStorage.setItem(avKey(), JSON.stringify(avatar)); else localStorage.removeItem(avKey()); } catch (e) {}
+      render();
+    } catch (e) {}
+  }
+  window.addEventListener('cc-avatar', e => { const a = e && e.detail; avatar = avOk(a) ? a : null; render(); });   // the account page tells the bar the moment it is saved
   let host = null, mode = 'idle', status = '';
   function setStatus(s) { status = s; render(); }
   function mount() {
@@ -160,7 +182,7 @@
     if (!host) return;
     if (!client) { host.innerHTML = ''; return; }
     if (user) {
-      host.innerHTML = `<span>Progress saved to <b>${esc(user.email)}</b></span><a class="lnk" href="account.html">My account</a><button class="lnk" id="accOut">Sign out</button>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
+      host.innerHTML = `<a class="acclink" href="account.html" aria-label="Your account">${avatarHtml()}<span>My account</span></a><span>Progress saved to <b>${esc(user.email)}</b></span><button class="lnk" id="accOut">Sign out</button>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
       host.querySelector('#accOut').onclick = async () => { await push(); await client.auth.signOut(); };
     } else if (mode === 'form') {
       host.innerHTML = `<form id="accForm"><label class="msg" for="accEmail">We'll email you a sign-in link. No password.</label><input id="accEmail" type="email" required placeholder="you@example.com" autocomplete="email"><button class="go" type="submit">Email me a link</button><button class="lnk" type="button" id="accCancel">Cancel</button></form>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
@@ -259,7 +281,8 @@
     client.auth.onAuthStateChange((event, session) => {
       const was = user && user.id;
       user = session ? session.user : null;
-      if (user && user.id !== was) { mode = 'idle'; status = ''; setTimeout(sync, 0); }
+      if (user && user.id !== was) { mode = 'idle'; status = ''; avatar = null; setTimeout(sync, 0); setTimeout(loadAvatar, 0); }
+      if (!user) avatar = null;
       if (GATED) { if (user) openGate(); else if ((event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') && gateState !== 'sent') setGate('form'); }
       if (forced && user) { forced = false; openGate(); }
       render();
