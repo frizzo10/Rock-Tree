@@ -98,7 +98,7 @@ textarea#notes { width: 100%; min-height: 260px; font: 17px/1.5 var(--text); pad
 .picker h3 { font: 400 22px var(--marker); color: var(--wb-ink); margin: 0; flex: 1; min-width: 0; } .picker #pClose { min-height: 44px; min-width: 84px; flex: none; }
 html.nolock, html.nolock body { overflow: hidden; }
 .embed .crumbs, .embed .board, .embed footer { display: none !important; } .embed .wrap { padding-top: 6px; } .embed .tabs { position: sticky; top: 0; z-index: 5; background: #F3ECD8; padding-top: 6px; } .picker ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; } .picker li { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border-radius: 6px; padding: 6px 10px; } .pw { min-width: 0; font-size: 16px; line-height: 1.5; } .btn.sm { min-height: 44px; padding: 6px 14px; font-size: 16px; flex: none; }
-details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 4px 14px 10px; } details.opp summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; font-size: 17px; } #oppTable { overflow-x: auto; } #oppTable table { border-collapse: collapse; width: 100%; font-size: 15px; } #oppTable th, #oppTable td { padding: 2px 8px; border-bottom: 1px solid #E6E9EC; text-align: left; vertical-align: middle; } #oppTable th { font-size: 13px; color: #4A5560; }
+details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 4px 14px 10px; } details.opp summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; font-size: 17px; } #oppTable { overflow: visible; } #oppTable table { border-collapse: collapse; width: 100%; font-size: 15px; } #oppTable th, #oppTable td { padding: 2px 8px; border-bottom: 1px solid #E6E9EC; text-align: left; vertical-align: middle; } #oppTable th { font-size: 13px; color: #4A5560; }
 
 .pn { all: unset; box-sizing: border-box; cursor: pointer; font-weight: 700; color: var(--ink); text-decoration: underline dotted; text-underline-offset: 3px; display: inline; padding: 7px 2px; } .pn:hover { color: var(--wb-ink); } .pn:focus-visible { outline: 3px solid var(--lamp); outline-offset: 1px; }
 .dback { z-index: 90; } .dsheet { z-index: 91; }
@@ -115,6 +115,10 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
 .dsheet .card .badgeL { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 10px; background: #F0DFA0; color: #5B4712; font: 700 12px var(--text); letter-spacing: .06em; text-transform: uppercase; vertical-align: 6px; }
 .dsheet .card .bargain { margin: 0 0 8px; padding: 4px 8px; border-radius: 4px; background: rgba(30,123,69,.14); color: #17603A; font-size: 13px; font-weight: 700; }
 .dsheet .card .foot { border-top: 1px solid #C9B27A; padding-top: 6px; font-size: 12px; font-weight: 600; color: #6B5A2C; }
+.oh { margin: 12px 0 4px; font-size: 17px; } .oppl { margin: 4px 0 8px; padding-left: 1.2em; } .oppl li { margin: 3px 0; }
+.og { margin: 14px 0 0; } .og .gh { margin: 0 0 6px; padding: 4px 10px; background: #EEF2F7; border-left: 4px solid #1F3F8F; border-radius: 3px; font-size: 17px; }
+.opc { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid #D9DDE2; border-radius: 6px; padding: 6px 12px 8px 6px; } .opc .who { min-width: 0; flex: 1; } .opc .line { margin: 1px 0; } .opc .sub { font-size: 14px; color: #4A5560; } .opc .rank { color: #1F3F8F; }
+.opc .pc { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-top: 4px; } .opc .pc .rk { margin: 0; } .opc .pv { font-size: 14px; color: #2B3540; }
 </style>
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
@@ -144,8 +148,16 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     <h2>Budget check</h2>
     <div id="check" role="status" aria-live="polite"></div>
     <details class="opp" id="opp" open>
-      <summary>How the computer drafts, and who it takes first</summary>
-      <p>The computer takes the priciest player it can afford, nudged up or down by as much as 15% at random, and it leans toward hitters or pitchers depending on which side of its roster it is shorter of. A coin flip decides who picks first. So the highest-priced players go first, and the middle of the pool lasts longer. These are the players most likely to be gone, from 600 simulated drafts (an estimate):</p>
+      <summary>Who the computer takes first</summary>
+      <h3 class="oh">How the computer picks</h3>
+      <ul class="plain oppl">
+        <li>It takes the <b>priciest player it can afford</b>, with a random nudge of up to 15% up or down.</li>
+        <li>It leans toward <b>hitters or pitchers</b>, whichever side of its roster is shorter.</li>
+        <li>A <b>coin flip</b> decides who picks first.</li>
+      </ul>
+      <p>So the highest-priced players go first, and the middle of the pool lasts longer. The lists below are the three players at each spot the computer is most likely to take, from 600 simulated drafts (an estimate).</p>
+      <h3 class="oh">How to read them</h3>
+      <p><span class="rk hi">Likely gone</span> means the computer takes him in half or more of the drafts by that pick. <span class="rk md">Might go</span> is 15% to 50%. <span class="rk lo">Probably there</span> is under 15%. <b>By pick 3</b> is the computer's first three picks, <b>by pick 9</b> its first nine.</p>
       <p id="oppCap" class="muted"></p>
       <div id="oppTable"></div>
     </details>
@@ -333,8 +345,15 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     $('check').innerHTML = `<p class="${cls}">${msg}</p>${extra.join('')}`;
     // the computer
     if (mock && RISK) {
-      const top = [...RISK.entries()].map(([k, v]) => [BYK.get(k), v]).sort((a, b) => b[1][0] - a[1][0]).slice(0, 10);
-      $('oppTable').innerHTML = `<table><thead><tr><th></th><th>Player</th><th>Price</th><th>Gone in its first 3 picks</th><th>First 9</th></tr></thead><tbody>${top.map(([p, v]) => `<tr><td>${star(p, set.has(p.k))}</td><td>${nm(p)} <span class="muted">${p.y} ${esc(p.t)} &middot; ${esc(posTxt(p))}</span></td><td>${mon(p.s)}</td><td>${Math.round(v[0] * 100)}%</td><td>${Math.round(v[1] * 100)}%</td></tr>`).join('')}</tbody></table>`;
+      const GR = [['Starting pitchers', 'SP'], ['Relievers', 'RP'], ['Catcher', 'c'], ['First base', '1b'], ['Second base', '2b'], ['Third base', '3b'], ['Shortstop', 'ss'], ['Left field', 'lf'], ['Center field', 'cf'], ['Right field', 'rf']];
+      const lab = pc => pc >= 50 ? ['hi', 'Likely gone'] : pc >= 15 ? ['md', 'Might go'] : ['lo', 'Probably there'];
+      const rows = [...RISK.entries()].map(([k, v]) => [BYK.get(k), v]).filter(([p]) => p);
+      $('oppTable').innerHTML = GR.map(([name, g]) => {
+        const top = rows.filter(([p]) => g === 'SP' || g === 'RP' ? p.kd === g : p.kd === 'H' && p.e.includes(g)).sort((a, b) => b[1][0] - a[1][0] || b[1][1] - a[1][1]).slice(0, 3);
+        const calm = top.every(([, v]) => v[1] < 0.05);
+        return `<section class="og"><h3 class="gh">${name}</h3>${calm ? '<p class="muted calm">The computer rarely takes anyone here early, so you can wait on this spot.</p>' : ''}<ul class="slots oppl2">${top.map(([p, v], n) => { const e = Math.round(v[0] * 100), m = Math.round(v[1] * 100), l = lab(m);
+          return `<li class="opc">${star(p, set.has(p.k))}<div class="who"><div class="line"><b class="rank">${n + 1}.</b> ${nm(p)} <span class="muted">${p.y} ${esc(p.t)}</span></div><div class="line sub">${mon(p.s)}${g === 'SP' || g === 'RP' ? '' : ' &middot; ' + esc(posTxt(p))}</div><div class="line pc"><span class="rk ${l[0]}">${l[1]}</span><span class="pv">By pick 3: <b>${e}%</b></span><span class="pv">By pick 9: <b>${m}%</b></span></div></div></li>`; }).join('')}</ul></section>`;
+      }).join('');
     }
     // your shortlist (starred players), ready to drop into the plan
     const inPlan = NB.planKeys(mode), sl = NB.targets().map(k => BYK.get(k)).filter(Boolean);
