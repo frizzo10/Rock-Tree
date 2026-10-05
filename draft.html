@@ -2199,8 +2199,20 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     try { const ny = await playSeries(simTeam('you', 'You'), NYY, 1000); if (D && D.report === R) { R.ny = ny.p; R.nyYou = ny.a; R.nyThem = ny.b; save(); drawReportCard(); } } finally { nyyBusy = false; }
   }
   const nyyLine = R => { const pc = Math.round(R.ny * 100); return pc >= 50 ? `Your team would beat the 1927 Yankees ${pc} games in every 100. That beats one of the greatest teams in baseball history.` : pc >= 35 ? `Your team would beat the 1927 Yankees about ${pc} games in every 100, a real fight against one of the greatest teams in baseball history.` : pc >= 20 ? `Your team would beat the 1927 Yankees ${pc} games in every 100. They are a tough opponent.` : `Your team would beat the 1927 Yankees only ${pc} games in every 100. Few teams keep up with them.`; };
+  // a graded draft goes on your record when you are signed in: once per draft, and a late 1927 Yankees number is added to it
+  let recTag = '';   // what is being sent right now, so the card being drawn again does not send it twice
+  function recordDraft() {
+    const R = D && D.report, cc = window.CC; if (!R || !cc || !cc.user || !cc.client) return;
+    const haveNy = typeof R.ny === 'number'; if (R.rec && (R.recNy || !haveNy)) return;
+    if (!D.rkey) { D.rkey = (window.crypto && crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : String(Date.now()) + Math.random().toString(36).slice(2)).slice(0, 24); save(); }
+    const tag = D.rkey + ':' + (haveNy ? 2 : 1); if (recTag === tag) return; recTag = tag;
+    const send = { rec: true, recNy: haveNy }, d0 = D;
+    Promise.resolve(cc.client.rpc('record_draft', { p_key: D.rkey, p_grade: R.grade, p_win: R.p, p_ny: haveNy ? R.ny : null, p_bo7: R.bo7, p_runs_you: R.you, p_runs_cpu: R.cpu, p_payroll: payroll('you'), p_cap: D.cap || null, p_rookie: !!D.handicap }))
+      .then(r => { if (!(r && r.error) && D === d0 && D.report === R) { Object.assign(R, send); save(); } else recTag = ''; }).catch(() => { recTag = ''; });
+  }
   function drawReportCard() {
     const R = D.report; if (!R) return;
+    recordDraft();
     const st = strengths(R), picks = reviewPicks(), ai = R.ai, margin = R.you - R.cpu, g = R.grade;
     const cc = window.CC, canAI = !!(cc && cc.client && cc.client.functions), signedIn = !!(cc && cc.user);
     const syn = ai ? ai.synopsis : reviewSynopsis(R, picks, st);

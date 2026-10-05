@@ -1218,7 +1218,7 @@ body.war .dec { color: var(--wb-red); }
       + `<button type="button" class="btn opt-x" id="defX">Close</button>`;
   }
   function doDef(spec) {
-    if (busy || stage !== 'duel' || g.over) return; const [k, v] = spec.split(':'); if (!g.setDef(you, k, k === 'hold' ? v === 'true' : v)) return;
+    if (busy || stage !== 'duel' || g.over) return; const [k, v] = spec.split(':'); if (!g.setDef(you, k, k === 'hold' ? v === 'true' : v)) return; if (v !== 'normal' && v !== 'false') QS.defset++;
     drawCalls(false); $('result').textContent = 'Defense: ' + defSummary() + '.'; $('result').className = 'result';
   }
   function drawCalls(youBat) {
@@ -1238,7 +1238,7 @@ body.war .dec { color: var(--wb-red); }
   }
   function doPen(id) {
     if (busy || stage !== 'duel' || g.over) return;
-    const r = g.callPen(id); if (!r) return;
+    const r = g.callPen(id); if (!r) return; QS.pc++;
     clearCalls(); $('result').textContent = r.txt; $('result').className = 'result';
     prompt();   // the next at-bat is now against the new pitcher's card
     $('result').textContent = r.txt;
@@ -1348,13 +1348,41 @@ body.war .dec { color: var(--wb-red); }
     else if (!mine && (hit || xbh)) FX.reaction('oh');   // the other club gets a hit: a worried murmur
     else if (mine && play.code === 'CS') FX.reaction('groan');
   }
+  // what you and your club did this game, counted from the plays and from the calls you made (saved with the result, never guessed)
+  const QS = { pc: 0, defset: 0 };
+  const DEFNOTE = /drawn-in infield|infield back at double-play depth|charging corners|first baseman holding the runner|drawn-in outfield|in front of the deep outfield|held to a single by the deep outfield/;
+  function quickStats() {
+    const HIT = new Set(['S', '2B', '3B', 'HR', 'BH']), BFAIL = new Set(['FC', 'BO', 'BDP']), t = { v: 1, pa: 0, ab: 0, h: 0, d2: 0, d3: 0, hr: 0, bb: 0, so: 0, sb: 0, cs: 0, sac: 0, bhit: 0, bfail: 0, ibb: 0, ha: 0, hra: 0, bba: 0, soa: 0, dp: 0, pc: QS.pc, chg: 0, defset: QS.defset, defeff: 0, outs: 0 };
+    let prev = null, lastMine = null;
+    for (const p of plays) {
+      const mine = p.half === you, same = prev && prev.inning === p.inning && prev.half === p.half, before = same ? (prev.outs || 0) : 0, made = Math.max(0, (p.outs || 0) - before);
+      if (mine) {
+        if (p.code === 'SB') t.sb++; else if (p.code === 'CS') t.cs++;
+        else {
+          t.pa++; if (!['BB', 'HBP', 'IBB', 'SAC'].includes(p.code)) t.ab++;
+          if (HIT.has(p.code)) t.h++; if (p.code === '2B') t.d2++; if (p.code === '3B') t.d3++; if (p.code === 'HR') t.hr++;
+          if (p.code === 'BB' || p.code === 'IBB') t.bb++; if (p.code === 'SO') t.so++;
+          if (p.code === 'SAC') t.sac++; if (p.code === 'BH') t.bhit++; if (BFAIL.has(p.code)) t.bfail++;
+        }
+      } else {
+        t.outs += made;
+        if (HIT.has(p.code)) t.ha++; if (p.code === 'HR') t.hra++; if (p.code === 'BB' || p.code === 'IBB') t.bba++; if (p.code === 'SO') t.soa++; if (p.code === 'IBB') t.ibb++;
+        if (/double play/i.test(p.txt || '')) t.dp++; if (DEFNOTE.test(p.txt || '')) t.defeff++;
+        if (p.pitcher && lastMine && p.pitcher !== lastMine) t.chg++; if (p.pitcher) lastMine = p.pitcher;
+      }
+      prev = p;
+    }
+    t.extra = g.inning > 9; const last = plays[plays.length - 1]; t.walkoff = !!(last && last.half === you && last.inning >= 9 && (last.scored || 0) > 0 && g.winner === you);
+    for (const k of Object.keys(t)) if (typeof t[k] === 'number') t[k] = Math.max(0, Math.min(999, Math.round(t[k])));
+    return t;
+  }
   // a finished game goes on your record when you are signed in (once per game)
   function recordResult() {
     if (g.__recorded) return; g.__recorded = true;
     const note = (text, link) => { const p = document.createElement('p'); p.className = 'note'; p.id = 'recNote'; p.textContent = text + (link ? ' ' : ''); if (link) { const a = document.createElement('a'); a.href = link.href; a.textContent = link.text; if (link.click) a.onclick = e => { e.preventDefault(); link.click(); }; p.appendChild(a); } const f = $('feed'); if (f) { f.appendChild(p); f.scrollTop = f.scrollHeight; } };
     const cc = window.CC; if (!cc || !cc.user || !cc.client) { note('Sign in free to keep a record of your games.', { href: '#', text: 'Sign in', click: () => cc && cc.requireSignIn && cc.requireSignIn('Sign in to keep your record') }); return; }
     const me = g.teams[you], opp = g.teams[1 - you];
-    Promise.resolve(cc.client.rpc('record_quick_game', { p_won: g.winner === you, p_my_club: `${me.t.year} ${me.t.nick}`, p_opp_club: `${opp.t.year} ${opp.t.nick}`, p_for: me.runs, p_against: opp.runs, p_innings: g.inning }))
+    Promise.resolve(cc.client.rpc('record_quick_game', { p_won: g.winner === you, p_my_club: `${me.t.year} ${me.t.nick}`, p_opp_club: `${opp.t.year} ${opp.t.nick}`, p_for: me.runs, p_against: opp.runs, p_innings: g.inning, p_stats: (() => { try { return quickStats(); } catch (e) { return null; } })() }))
       .then(r => note(r && r.error ? 'This game could not be added to your record.' : 'Saved to your record.', r && r.error ? null : { href: 'career.html', text: 'See my record' }))
       .catch(() => note('This game could not be added to your record.'));
   }
@@ -1550,7 +1578,7 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function start() {
-    gmStop(); advTok++; busy = false; plays = []; ab = { batter: '', pitcher: '' }; gmView = { state: 'idle' };
+    gmStop(); advTok++; QS.pc = 0; QS.defset = 0; busy = false; plays = []; ab = { batter: '', pitcher: '' }; gmView = { state: 'idle' };
     const mine = $('youSel').value, others = teams.filter(t => t.key !== mine);
     cpuKey = others[Math.floor(Math.random() * others.length)].key;
     const [a, h] = pairing(); you = 1;
