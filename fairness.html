@@ -68,7 +68,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 8
       <li><b>We have no reason to rig it.</b> Cooperstown Cash never holds league money and never sets a prize. Our only possible charge is the Private League Hosting Fee, paid by each member, the same whoever wins.</li>
       <li><b>No player or commissioner can change a result.</b> The game server plays every game. A manager can only ask to finish a game the server already played: there is no way to send in a score or edit one.</li>
       <li><b>Nobody can end a started season alone.</b> Once games begin, even the commissioner can end a league early only if most of its managers vote to.</li>
-      <li><b>Every roll is recorded.</b> For each at-bat, both 20-sided dice and the 1-to-100 roll are saved with the game, and the game screen shows them as each play is revealed. The league can read the saved record of any finished game.</li>
+      <li><b>Every roll is recorded.</b> For each at-bat, both 20-sided dice and the 1-to-100 roll are saved with the game, and the game screen shows them as each play is revealed. The league can read the saved record of any finished game, and can replay it.</li>
     </ul>
   </section>
 
@@ -79,7 +79,7 @@ footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 8
       <li><b>Two 20-sided dice are rolled, one for the batter and one for the pitcher.</b> The higher die wins the duel and decides whose card is used for this at-bat. A tie is simply rolled again.</li>
       <li><b>One roll from 1 to 100 reads the winner's card.</b> That roll is the play: a home run, a strikeout, a groundout.</li>
     </ol>
-    <p>The dice come from the computer's secure random source, the same kind used for encryption, so nobody can predict a roll or steer one.</p>
+    <p>In a league game the dice come from a secret number the server picks for that game when it is scheduled, long before anyone sets a lineup for it. The number's fingerprint is published at once, and the number itself is revealed when the game ends, so anyone can replay the game and check every roll. See &ldquo;Check any game yourself&rdquo; below. The mock draft and the quick game run on your own device, with your device's random numbers, and are not checked this way.</p>
   </section>
 
   <section class="card" aria-labelledby="told">
@@ -87,8 +87,8 @@ footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 8
     <p>To play a game, the engine is given only:</p>
     <ul>
       <li>the two clubs' rosters,</li>
-      <li>each manager's own settings: batting order, starting rotation, how long to leave a starter in, and his pick for that day's starter,</li>
-      <li>and the day of the schedule, which decides the starting pitchers.</li>
+      <li>each manager's own settings: batting order, starting rotation, how long to leave a starter in, his pick for that day's starter, his bullpen order and closer, and his steal, bunt, walk and defense settings,</li>
+      <li>the day of the schedule, which decides the starting pitchers, and the game's secret dice number.</li>
     </ul>
     <p>It is never told who owns a club, who the commissioner is, what the league's buy-in is, or what the standings are. It has no way to favor anyone, because it doesn't know there is anyone to favor.</p>
   </section>
@@ -110,20 +110,16 @@ footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 8
 
   <section class="card" aria-labelledby="read">
     <h2 id="read">Read the engine yourself</h2>
-    <p>The engine's source code is public on this site: <a href="engine.js">engine.js</a> and <a href="dice-engine.js">dice-engine.js</a>. Our game server is built from identical copies. We compared their fingerprints on October 2, 2026, and they matched exactly.</p>
+    <p>The engine's source code is public on this site: <a href="engine.js">engine.js</a> and <a href="dice-engine.js">dice-engine.js</a>. The server does not keep its own copies. It loads the engine, the dice and the player data from a fixed, public address, and runs each file only if its fingerprint matches the one pinned in the server's code. The game check page does the same check on your device, with <a href="rng.js">rng.js</a> (the dice), <a href="sim-core.js">sim-core.js</a> and <a href="sim-data.json">sim-data.json</a> alongside them.</p>
   </section>
 
   <section class="card" aria-labelledby="cant">
-    <h2 id="cant">What we can't prove yet</h2>
-    <div class="soon">
-      <b class="t">Honest answer</b>
-      <p style="margin:0">Today you can read every roll of every finished game, but you can't re-run a game yourself. So for the dice themselves, you are relying on us, and on the fact that we make no money from who wins.</p>
-    </div>
-    <p>We're working on a way to check every game on your own. Before a game is played, we would publish a fingerprint of a secret number. After it, we would reveal the number, so anyone can replay the game and confirm it matches. <b>That isn't live yet.</b> We won't claim it until it is.</p>
-  </section>
-
-  <section class="card cta" aria-labelledby="try">
-    <h2 id="try">Try it free, as long as you like</h2>
+    <h2>Check any game yourself</h2>
+    <p><b>This is live.</b> Every league game, including free tables, gets its own secret number the moment it is scheduled. We publish the number's SHA-256 fingerprint right away. Nobody can see the number until the game is over, and the server cannot change it afterward without the fingerprint no longer matching.</p>
+    <p>When the game ends we reveal the number. The <a href="audit.html">game check page</a> then runs, on your own device: it confirms the number matches its fingerprint, downloads the five files of the engine from their public, fixed address and confirms each matches the fingerprint our server has pinned, and replays the game from the number using the exact clubs and settings the server was given. If every play and the final score come out identical, the dice were what they should be. Any game page shows its fingerprint, and a finished game has a &ldquo;Check this game&rsquo;s dice&rdquo; link.</p>
+    <p>We tested it on our own server before saying so: a finished game was replayed independently from the public files and matched all 73 plays and the score.</p>
+    <p><b>What a replay does not prove.</b> It cannot show that our server ran exactly the published engine, because you are trusting the server for that. And it cannot rule out that we tried many secret numbers in advance and kept one we liked, though we have no reason to, and a game's lineups and settings are not known when its number is chosen. The check makes the dice fixed before the game and the result a pure outcome of the numbers. It does not make us unable to cheat in every way, and we won't claim it does.</p>
+<h2 id="try">Try it free, as long as you like</h2>
     <p>The mock draft, the quick game, and a private league with no buy-in all run the same engine you've just read about. Play until you're comfortable.</p>
     <div class="row"><a class="btn" href="draft.html">Try a free mock draft</a><a class="txt" href="play.html">Play a quick game</a><a class="txt" href="private.html">Start a free league with friends</a></div>
   </section>
