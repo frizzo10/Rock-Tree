@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Play solo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+button, input { font: inherit; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 16px 48px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; }
+.crumbs .badge img { width: 100%; height: 100%; }
+
+.board { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 22px 28px 20px; }
+.board h1 { font: 400 clamp(30px, 5.5vw, 48px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.board p { margin: 0; max-width: 64ch; color: #3A434D; }
+.stats { margin-top: 12px !important; font-weight: 600; color: var(--wb-green) !important; }
+.pad { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border-radius: 2px; padding: 10px 16px 12px 42px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); margin: 16px 0 0; }
+.pad::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
+.pad h2 { font: 400 20px/26px var(--marker); color: var(--wb-red); margin: 0; }
+.pad p, .pad li { line-height: 26px; margin: 0; }
+.pad ul { margin: 0; padding-left: 18px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin: 20px 0 14px; }
+.tabs, .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { background: transparent; border: 1.5px solid #8C959E; color: var(--ink); border-radius: 4px; padding: 8px 16px; font: 400 19px/1 var(--marker); cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--wb-ink); border-color: var(--wb-ink); color: #fff; }
+.tab small { font: 600 12px var(--text); margin-left: 6px; opacity: .85; }
+.chip { background: transparent; border: 1px solid #8C959E; color: var(--ink); border-radius: 16px; padding: 5px 14px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--wall); border-color: var(--ink); }
+
+.btn { border: 0; border-radius: 4px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+.btn-main { background: var(--wb-ink); color: #fff; }
+.btn-main:hover { background: #17306E; }
+.btn-alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; }
+.btn-alt:hover { background: #E9ECEA; }
+.btn[disabled] { opacity: .5; cursor: default; }
+
+.wallet { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 5px var(--wb-frame); padding: 10px 18px; margin: 0 0 16px; }
+.wallet .wl b { font: 400 28px/1 var(--marker); color: var(--wb-ink); margin-right: 4px; }
+.wallet .wl span { font-size: 13.5px; color: #4A5560; margin-left: 10px; }
+.wallet details { font-size: 13.5px; margin-top: 4px; }
+.wallet summary { cursor: pointer; font-weight: 600; }
+.wallet ul { margin: 4px 0 0; padding-left: 18px; }
+.mine { display: grid; gap: 8px; margin-bottom: 18px; }
+.mine .pad { margin: 0; }
+.mine .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 2px 0; }
+.mine .pad .btn { padding: 4px 12px; }
+a.btn { text-decoration: none; display: inline-block; line-height: 1.4; }
+.mine .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 20px; }
+.tbl { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 22px 18px; display: flex; flex-direction: column; }
+.tbl h3 { font: 400 24px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 10px; background: #E3E6E4; color: #3A434D; }
+.tag.free { background: #D8E8DC; color: #17603A; }
+.fmt { font-size: 13.5px; color: #4A5560; margin: 6px 0 0; }
+.felt { position: relative; aspect-ratio: 5 / 3; margin: 8px 0 4px; }
+.felt::before { content: ''; position: absolute; inset: 15% 9%; border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, #2C6B4B, #1F5039); border: 7px solid #6A4A2C; box-shadow: inset 0 0 14px rgba(0,0,0,.35), 0 2px 4px rgba(0,0,0,.3); }
+.felt .count { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: #F3EAD3; pointer-events: none; }
+.felt .count b { font: 400 34px/1 var(--marker); }
+.felt .count small { font-size: 12px; opacity: .9; }
+.seats { list-style: none; margin: 0; padding: 0; }
+.seat { position: absolute; width: 14%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; display: grid; place-items: center; font: 400 13px/1 var(--marker); }
+.seat.open { border: 2px dashed #8C959E; background: rgba(247, 248, 246, .92); color: #5A6470; font-family: var(--text); font-weight: 600; }
+.seat.taken { background: var(--c); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
+.seat.me { outline: 3px solid var(--lamp); outline-offset: 1px; }
+.tbl details { font-size: 13.5px; color: #3A434D; margin: 2px 0 10px; }
+.tbl summary { cursor: pointer; font-weight: 600; }
+.tbl details ul { margin: 4px 0 0; padding-left: 18px; columns: 2; }
+.tbl .go { margin-top: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tbl .go .youare { font-size: 14px; font-weight: 600; color: var(--wb-green); }
+.empty, .msg { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame); padding: 22px 26px; grid-column: 1 / -1; }
+.toast { min-height: 1.5em; margin: 0 0 8px; font-weight: 600; color: var(--wb-green); }
+.toast.err { color: var(--wb-red); }
+.cash h2, .how h2 { font: 400 26px/1.15 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.cash .panel, .how .panel { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame); padding: 20px 24px; }
+.cash ul, .how ol { margin: 0 0 4px; padding-left: 20px; }
+.cash li, .how li { margin: 4px 0; }
+.how { margin-top: 30px; }
+dialog { border: 0; padding: 0; background: transparent; max-width: 100%; }
+dialog::backdrop { background: rgba(28, 32, 30, .8); }
+.dlg { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame); padding: 28px 30px 24px; width: min(440px, 92vw); }
+.dlg h2 { font: 400 26px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.dlg p { margin: 0 0 12px; color: #3A434D; }
+.dlg label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 4px; }
+.dlg input { width: 100%; padding: 11px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: #1B1F24; }
+.dlg .note { font-size: 13px; color: #5A6470; margin: 6px 0 12px; }
+.dlg .err { color: var(--wb-red); font-weight: 600; min-height: 1.4em; margin: 0 0 8px; }
+.dlg .row { display: flex; gap: 10px; flex-wrap: wrap; }
+footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
+footer p { margin: 0 0 6px; }
+@media (max-width: 560px) { .tables { grid-template-columns: 1fr; } .board { padding: 18px 20px; } .tbl details ul { columns: 1; } }
+@media (prefers-reduced-motion: no-preference) { .tbl { transition: transform .15s; } .tbl:hover { transform: translateY(-2px); } }
+.invite .acts { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 8px; } .invite .invmsg { min-height: 1.4em; margin: 4px 0; font-weight: 600; color: #17603A; } .invite .invsmall { margin: 8px 0 0; font-size: 15px; }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a><a href="howtoplay.html" style="margin-left:14px">How to play</a><a href="notebook.html" style="margin-left:14px">Notebook</a></nav>
+
+  <header class="board">
+    <h1>Play solo</h1>
+    <p><b>Play for fun, or learn strategy.</b> Take the team you drafted, or any great club from the 1906 Cubs to the 2022 Dodgers, out on the field. It's the practice field: learn the game here before you start a league.</p>
+    <ul>
+      <li>Roll the dice yourself and watch how each player's card decides the play</li>
+      <li>Every play shows its roll and the card it came from, so you can see what wins</li>
+      <li>You make the calls live: steals, bunts, walks, your defense and your bullpen</li>
+      <li>Full box score and play-by-play. Only wins with a team you drafted count toward unlocking the legends.</li>
+    </ul>
+    <p class="go" style="display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 4px"><a class="btn btn-main" id="quick" href="play.html">Play a quick game</a><a class="btn btn-alt" href="draft.html" id="s2team" hidden>Play your drafted team</a></p>
+    <p class="note" id="soloNote"></p>
+  </header>
+
+  <footer>
+    <p>Prototype for testing.</p>
+    <p>Statistics from the Lahman Baseball Database by Sean Lahman, used under CC BY-SA 3.0.</p>
+  <p><a href="terms.html" style="color:inherit;font-weight:600">Terms of Service</a> &middot; <a href="privacy.html" style="color:inherit;font-weight:600">Privacy Policy</a></p>
+  </footer>
+</div>
+<script>
+  // someone who has finished a draft can take that team out on the field
+  (() => { let d = null; try { d = JSON.parse(localStorage.getItem('gts-draft')); } catch (e) {} const done = !!(d && d.done), btn = document.getElementById('s2team'); if (done) btn.hidden = false; })();
+</script>
+</body>
+</html>

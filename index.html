@@ -235,13 +235,8 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
           <button class="tabbtn" role="tab" type="button" id="tabOthers" aria-selected="false" aria-controls="panOthers" tabindex="-1">2. Play with other people</button>
         </div>
         <div id="panSolo" role="tabpanel" aria-labelledby="tabSolo">
-        <p><b>Play for fun, or learn strategy.</b> Take the team you drafted, or any great club from the 1906 Cubs to the 2022 Dodgers, out on the field. It's the practice field: learn the game here before you start a league.</p>
-        <ul>
-          <li>Roll the dice yourself and watch how each player's card decides the play</li>
-          <li>Every play shows its roll and the card it came from, so you can see what wins</li>
-          <li>Full box score and play-by-play. Only wins with a team you drafted count toward unlocking the legends.</li>
-        </ul>
-        <div class="go"><a class="btn btn-main" href="play.html">Play a quick game</a><a class="btn btn-alt" href="draft.html" id="s2team" hidden>Play your drafted team</a></div>
+        <p><b>Play for fun, or learn strategy.</b> Take a great club out on the field, roll the dice yourself and make the calls. It's the practice field: learn the game here before you start a league.</p>
+        <div class="go"><a class="btn btn-main" href="solo.html">Play solo</a></div>
         </div>
         <div id="panOthers" role="tabpanel" aria-labelledby="tabOthers" hidden>
         <div class="also">
@@ -329,7 +324,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     chip(1, drafted ? 'done' : inDraft ? 'now' : '', drafted ? 'Done' : inDraft ? 'In progress' : 'Start here');
     chip(2, finished ? 'done' : games > 0 ? 'now' : drafted ? 'ready' : '', finished ? 'Done' : games > 0 ? `${games} of 3 played` : drafted ? 'Ready' : '');
     chip(3, finished ? 'ready' : '', finished ? "You're ready" : '');
-    if (d && d.done) { $('s2team').hidden = false; $('s1report').hidden = false; }
+    if (d && d.done) { const t = $('s2team'); if (t) t.hidden = false; const r = $('s1report'); if (r) r.hidden = false; }
   })();
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
