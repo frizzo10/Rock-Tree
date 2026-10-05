@@ -96,6 +96,7 @@ button { font: inherit; }
 .card .scoutbox { background: rgba(31,63,143,.07); border-left: 4px solid var(--wb-ink); padding: 8px 12px 6px; margin: 0 0 10px; font-size: 13.5px; line-height: 1.4; }
 .scoutbox h4 { font: 400 18px/1.15 var(--marker); margin: 0 0 4px; color: var(--wb-ink); } .scoutbox ul { margin: 4px 0; padding-left: 1.1em; } .scoutbox li { margin: 4px 0; } .scoutbox .voice { margin: 4px 0 6px; font-weight: 600; } .scoutbox .nudge { margin: 4px 0; font-size: 13px; color: #4A5560; }
 .scoutbox .slink { display: inline-block; background: none; border: 0; padding: 0 2px; min-height: 44px; font: 700 14px var(--text); color: var(--wb-ink); text-decoration: underline; cursor: pointer; }
+.way { margin: 0 0 18px; padding: 0 0 16px; border-bottom: 1px dashed rgba(60,45,20,.35); } .way h3 { font: 400 22px/1.15 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .way p { margin: 8px 0 4px; } .way .go { margin-top: 8px; }
 .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .tabbtn { min-height: 44px; padding: 8px 18px; border: 0; border-bottom: 4px solid transparent; border-radius: 6px 6px 0 0; background: rgba(247,242,228,.62); color: var(--ink); font: 700 16px var(--text); cursor: pointer; }
 .tabbtn:hover { background: rgba(247,242,228,.85); } .tabbtn[aria-selected="true"] { background: rgba(247,242,228,.98); border-bottom-color: var(--lamp); }
@@ -230,17 +231,15 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
       <section class="folder" aria-labelledby="quickH">
         <span class="tab" aria-hidden="true">Free play</span><span class="num" aria-hidden="true">2</span>
         <h2 id="quickH">Play it free and see how it plays <span class="chip" id="chip2"></span></h2>
-        <div class="tabs" role="tablist" aria-label="Free ways to play">
-          <button class="tabbtn" role="tab" type="button" id="tabSolo" aria-selected="true" aria-controls="panSolo">1. Play solo</button>
-          <button class="tabbtn" role="tab" type="button" id="tabOthers" aria-selected="false" aria-controls="panOthers" tabindex="-1">2. Play with other people</button>
+        <div class="way">
+          <h3>On your own</h3>
+          <p><b>Play for fun, or learn strategy.</b> Take a great club out on the field, roll the dice yourself and make the calls. It's the practice field: learn the game here before you start a league.</p>
+          <div class="go"><a class="btn btn-main" href="solo.html">Play solo</a></div>
         </div>
-        <div id="panSolo" role="tabpanel" aria-labelledby="tabSolo">
-        <p><b>Play for fun, or learn strategy.</b> Take a great club out on the field, roll the dice yourself and make the calls. It's the practice field: learn the game here before you start a league.</p>
-        <div class="go"><a class="btn btn-main" href="solo.html">Play solo</a></div>
-        </div>
-        <div id="panOthers" role="tabpanel" aria-labelledby="tabOthers" hidden>
+        <div id="panOthers">
         <div class="also">
-          <h3>Want other people to play with? That's free too.</h3>
+          <h3>With other people</h3>
+          <p>Want other people to play with? That's free too.</p>
           <p><b>Sit at a free table.</b> Ten seats, a salary cap, and nothing to pay. You sit down with nine other managers, and the season starts when all ten seats fill. Not full after three days? With four or more managers seated, computer clubs fill the empty seats and it starts anyway. <span class="ftlive" id="ftLive" aria-live="polite"></span></p>
           <div class="go"><a class="btn btn-main" href="lobby.html">Find a free table</a></div>
           <p><b>Invite a friend.</b> Send them a link, and they can try the game free.</p>
@@ -357,7 +356,6 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     all.forEach((t, i) => { t.onclick = () => show(t); t.onkeydown = e => { const k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!k) return; const n = all[(i + k + all.length) % all.length]; n.focus(); show(n); e.preventDefault(); }; });
     return show;
   }
-  tabs(document.querySelector('[aria-label="Free ways to play"]'));
   const showVault = tabs(document.querySelector('[aria-label="In the vault"]'), id => { $('shuffle').hidden = id !== 'tabCards'; if (id === 'tabCards') evenCards(); });
   $('toLegend').onclick = e => { e.preventDefault(); showVault($('tabLegend')); $('tabLegend').scrollIntoView({ behavior: reduce.matches ? 'auto' : 'smooth', block: 'start' }); $('tabLegend').focus({ preventScroll: true }); };
   // each card keeps its own height: the closed cards share the tallest closed height, and a card whose scout is open grows by itself
