@@ -160,7 +160,7 @@
     if (!host) return;
     if (!client) { host.innerHTML = ''; return; }
     if (user) {
-      host.innerHTML = `<span>Progress saved to <b>${esc(user.email)}</b></span><a class="lnk" href="career.html">My record</a><button class="lnk" id="accOut">Sign out</button>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
+      host.innerHTML = `<span>Progress saved to <b>${esc(user.email)}</b></span><a class="lnk" href="account.html">My account</a><button class="lnk" id="accOut">Sign out</button>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
       host.querySelector('#accOut').onclick = async () => { await push(); await client.auth.signOut(); };
     } else if (mode === 'form') {
       host.innerHTML = `<form id="accForm"><label class="msg" for="accEmail">We'll email you a sign-in link. No password.</label><input id="accEmail" type="email" required placeholder="you@example.com" autocomplete="email"><button class="go" type="submit">Email me a link</button><button class="lnk" type="button" id="accCancel">Cancel</button></form>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
