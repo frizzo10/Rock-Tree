@@ -315,6 +315,7 @@ body.war .dec { color: var(--wb-red); }
 .pk-ring { fill: none; stroke: #FFE37A; stroke-width: 1.6; opacity: 0; transform-box: fill-box; transform-origin: center; animation: pkring .55s ease-out forwards; animation-delay: var(--dl, 0s); }
 @keyframes pkring { 0% { opacity: .95; transform: scale(.4); } 100% { opacity: 0; transform: scale(2.6); } }
 .pk-fld { fill: #2F5FB3; stroke: #FFFFFF; stroke-width: 1.3; } .pk-trail { fill: none; stroke: rgba(255, 255, 255, .6); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 3; }
+.gm .gmv { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 10px; } .gm .gmv .btn { min-height: 44px; } .gm .gmv .note { margin: 0; font-size: 13px; }
 .pen, .defp { flex: 1 0 100%; display: grid; gap: 6px; } .defp[hidden] { display: none; } .defp h4 { margin: 8px 0 0; font-size: 14px; } .defp .opt { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; } .defp .opt small { font-weight: 400; font-size: 13px; opacity: .85; } .defp .opt[aria-pressed="true"] { outline: 3px solid var(--lamp); } .defp .opt .on { font-weight: 700; color: #1E7B45; } .defp .opt-x { min-height: 44px; background: none; border: 0; text-decoration: underline; color: inherit; }
 .pen { flex: 1 0 100%; display: grid; gap: 6px; } .pen[hidden] { display: none; } .pen .pen-p { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; } .pen .pen-p small { font-weight: 400; font-size: 13px; opacity: .85; } .pen .pen-x { min-height: 44px; background: none; border: 0; text-decoration: underline; color: inherit; } .calls .call[disabled] { opacity: .55; }
 .calls .call { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; flex: 1 1 190px; } .calls .call small { font-weight: 400; font-size: 13px; opacity: .85; line-height: 1.3; }
@@ -1015,6 +1016,7 @@ body.war .dec { color: var(--wb-red); }
   $('youSel').onchange = () => { if (!g || g.over) { cpuKey = null; drawLine(); } };
 
   let advTok = 0, g = null, you = 1, busy = false, stage = 'duel', duelWinner = null, lastHalfKey = '';
+  const GMV = { audio: null, blob: null, speaking: false, token: 0, via: '' };   // the GM's voice (see gmSpeak)
   let plays = [], ab = { batter: '', pitcher: '' }, gmView = { state: 'idle' };   // the play-by-play for the GM: who batted and who pitched on each play
 
   function pairing() {
@@ -1357,6 +1359,81 @@ body.war .dec { color: var(--wb-red); }
       .catch(() => note('This game could not be added to your record.'));
   }
   // ---------- your GM: a candid review of the game, the pitching changes and the turning point ----------
+  // ---------- the GM speaks his report: a natural voice from the server when it is available, otherwise the best voice on the phone ----------
+  function gmTone(f) {   // how the GM feels about the game: it follows the result, never the AI's words
+    const m = (f.finalScore && f.finalScore.you || 0) - (f.finalScore && f.finalScore.opponent || 0), won = !!f.youWon, walkOff = (f.moments || []).some(x => x && x.walkOff);
+    if (won) return walkOff || (f.innings || 9) > 9 || (f.leadChanges || 0) >= 2 || m >= 7 ? 'thrilled' : 'upbeat';
+    return m >= -1 ? 'even' : m > -7 ? 'down' : 'grim';
+  }
+  const GM_OPEN = { thrilled: ['What a ballgame, skipper!', 'That is how you win one, skipper!'], upbeat: ['Good win, skipper.', 'Nice work out there, skipper.'], even: ['Tough one, skipper. We were right there with them.', 'That one stings, skipper. It was close.'], down: ['Not our day, skipper.', 'That one got away from us, skipper.'], grim: ['Rough night, skipper. Let me be straight with you.', 'That one hurt, skipper. Here is what I saw.'] };
+  function gmScript(r, f, tone) {
+    const part = (lead, txt) => txt ? `${lead} ${txt}` : '', ch = f.changes.filter(c => c.side === 'you' && r.changes && r.changes[c.n]).map(c => `${c.half === 'top' ? 'Top' : 'Bottom'} of the ${ord(c.inning)}: ${c.entering.name} for ${c.leaving.name}. ${r.changes[c.n]}`);
+    const open = GM_OPEN[tone][Math.floor(Math.random() * 2)];
+    return [open, r.verdict, part('On the pitching,', r.pitching), ...ch, part('The turning point:', r.moment), part('Next time,', r.next)].filter(Boolean).join(' ').replace(/\s+/g, ' ');
+  }
+  const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+  function gmPrime() {   // runs inside the tap, so the browser lets the voice play when the report arrives a moment later
+    try { if (!GMV.audio) GMV.audio = new Audio(); GMV.audio.src = SILENT; const p = GMV.audio.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+    try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } } catch (e) {}
+  }
+  function gmVoicePick() {
+    const vs = (window.speechSynthesis && speechSynthesis.getVoices && speechSynthesis.getVoices() || []).filter(v => /^en[-_]/i.test(v.lang) || v.lang === 'en');
+    if (!vs.length) return null;
+    const score = v => { const n = v.name + ' ' + (v.voiceURI || ''); let sc = 0; if (/premium|enhanced|natural|neural|siri/i.test(n)) sc += 6; if (/google (us|uk) english|microsoft (aria|guy|jenny|davis|ryan|sonia)/i.test(n)) sc += 4; if (/daniel|alex|aaron|evan|fred|oliver|arthur|guy|ryan|david|mark|james/i.test(n)) sc += 3; if (/compact|espeak|novelty|whisper|zarvox|bad news|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|trinoids|wobble/i.test(n)) sc -= 9; if (/^en[-_]US/i.test(v.lang)) sc += 2; if (v.localService === false) sc += 1; return sc; };
+    return vs.sort((a, b) => score(b) - score(a))[0];
+  }
+  const GMV_FEEL = { thrilled: { rate: 1.06, pitch: 1.08 }, upbeat: { rate: 1.02, pitch: 1.04 }, even: { rate: .98, pitch: 1 }, down: { rate: .94, pitch: .94 }, grim: { rate: .9, pitch: .88 } };
+  function gmSpeakDevice(text, tone, tok) {   // sentence by sentence with small changes in pace and pitch and a breath between, so it does not drone
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return false;
+    const sents = (text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [text]).map(x => x.trim()).filter(Boolean), feel = GMV_FEEL[tone] || GMV_FEEL.even, voice = gmVoicePick();
+    GMV.via = 'device'; GMV.speaking = true; paintVoice(); let i = 0;
+    const next = () => {
+      if (tok !== GMV.token) return; if (i >= sents.length) { GMV.speaking = false; paintVoice(); return; }
+      const sentence = sents[i++], u = new SpeechSynthesisUtterance(sentence), q = /[?]$/.test(sentence), ex = /!$/.test(sentence);
+      if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = 'en-US';
+      u.rate = Math.max(.7, Math.min(1.3, feel.rate + (Math.random() - .5) * .06)); u.pitch = Math.max(.6, Math.min(1.5, feel.pitch + (ex ? .06 : 0) + (q ? .08 : 0) + (Math.random() - .5) * .08)); u.volume = 1;
+      u.onend = () => setTimeout(next, /[.!?]$/.test(sentence) ? 170 + Math.random() * 140 : 60); u.onerror = () => { if (tok === GMV.token) { GMV.speaking = false; paintVoice(); } };
+      speechSynthesis.speak(u);
+    };
+    try { speechSynthesis.cancel(); } catch (e) {} setTimeout(next, 60); return true;
+  }
+  function gmStop() {
+    GMV.token++; GMV.speaking = false;
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+    try { if (GMV.audio) { GMV.audio.pause(); } } catch (e) {}
+    paintVoice();
+  }
+  function gmPlayBlob(blob, tok) {
+    return new Promise(res => {
+      try {
+        if (!GMV.audio) GMV.audio = new Audio(); const a = GMV.audio, url = URL.createObjectURL(blob); a.onended = a.onerror = null; a.src = url; a.volume = 1;
+        a.onended = () => { if (tok === GMV.token) { GMV.speaking = false; paintVoice(); } URL.revokeObjectURL(url); }; a.onerror = () => { if (tok === GMV.token) { GMV.speaking = false; paintVoice(); } };
+        const p = a.play(); GMV.via = 'server'; GMV.speaking = true; paintVoice();
+        if (p && p.then) p.then(() => res(true)).catch(() => { GMV.speaking = false; paintVoice(); res(false); }); else res(true);
+      } catch (e) { res(false); }
+    });
+  }
+  async function gmSpeak(v) {   // v: the finished GM view (result + facts)
+    const tok = ++GMV.token, tone = gmTone(v.facts), text = v.script || (v.script = gmScript(v.result, v.facts, tone)); v.tone = tone;
+    try { speechSynthesis.cancel(); } catch (e) {} GMV.speaking = true; GMV.via = 'loading'; paintVoice();
+    const cc = window.CC;
+    if (v.blob) { if (await gmPlayBlob(v.blob, tok)) return; }
+    else if (cc && cc.client && cc.client.functions) {
+      try {
+        const ask = cc.client.functions.invoke('gm-voice', { body: { text, tone } }), timed = new Promise(r => setTimeout(() => r({ timeout: true }), 14000)), out = await Promise.race([ask, timed]);
+        if (tok !== GMV.token) return;
+        const d = out && out.data; if (d && typeof d === 'object' && d.size > 1000 && !out.error) { v.blob = new Blob([d], { type: 'audio/wav' }); if (await gmPlayBlob(v.blob, tok)) return; }
+      } catch (e) {}
+      if (tok !== GMV.token) return;
+    }
+    if (!gmSpeakDevice(text, tone, tok)) { GMV.speaking = false; GMV.via = ''; paintVoice(); }
+  }
+  addEventListener('pagehide', () => { try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {} });
+  function paintVoice() {
+    const b = $('gmListen'), n = $('gmVoiceNote'); if (!b) return;
+    b.textContent = GMV.speaking ? (GMV.via === 'loading' ? 'Stop' : 'Stop') : (gmView && gmView.blob || GMV.via ? 'Hear it again' : 'Hear it'); b.setAttribute('aria-pressed', String(GMV.speaking));
+    if (n) n.textContent = GMV.speaking && GMV.via === 'loading' ? 'Your GM is clearing his throat…' : GMV.speaking && GMV.via === 'device' ? 'Speaking in your phone\'s voice.' : '';
+  }
   function gmFacts() { const me = g.teams[you], opp = g.teams[1 - you]; return GMFacts.build(plays, { youHalf: you, yourClub: `${me.t.year} ${me.t.nick}`, opponentClub: `${opp.t.year} ${opp.t.nick}`, mode: 'quick' }); }
   function paintGM() {
     const box = $('gmBox'); if (!box) return; const v = gmView, cc = window.CC; box.innerHTML = '';
@@ -1366,6 +1443,7 @@ body.war .dec { color: var(--wb-red); }
     if (v.state === 'loading') return para('Your GM is going over the game…', 'note');
     if (v.state === 'done') {
       const r = v.result, section = (title, txt) => { if (!txt) return; const t = document.createElement('h4'); t.textContent = title; box.appendChild(t); para(txt); };
+      const vb = document.createElement('div'); vb.className = 'gmv'; const lb = document.createElement('button'); lb.type = 'button'; lb.className = 'btn btn-alt'; lb.id = 'gmListen'; lb.setAttribute('aria-pressed', 'false'); lb.onclick = () => { if (GMV.speaking) gmStop(); else gmSpeak(v); }; vb.appendChild(lb); const vn = document.createElement('p'); vn.className = 'note'; vn.id = 'gmVoiceNote'; vn.setAttribute('role', 'status'); vb.appendChild(vn); box.appendChild(vb); paintVoice();
       section('The verdict', r.verdict); section('Pitching', r.pitching);
       for (const c of v.facts.changes.filter(c => c.side === 'you' && r.changes && r.changes[c.n])) { const d = document.createElement('div'); d.className = 'gm-chg'; const b = document.createElement('b'); b.textContent = `${c.half === 'top' ? 'Top' : 'Bottom'} ${ord(c.inning)}: ${c.entering.name} replaces ${c.leaving.name}`; d.appendChild(b); const p = document.createElement('p'); p.textContent = r.changes[c.n]; d.appendChild(p); box.appendChild(d); }
       section('The turning point', r.moment); section('Next time', r.next); return;
@@ -1382,11 +1460,11 @@ body.war .dec { color: var(--wb-red); }
     paintGM();
   }
   async function askGM() {
-    const cc = window.CC; if (!cc || !cc.user || gmView.state === 'loading') return; const tok = advTok, facts = gmFacts(); gmView = { state: 'loading' }; paintGM();
+    const cc = window.CC; if (!cc || !cc.user || gmView.state === 'loading') return; const tok = advTok, facts = gmFacts(); gmStop(); GMV.via = ''; gmPrime(); gmView = { state: 'loading' }; paintGM();
     let res = null, reason = 'error';
     try { const { data, error } = await cc.client.functions.invoke('gm-critic', { body: { kind: 'game', facts } }); if (!error && data) { res = data.game || null; reason = data.reason || (res ? '' : 'unusable'); } } catch (e) { res = null; }
     if (tok !== advTok) return;   // a new game has started since
-    if (res && res.verdict) gmView = { state: 'done', result: res, facts };
+    if (res && res.verdict) { gmView = { state: 'done', result: res, facts }; if (window.FX && FX.soundOn) setTimeout(() => { if (tok === advTok && gmView.state === 'done') gmSpeak(gmView); }, 250); }
     else { const msg = { limit: 'You have used all of today\'s GM reviews. Come back tomorrow.', unavailable: 'Your GM is not available right now.', unusable: 'Your GM could not put it into words this time.' }[reason] || 'Your GM could not be reached just now.'; gmView = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
     paintGM();
   }
@@ -1472,7 +1550,7 @@ body.war .dec { color: var(--wb-red); }
   }
 
   function start() {
-    advTok++; busy = false; plays = []; ab = { batter: '', pitcher: '' }; gmView = { state: 'idle' };
+    gmStop(); advTok++; busy = false; plays = []; ab = { batter: '', pitcher: '' }; gmView = { state: 'idle' };
     const mine = $('youSel').value, others = teams.filter(t => t.key !== mine);
     cpuKey = others[Math.floor(Math.random() * others.length)].key;
     const [a, h] = pairing(); you = 1;
