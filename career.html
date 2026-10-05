@@ -106,6 +106,10 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
 .badge2 { display: inline-block; padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: 14px; background: #E8EEF9; color: #1F3F8F; } .badge2.gold { background: #F2B33D; color: #3A2A06; } .badge2.dim { background: #ECE7D7; color: #4A5560; }
 .w { color: #1D6B34; font-weight: 700; } .l { color: #A12A22; font-weight: 700; }
 .cta { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; background: #1F3F8F; color: #fff; border: 0; border-radius: 6px; font: 700 17px var(--text); text-decoration: none; cursor: pointer; }
+.ms { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; } .ms li { padding: 8px 12px; border-radius: 18px; font-size: 15px; } .ms .got { background: #FFF1C2; border: 1px solid #C69A2B; font-weight: 600; } .ms .got span { color: #B07D10; }
+.ms .nx { background: #fff; border: 1px dashed #8C959E; display: flex; gap: 10px; align-items: center; } .ms .nx b { color: #1F3F8F; } .msh { margin: 14px 0 0; font-size: 17px; }
+table.rec th[scope=row] { text-align: left; font-weight: 600; }
+.kvs { margin: 10px 0 0; } .kv { display: grid; grid-template-columns: 1fr auto; gap: 1px 14px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid rgba(60,45,20,.18); } .kv .k { font-weight: 600; } .kv .v { font-size: 20px; text-align: right; color: #1F3F8F; } .kv .n { grid-column: 1 / -1; font-size: 14px; color: #5A646E; }
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -135,7 +139,82 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     const st = String(s.status || '');
     return st === 'complete' ? '<span class="badge2 dim">Completed</span>' : st === 'canceled' ? '<span class="badge2 dim">Canceled</span>' : st === 'started' ? '<span class="badge2 dim">In progress</span>' : '<span class="badge2 dim">Not started</span>';
   }
-  function render(c) {
+  const sumOf = (st, k) => ((st && st.quick && st.quick.sums && +st.quick.sums[k]) || 0) + ((st && st.leagues && st.leagues.sums && +st.leagues.sums[k]) || 0);
+  const r3 = (a, b) => (b > 0 ? (a / b).toFixed(3).replace(/^0/, '') : '\u2013'), r2 = (a, b) => (b > 0 ? (a / b).toFixed(2) : '\u2013'), p0 = (a, b) => (b > 0 ? Math.round(a / b * 100) + '%' : '\u2013');
+  const GRADES = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];
+  const row = (label, val, note) => `<div class="kv"><span class="k">${label}</span><b class="v">${val}</b>${note ? `<span class="n">${note}</span>` : ''}</div>`;
+  function numbersCard(st) {
+    const q = st.quick || {}, lg = st.leagues || {}, qg = n(q.with_stats), lgm = n(lg.games), games = qg + lgm; if (!games) return '';
+    const S = k => sumOf(st, k), ab = S('ab'), h = S('h'), outs = S('outs'), ip = outs / 3;
+    const rfAll = n(q.rf) + n(lg.rf), raAll = n(q.ra) + n(lg.ra), gAll = n(q.games) + lgm;
+    return `<section class="card2" id="numbers"><h2>Your numbers</h2><p class="muted">Counted from ${games} ${games === 1 ? 'game' : 'games'} with a stat line (quick games and league games). Games played before stats were kept are not in these.</p>
+      <section class="stats" aria-label="Batting">${stat(r3(h, ab), 'batting average')}${stat(n(S('hr')), 'home runs')}${stat(n(S('bb')), 'walks')}${stat(n(S('so')), 'strikeouts')}</section>
+      <div class="kvs">
+        ${row('Hits per game', r2(h, games), n(h) + ' hits in ' + games + ' games')}
+        ${row('Extra-base hits', n(S('d2')) + n(S('d3')) + n(S('hr')), n(S('d2')) + ' doubles, ' + n(S('d3')) + ' triples, ' + n(S('hr')) + ' home runs')}
+        ${row('Runs scored per game', r2(rfAll, gAll), n(rfAll) + ' runs in ' + gAll + ' games')}
+        ${outs ? row('Runs allowed per game', r2(raAll, gAll), n(raAll) + ' runs in ' + gAll + ' games') : ''}
+        ${outs ? row('Strikeouts per 9 innings (your pitchers)', r2(S('soa') * 9, ip), n(S('soa')) + ' in ' + ip.toFixed(1) + ' innings') : ''}
+        ${outs ? row('Walks per 9 innings', r2(S('bba') * 9, ip), n(S('bba')) + ' walks') : ''}
+        ${outs ? row('Home runs allowed per 9', r2(S('hra') * 9, ip), n(S('hra')) + ' home runs') : ''}
+        ${outs ? row('Baserunners per inning (walks plus hits)', r2(S('bba') + S('ha'), ip), n(S('ha')) + ' hits and ' + n(S('bba')) + ' walks allowed') : ''}
+        ${S('dp') ? row('Double plays turned', n(S('dp')), '') : ''}
+      </div></section>`;
+  }
+  function styleCard(st) {
+    const q = st.quick || {}, lg = st.leagues || {}, games = n(q.with_stats) + n(lg.games); if (!games) return '';
+    const S = k => sumOf(st, k), tries = S('sb') + S('cs'), bunts = S('sac') + S('bhit'), bAll = bunts + S('bfail');
+    return `<section class="card2" id="style"><h2>How you manage</h2><p class="muted">The calls you make, counted over ${games} ${games === 1 ? 'game' : 'games'}. In a league your settings make them for you.</p>
+      <div class="kvs">
+        ${row('Steals', tries ? n(S('sb')) + ' of ' + tries + ' (' + p0(S('sb'), tries) + ')' : 'none yet', tries ? 'runners safe, out of every try' : 'No stolen-base tries yet.')}
+        ${row('Sacrifice and bunt calls', bAll ? n(bunts) + ' of ' + bAll + ' worked' : 'none yet', bAll ? 'the runner moved up, or the bunt was a hit' : '')}
+        ${row('Intentional walks you gave', n(S('ibb')), '')}
+        ${row('Pitching changes per game', r2(S('chg') + 0, games), n(S('chg')) + ' changes, counting ones the game made for you')}
+        ${n(q.with_stats) ? row('Relievers you called in yourself', n(sumOf({ quick: q }, 'pc')), 'in quick games') : ''}
+        ${n(q.with_stats) ? row('Times you set your defense', n(sumOf({ quick: q }, 'defset')), 'in quick games') : ''}
+        ${S('defeff') ? row('Plays your defense call changed', n(S('defeff')), 'a drawn-in infield, a deep outfield and the like') : ''}
+      </div></section>`;
+  }
+  function streaksCard(st) {
+    const q = st.quick || {}; if (!n(q.games)) return '';
+    const cur = q.streak && n(q.streak.len) ? (q.streak.won ? 'Won ' : 'Lost ') + n(q.streak.len) : '\u2013', top = Array.isArray(q.clubs) && q.clubs[0];
+    return `<section class="card2" id="streaks"><h2>Streaks and big moments</h2><section class="stats" aria-label="Streaks">${stat(n(q.best_streak), 'best win streak')}${stat(cur, 'right now')}${stat(n(q.walkoffs), n(q.walkoffs) === 1 ? 'walk-off win' : 'walk-off wins')}</section>
+      <div class="kvs">
+        ${row('One-run games', n(q.one_run) ? wl(n(q.one_run_w), n(q.one_run) - n(q.one_run_w)) : '&ndash;', n(q.one_run) ? 'decided by a single run' : '')}
+        ${row('Extra-inning games', n(q.extra) ? wl(n(q.extra_w), n(q.extra) - n(q.extra_w)) : '&ndash;', n(q.extra) ? 'went past the 9th' : '')}
+        ${row('Run difference', (n(q.rf) - n(q.ra) >= 0 ? '+' : '') + (n(q.rf) - n(q.ra)), n(q.rf) + ' scored, ' + n(q.ra) + ' allowed in quick games')}
+        ${top ? row('The club you play most', esc(top.club), wl(n(top.wins), n(top.games) - n(top.wins)) + ' in ' + n(top.games) + ' games') : ''}
+      </div></section>`;
+  }
+  function draftsCard(c, st) {
+    const d = c.drafts || {}, ds = (st && st.drafts) || {}, dn = n(ds.n), dw = n(d.wins), dg = n(d.games), legendsNeed = Math.max(0, 3 - dw);
+    const recent = Array.isArray(ds.recent) ? ds.recent : [];
+    return `<section class="card2" id="drafts"><h2>Mock drafts</h2>
+      ${dn ? `<section class="stats" aria-label="Drafts">${stat(dn, dn === 1 ? 'draft graded' : 'drafts graded')}${stat(esc(ds.best_grade || '-'), 'best grade')}${stat(p0(+ds.avg_win, 1), 'average win chance')}${stat(ds.best_ny != null ? p0(+ds.best_ny, 1) : '-', 'best vs the 1927 Yankees')}</section>
+        <p>${n(ds.beat_ny) ? 'You have built ' + n(ds.beat_ny) + (n(ds.beat_ny) === 1 ? ' team' : ' teams') + ' that beat the 1927 Yankees more often than not.' : 'No draft of yours has beaten the 1927 Yankees yet.'}</p>
+        <div class="scrollx"><table class="rec"><thead><tr><th>When</th><th>Grade</th><th>Win chance</th><th>vs Yankees</th></tr></thead><tbody>${recent.map(r => `<tr><td>${esc(when(r.at))}</td><td><b>${esc(r.grade)}</b></td><td>${p0(+r.win, 1)}</td><td>${r.ny != null ? p0(+r.ny, 1) : '&ndash;'}</td></tr>`).join('')}</tbody></table></div>`
+        : (dg ? '' : `<p>No drafts on your record yet. Every draft you grade while signed in is added here.</p><p><a class="cta" href="draft.html">Start a draft</a></p>`)}
+      ${dg ? `<p>You have played ${dg} ${dg === 1 ? 'game' : 'games'} with teams you drafted and won ${dw} (${pct(dw, Math.max(0, dg - dw))}).</p>` : ''}
+      <p>${legendsNeed ? 'Legends unlock after 3 wins with a team you drafted: ' + legendsNeed + ' to go.' : 'The 45 legends are unlocked, and they stay unlocked.'}</p>
+    </section>`;
+  }
+  // milestones: each one is earned by something you really did, and the next ones show how close you are
+  function milestones(c, st) {
+    const q = st.quick || {}, ds = st.drafts || {}, l = c.leagues || {}, S = k => sumOf(st, k), dw = n((c.drafts || {}).wins), qw = n(q.wins);
+    const M = [
+      ['First quick-game win', qw, 1], ['10 quick-game wins', qw, 10], ['25 quick-game wins', qw, 25],
+      ['A 3-game win streak', n(q.best_streak), 3], ['A 5-game win streak', n(q.best_streak), 5],
+      ['A walk-off win', n(q.walkoffs), 1], ['An extra-innings win', n(q.extra_w), 1],
+      ['10 stolen bases', S('sb'), 10], ['25 home runs', S('hr'), 25],
+      ['Your first graded draft', n(ds.n), 1], ['A draft graded A or better', GRADES.indexOf(ds.best_grade) >= 0 && GRADES.indexOf(ds.best_grade) <= 2 ? 1 : 0, 1], ['A team that beats the 1927 Yankees', n(ds.beat_ny), 1],
+      ['Legends unlocked (3 wins with a drafted team)', dw, 3], ['Your first league season', n(l.joined), 1], ['A league championship', n(l.championships), 1]];
+    const done = M.filter(m => m[1] >= m[2]), next = M.filter(m => m[1] < m[2]).sort((a, b) => b[1] / b[2] - a[1] / a[2]).slice(0, 3);
+    return `<section class="card2" id="milestones"><h2>Milestones</h2><p>${done.length} of ${M.length} earned.</p>
+      ${done.length ? `<ul class="ms">${done.map(m => `<li class="got"><span aria-hidden="true">&#9733;</span> ${esc(m[0])}</li>`).join('')}</ul>` : '<p class="muted">Your first one is one game away.</p>'}
+      ${next.length ? `<h3 class="msh">Next up</h3><ul class="ms">${next.map(m => `<li class="nx"><span>${esc(m[0])}</span><b>${Math.min(n(m[1]), m[2])} of ${m[2]}</b></li>`).join('')}</ul>` : ''}</section>`;
+  }
+  function render(c, st) {
+    st = st || {};
     const q = c.quick || {}, d = c.drafts || {}, l = c.leagues || {}, qw = n(q.wins), ql = n(q.losses), dw = n(d.wins), dg = n(d.games), seasons = Array.isArray(l.seasons) ? l.seasons : [];
     const rw = n(l.reg_w), rl = n(l.reg_l), pw = n(l.po_w), pl = n(l.po_l), titles = n(l.championships);
     const legendsNeed = Math.max(0, 3 - dw);
@@ -143,6 +222,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
     const recent = Array.isArray(q.recent) ? q.recent : [];
     $('main').innerHTML = `
       <section class="stats" aria-label="At a glance">${stat(titles, titles === 1 ? 'championship' : 'championships', titles ? 'gold' : '')}${stat(n(l.joined), n(l.joined) === 1 ? 'league season' : 'league seasons')}${stat(rw + '-' + rl, 'league regular season' + (rw + rl ? ' (' + pct(rw, rl) + ')' : ''))}${stat(qw + '-' + ql, 'quick games' + (qw + ql ? ' (' + pct(qw, ql) + ')' : ''))}</section>
+      ${numbersCard(st)}${styleCard(st)}${streaksCard(st)}
       <section class="card2"><h2>Leagues</h2>
         ${seasons.length ? `<p>${n(l.completed)} finished, ${n(l.active)} in progress. Playoffs: ${wl(pw, pl)}${pw + pl ? ' (' + pct(pw, pl) + ')' : ''}. Runner-up finishes: ${n(l.runner_ups)}. Best regular-season records: ${n(l.best_records)}.</p>
           <div class="scrollx"><table class="rec"><thead><tr><th>League</th><th>When</th><th>Record</th><th>Playoffs</th><th>Finish</th></tr></thead><tbody>${seasons.map(s => `<tr><td>${esc(s.league)}</td><td>${esc(when(s.at))}</td><td>${wl(n(s.rw), n(s.rl))}</td><td>${n(s.pw) + n(s.pl) ? wl(n(s.pw), n(s.pl)) : '&ndash;'}</td><td>${finish(s)}</td></tr>`).join('')}</tbody></table></div>`
@@ -152,17 +232,16 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
         ${qw + ql ? `<p>${wl(qw, ql)} (${pct(qw, ql)}) against the computer. Your last ${recent.length}:</p><div class="scrollx"><table class="rec"><thead><tr><th>Date</th><th>Your club</th><th>Opponent</th><th>Score</th><th></th></tr></thead><tbody>${recent.map(r => `<tr><td>${esc(when(r.at))}</td><td>${esc(r.me)}</td><td>${esc(r.opp)}</td><td>${n(r.for)}&ndash;${n(r.against)}</td><td>${r.won ? '<span class="w">W</span>' : '<span class="l">L</span>'}</td></tr>`).join('')}</tbody></table></div><p class="muted">Quick games are played in your browser, so this is your own scorebook, not a standings table.</p>`
           : `<p>No quick games on your record yet. Every quick game you finish while signed in is added here.</p><p><a class="cta" href="play.html">Play a quick game</a></p>`}
       </section>
-      <section class="card2"><h2>Mock drafts</h2>
-        ${dg ? `<p>You have played ${dg} ${dg === 1 ? 'game' : 'games'} with teams you drafted and won ${dw} (${pct(dw, Math.max(0, dg - dw))}). You have won with ${n(d.modes_cleared)} of the 5 draft kinds.</p>` : `<p>No drafted-team games yet. Draft a team and play it against the computer's.</p><p><a class="cta" href="draft.html">Start a draft</a></p>`}
-        <p>${legendsNeed ? 'Legends unlock after 3 wins with a team you drafted: ' + legendsNeed + ' to go.' : 'The 45 legends are unlocked, and they stay unlocked.'}</p>
-      </section>`;
+      ${draftsCard(c, st)}
+      ${milestones(c, st)}`;
   }
   async function load() {
     const cc = window.CC, main = $('main'); if (!cc) { main.innerHTML = '<section class="card2"><p>We could not load the sign-in. Please refresh.</p></section>'; return; }
     if (!cc.user) { main.innerHTML = '<section class="card2"><h2>Sign in to see your record</h2><p>Your quick games, league seasons and championships are kept with your free account. Just your email, no password.</p><p><button class="cta" id="signin" type="button">Sign in</button></p></section>'; $('signin').onclick = () => cc.requireSignIn && cc.requireSignIn('Sign in to see your record'); return; }
     let res; try { res = await cc.client.rpc('my_career'); } catch (e) { res = { error: e }; }
     if (res.error || !res.data) { main.innerHTML = '<section class="card2"><p>We could not load your record. Please refresh the page.</p></section>'; return; }
-    render(res.data);
+    let st = null; try { const r2 = await cc.client.rpc('my_stats'); if (!r2.error) st = r2.data; } catch (e) {}   // the bigger numbers are a bonus: if they cannot load, the record still shows
+    render(res.data, st);
   }
   window.addEventListener('cc-auth', load);
   (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
