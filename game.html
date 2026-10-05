@@ -33,7 +33,8 @@ button { font: inherit; }
 .card h2 { font: 400 24px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
 .note { font-size: 14px; color: #4A5560; }
 .btn { border: 0; border-radius: 4px; padding: 10px 20px; font-weight: 600; cursor: pointer; min-height: 46px; text-decoration: none; display: inline-block; background: var(--wb-ink); color: #fff; }
-.btn:hover { background: #17306E; } .gm { margin: 18px 0 0; padding: 14px 16px; background: #FFF7E0; border: 2px solid #C69A2B; border-radius: 8px; color: #1B1F24; text-align: left; } .gm h3 { margin: 0 0 6px; font: 700 22px var(--display, Georgia, serif); color: #5A3F06; } .gm h4 { margin: 12px 0 2px; font: 700 13px var(--text, sans-serif); letter-spacing: .05em; text-transform: uppercase; color: #6B4E0E; } .gm p { margin: 4px 0; max-width: 70ch; line-height: 1.45; } .gm .btn { margin-top: 8px; min-height: 44px; } .gm-chg { margin: 8px 0; padding: 8px 10px; background: #fff; border-left: 4px solid #C69A2B; border-radius: 4px; } .gm-chg b { font-size: 15px; } .gm-chg p { margin: 2px 0 0; } .gm .gmv { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 10px; } .gm .gmv .note { margin: 0; font-size: 13px; }
+.btn:hover { background: #17306E; } .fp { text-align: center; margin: 10px 0 0; } .fp code { font-size: 12px; }
+.gm { margin: 18px 0 0; padding: 14px 16px; background: #FFF7E0; border: 2px solid #C69A2B; border-radius: 8px; color: #1B1F24; text-align: left; } .gm h3 { margin: 0 0 6px; font: 700 22px var(--display, Georgia, serif); color: #5A3F06; } .gm h4 { margin: 12px 0 2px; font: 700 13px var(--text, sans-serif); letter-spacing: .05em; text-transform: uppercase; color: #6B4E0E; } .gm p { margin: 4px 0; max-width: 70ch; line-height: 1.45; } .gm .btn { margin-top: 8px; min-height: 44px; } .gm-chg { margin: 8px 0; padding: 8px 10px; background: #fff; border-left: 4px solid #C69A2B; border-radius: 4px; } .gm-chg b { font-size: 15px; } .gm-chg p { margin: 2px 0 0; } .gm .gmv { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 10px; } .gm .gmv .note { margin: 0; font-size: 13px; }
 .btn.alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; } .btn.alt:hover { background: #E9ECEA; }
 .btn.big { font-size: 20px; padding: 12px 30px; min-height: 54px; }
 .btn[disabled] { opacity: .5; cursor: default; }
@@ -149,7 +150,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (!S.id) { setMsg('That game link isn\'t valid.'); return; }
     if (!c || !window.CC.user) { $('sub').textContent = 'Sign in to see this game.'; if (c) window.CC.requireSignIn('Sign in to see your game'); return; }
     try {
-      const gm = await c.from('games').select('id,league_id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs,round,game_no').eq('id', S.id);
+      const gm = await c.from('games').select('id,league_id,day,seq,away_seat,home_seat,opens_at,deadline_at,status,away_runs,home_runs,round,game_no,seed_commit').eq('id', S.id);
       S.game = gm.data && gm.data[0]; if (!S.game) { setMsg('We couldn\'t find that game, or you\'re not in that league.'); return; }
       const [seats, board, lg] = await Promise.all([c.from('seats').select('league_id,seat_no'), c.from('seat_board').select('seat_no,club_name').eq('league_id', S.game.league_id), c.from('game_logs').select('log,result,final').eq('game_id', S.id)]);
       const mine = (seats.data || []).find(s => s.league_id === S.game.league_id); S.mySeat = mine ? mine.seat_no : null; S.board = board.data || [];
@@ -259,7 +260,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (S.mode === 'msg') { m.innerHTML = `<section class="card"><p>${esc(S.msg)}</p><div class="row"><a class="btn alt" href="${g ? 'season.html?league=' + g.league_id : 'private.html'}">Back to the season</a></div></section>` + starterCard(); bindStarter(); return; }
     if (S.mode === 'ready') {
       m.innerHTML = `<section class="card"><h2>Ready to play?</h2><p>You and your opponent are playing the same game, and the server rolls every die. Play it yourself and roll each at-bat, or sim it now. Either way the result is final, and if you don't finish by ${esc(fmt(g.deadline_at))} the server plays it out for you.</p>
-        <div class="row"><button class="btn big" id="goPlay" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Setting up…' : 'Play it: roll every at-bat'}</button><button class="btn alt" id="goSim" ${S.busy ? 'disabled' : ''}>Sim it now</button></div><p class="msg err" id="startMsg" role="alert">${esc(S.msg)}</p></section>`;
+        <div class="row"><button class="btn big" id="goPlay" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Setting up…' : 'Play it: roll every at-bat'}</button><button class="btn alt" id="goSim" ${S.busy ? 'disabled' : ''}>Sim it now</button></div><p class="msg err" id="startMsg" role="alert">${esc(S.msg)}</p>${g.seed_commit ? `<p class="note fp">The dice for this game are locked. Fingerprint: <code>${esc(g.seed_commit.slice(0, 16))}…</code> After the game you can <a href="audit.html?g=${g.id}">check them</a>.</p>` : ''}</section>`;
       m.insertAdjacentHTML('beforeend', starterCard()); bindStarter();
       $('goPlay').onclick = () => start('play'); $('goSim').onclick = () => { if (confirm('Sim this game now? The server rolls every at-bat and the result is final.')) start('sim'); };
       return;
@@ -416,6 +417,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     el.innerHTML = `<h2>Final</h2><p class="big-score">${esc(R.names[win])} win, ${Math.max(R.away_runs, R.home_runs)} to ${Math.min(R.away_runs, R.home_runs)}</p><p class="note">${esc(decs)}</p>
       ${S.finishing ? '<p class="msg">Recording the result…</p>' : S.finishErr ? `<p class="msg err" role="alert">${esc(S.finishErr)}</p><div class="row" style="justify-content:center"><button class="btn" id="retry">Try again</button></div>` : recorded ? '<p class="msg ok">The result is official and counts in the standings.</p>' : ''}
       <div class="row" style="justify-content:center"><a class="btn" href="season.html?league=${g.league_id}">Back to the season</a></div>
+      ${recorded && g.seed_commit ? `<p class="note fp">The dice were locked before this game: fingerprint <code>${esc(g.seed_commit.slice(0, 16))}…</code> <a href="audit.html?g=${g.id}">Check this game's dice</a></p>` : ''}
       <div style="text-align:left"><h2 style="margin-top:20px">Box score</h2>${boxTable(R, 0)}${boxTable(R, 1)}</div>`;
     const rb = $('retry'); if (rb) rb.onclick = finish;
     showGM();

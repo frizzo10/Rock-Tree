@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Check a game's dice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+button, input { font: inherit; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 16px 48px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; }
+.crumbs .badge img { width: 100%; height: 100%; }
+
+.board { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 22px 28px 20px; }
+.board h1 { font: 400 clamp(30px, 5.5vw, 48px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.board p { margin: 0; max-width: 64ch; color: #3A434D; }
+.stats { margin-top: 12px !important; font-weight: 600; color: var(--wb-green) !important; }
+.pad { background: #FFF3A0 repeating-linear-gradient(#FFF3A0 0 25px, #C9D6E6 25px 26px); color: #2A2A2A; border-radius: 2px; padding: 10px 16px 12px 42px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,.18); margin: 16px 0 0; }
+.pad::before { content: ''; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: #E7A0A0; }
+.pad h2 { font: 400 20px/26px var(--marker); color: var(--wb-red); margin: 0; }
+.pad p, .pad li { line-height: 26px; margin: 0; }
+.pad ul { margin: 0; padding-left: 18px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin: 20px 0 14px; }
+.tabs, .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { background: transparent; border: 1.5px solid #8C959E; color: var(--ink); border-radius: 4px; padding: 8px 16px; font: 400 19px/1 var(--marker); cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--wb-ink); border-color: var(--wb-ink); color: #fff; }
+.tab small { font: 600 12px var(--text); margin-left: 6px; opacity: .85; }
+.chip { background: transparent; border: 1px solid #8C959E; color: var(--ink); border-radius: 16px; padding: 5px 14px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--wall); border-color: var(--ink); }
+
+.btn { border: 0; border-radius: 4px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+.btn-main { background: var(--wb-ink); color: #fff; }
+.btn-main:hover { background: #17306E; }
+.btn-alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; }
+.btn-alt:hover { background: #E9ECEA; }
+.btn[disabled] { opacity: .5; cursor: default; }
+
+.wallet { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 5px var(--wb-frame); padding: 10px 18px; margin: 0 0 16px; }
+.wallet .wl b { font: 400 28px/1 var(--marker); color: var(--wb-ink); margin-right: 4px; }
+.wallet .wl span { font-size: 13.5px; color: #4A5560; margin-left: 10px; }
+.wallet details { font-size: 13.5px; margin-top: 4px; }
+.wallet summary { cursor: pointer; font-weight: 600; }
+.wallet ul { margin: 4px 0 0; padding-left: 18px; }
+.mine { display: grid; gap: 8px; margin-bottom: 18px; }
+.mine .pad { margin: 0; }
+.mine .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 2px 0; }
+.mine .pad .btn { padding: 4px 12px; }
+a.btn { text-decoration: none; display: inline-block; line-height: 1.4; }
+.mine .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 20px; }
+.tbl { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame), 0 2px 0 rgba(0,0,0,.18); padding: 20px 22px 18px; display: flex; flex-direction: column; }
+.tbl h3 { font: 400 24px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 10px; background: #E3E6E4; color: #3A434D; }
+.tag.free { background: #D8E8DC; color: #17603A; }
+.fmt { font-size: 13.5px; color: #4A5560; margin: 6px 0 0; }
+.felt { position: relative; aspect-ratio: 5 / 3; margin: 8px 0 4px; }
+.felt::before { content: ''; position: absolute; inset: 15% 9%; border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, #2C6B4B, #1F5039); border: 7px solid #6A4A2C; box-shadow: inset 0 0 14px rgba(0,0,0,.35), 0 2px 4px rgba(0,0,0,.3); }
+.felt .count { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: #F3EAD3; pointer-events: none; }
+.felt .count b { font: 400 34px/1 var(--marker); }
+.felt .count small { font-size: 12px; opacity: .9; }
+.seats { list-style: none; margin: 0; padding: 0; }
+.seat { position: absolute; width: 14%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; display: grid; place-items: center; font: 400 13px/1 var(--marker); }
+.seat.open { border: 2px dashed #8C959E; background: rgba(247, 248, 246, .92); color: #5A6470; font-family: var(--text); font-weight: 600; }
+.seat.taken { background: var(--c); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
+.seat.me { outline: 3px solid var(--lamp); outline-offset: 1px; }
+.tbl details { font-size: 13.5px; color: #3A434D; margin: 2px 0 10px; }
+.tbl summary { cursor: pointer; font-weight: 600; }
+.tbl details ul { margin: 4px 0 0; padding-left: 18px; columns: 2; }
+.tbl .go { margin-top: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tbl .go .youare { font-size: 14px; font-weight: 600; color: var(--wb-green); }
+.empty, .msg { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame); padding: 22px 26px; grid-column: 1 / -1; }
+.toast { min-height: 1.5em; margin: 0 0 8px; font-weight: 600; color: var(--wb-green); }
+.toast.err { color: var(--wb-red); }
+.cash h2, .how h2 { font: 400 26px/1.15 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.cash .panel, .how .panel { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 6px var(--wb-frame); padding: 20px 24px; }
+.cash ul, .how ol { margin: 0 0 4px; padding-left: 20px; }
+.cash li, .how li { margin: 4px 0; }
+.how { margin-top: 30px; }
+dialog { border: 0; padding: 0; background: transparent; max-width: 100%; }
+dialog::backdrop { background: rgba(28, 32, 30, .8); }
+.dlg { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame); padding: 28px 30px 24px; width: min(440px, 92vw); }
+.dlg h2 { font: 400 26px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; }
+.dlg p { margin: 0 0 12px; color: #3A434D; }
+.dlg label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 4px; }
+.dlg input { width: 100%; padding: 11px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: #1B1F24; }
+.dlg .note { font-size: 13px; color: #5A6470; margin: 6px 0 12px; }
+.dlg .err { color: var(--wb-red); font-weight: 600; min-height: 1.4em; margin: 0 0 8px; }
+.dlg .row { display: flex; gap: 10px; flex-wrap: wrap; }
+footer { margin-top: 28px; font-size: 13px; color: var(--ink-soft); max-width: 80ch; }
+footer p { margin: 0 0 6px; }
+@media (max-width: 560px) { .tables { grid-template-columns: 1fr; } .board { padding: 18px 20px; } .tbl details ul { columns: 1; } }
+@media (prefers-reduced-motion: no-preference) { .tbl { transition: transform .15s; } .tbl:hover { transform: translateY(-2px); } }
+.invite .acts { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 8px; } .invite .invmsg { min-height: 1.4em; margin: 4px 0; font-weight: 600; color: #17603A; } .invite .invsmall { margin: 8px 0 0; font-size: 15px; }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a><a href="fairness.html" style="margin-left:14px">Is it rigged?</a><a href="howtoplay.html" style="margin-left:14px">How to play</a></nav>
+  <header class="board">
+    <h1>Check a game's dice</h1>
+    <p id="intro">Every league game gets a secret number before it is scheduled, and we publish that number's fingerprint right away. When the game ends we reveal the number. This page then replays the game on your own device, from the number, using the published engine, and checks that every roll matches.</p>
+  </header>
+  <section class="board" id="out" aria-live="polite"><p class="note">Loading…</p></section>
+  <section class="board" id="limits" hidden>
+    <h2 style="margin-top:0">What this does and does not prove</h2>
+    <ul>
+      <li><b>It proves</b> the dice were fixed before the game: the secret number matches the fingerprint that was published first, and the game follows from that number, the two clubs and the engine's published code. Nobody could have changed a roll afterward.</li>
+      <li><b>It does not prove</b> that our server ran exactly this engine. You are trusting our server for that, and the engine's fingerprints are pinned in its code.</li>
+      <li><b>It does not prove</b> we didn't try different secret numbers in advance and keep one we liked. We have no reason to, and no way to know a game's lineups and settings that early, but a replay can't rule it out.</li>
+    </ul>
+  </section>
+  <footer>
+    <p>Prototype for testing.</p>
+    <p><a href="terms.html" style="color:inherit;font-weight:600">Terms of Service</a> &middot; <a href="privacy.html" style="color:inherit;font-weight:600">Privacy Policy</a></p>
+  </footer>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id), esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const gid = Number(new URLSearchParams(location.search).get('g'));
+  const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+  const sha = async s => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+  // the database does not keep the order of an object's keys, so both sides compare them in sorted order
+  const canon = o => Array.isArray(o) ? o.map(canon) : (o && typeof o === 'object') ? Object.fromEntries(Object.keys(o).sort().map(k => [k, canon(o[k])])) : o;
+  const same = (a, b) => JSON.stringify(canon(JSON.parse(JSON.stringify(a)))) === JSON.stringify(canon(JSON.parse(JSON.stringify(b))));
+  const row = (ok, title, detail) => `<li class="ck ${ok === null ? 'wait' : ok ? 'ok' : 'bad'}"><span class="mark" aria-hidden="true">${ok === null ? '…' : ok ? '✔' : '✘'}</span><span><b>${title}</b>${detail ? `<small>${detail}</small>` : ''}</span></li>`;
+  const paint = (rows, extra) => { $('out').innerHTML = `<ul class="cks">${rows.join('')}</ul>${extra || ''}`; };
+  const back = (g) => `<p class="go"><a class="btn btn-alt" href="${g ? 'game.html?g=' + gid : 'private.html'}">Back to the game</a></p>`;
+  async function verify(a) {
+    const rows = [];
+    const fp = await sha(a.seed), fpOk = fp === a.commit;
+    rows.push(row(fpOk, fpOk ? 'The secret number matches the fingerprint published before the game' : 'The secret number does NOT match the fingerprint', `Fingerprint: <code>${esc(a.commit)}</code>`));
+    paint(rows.concat(row(null, 'Checking the engine…'))); if (!fpOk) return paint(rows, back(true));
+    const inp = a.inputs; if (!inp || !inp.engine || !inp.away || !inp.home) { rows.push(row(false, 'This game was played before dice checks existed', 'Its record has no secret number or inputs saved, so it cannot be replayed.')); return paint(rows, back(true)); }
+    const e = inp.engine, names = ['rng.js', 'engine.js', 'dice-engine.js', 'sim-core.js', 'sim-data.json'];
+    let files; try { files = await Promise.all(names.map(async n => { const t = await (await fetch(e.base + n)).text(); return { n, t, h: await sha(t) }; })); } catch (err) { rows.push(row(false, 'Could not download the published engine', 'Check your connection and try again.')); return paint(rows, back(true)); }
+    const bad = files.filter(f => f.h !== e.files[f.n]);
+    rows.push(row(!bad.length, !bad.length ? 'The engine is the published one: all five files match their fingerprints' : 'The engine does not match: ' + bad.map(f => esc(f.n)).join(', '), files.map(f => `${esc(f.n)} <code>${f.h.slice(0, 12)}…</code>`).join(' · ')));
+    paint(rows.concat(row(null, 'Replaying the game…'))); if (bad.length) return paint(rows, back(true));
+    let out; try {
+      const t = Object.fromEntries(files.map(f => [f.n, f.t]));
+      (0, eval)(t['rng.js']); (0, eval)(t['engine.js']); (0, eval)(t['dice-engine.js']);
+      const playGame = new Function(t['sim-core.js'].replace(/^import .*$/gm, '').replace(/^export function /gm, 'function ') + '\nreturn playGame;')();
+      Math.random.seed(a.seed); try { out = playGame({ away: canon(inp.away), home: canon(inp.home), day: inp.day, data: JSON.parse(t['sim-data.json']) }); } finally { Math.random.seed(null); }
+    } catch (err) { rows.push(row(false, 'The replay could not run', esc(err.message || err))); return paint(rows, back(true)); }
+    const logOk = same(out.log, a.log), resOk = same(out.result, a.result), R = a.result;
+    rows.push(row(logOk && resOk, logOk && resOk ? 'Replaying the game from the secret number gives exactly the same game' : 'The replay does NOT match the recorded game', logOk && resOk ? `${a.log.length} plays, every roll identical. Final: ${esc(R.names[R.away_runs > R.home_runs ? 0 : 1])} win ${Math.max(R.away_runs, R.home_runs)} to ${Math.min(R.away_runs, R.home_runs)}.` : `plays match: ${logOk ? 'yes' : 'no'} · result matches: ${resOk ? 'yes' : 'no'}`));
+    paint(rows, `<details class="inp"><summary>What the engine was given</summary><p class="note">The two clubs' rosters and each manager's settings as they stood when the game was played, and the day of the schedule. It was never told who owns a club or what is at stake.</p><pre>${esc(JSON.stringify(canon({ away: inp.away, home: inp.home, day: inp.day }), null, 1))}</pre></details>` + back(true));
+    $('limits').hidden = false;
+  }
+  async function start() {
+    if (!Number.isInteger(gid) || gid < 1) return paint([row(false, 'Open this page from a finished game.', 'It needs a game number.')]);
+    for (let i = 0; i < 60 && !(window.CC && CC.client); i++) await new Promise(r => setTimeout(r, 150));
+    const cc = window.CC; if (!cc || !cc.client) return paint([row(false, 'The page could not connect.', 'Refresh and try again.')]);
+    if (!cc.user) { $('out').innerHTML = '<p>Sign in to check a game from your own league.</p><p class="go"><button class="btn" id="sg" type="button">Sign in</button></p>'; $('sg').onclick = () => cc.requireSignIn && cc.requireSignIn('Sign in to check a game'); return; }
+    paint([row(null, 'Getting the game…')]);
+    const { data, error } = await cc.client.rpc('game_audit', { p_game_id: gid });
+    if (error || !data) return paint([row(false, 'You can only check games in your own leagues.', 'If this is your game, sign in with the account that is in the league.')], back(false));
+    $('limits').hidden = false;
+    if (data.status !== 'final') return paint([row(true, "This game's dice are locked", `Fingerprint: <code>${esc(data.commit || 'not available')}</code><small>The secret number behind it is revealed when the game ends. Come back after it is final and this page will replay it. If you like, copy the fingerprint now: after the game it has to match.</small>`)], back(true));
+    return verify(data);
+  }
+  window.addEventListener('cc-auth', () => { if (!window.__auditRan) { window.__auditRan = true; start(); } });
+  start().then(() => { window.__auditRan = true; });
+})();
+</script>
+<style>
+.cks { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; } .ck { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border: 1px solid #D9DDE2; border-radius: 6px; background: #fff; } .ck .mark { font-size: 20px; font-weight: 700; min-width: 1.2em; text-align: center; } .ck.ok { border-left: 5px solid #1E7B45; } .ck.ok .mark { color: #1E7B45; } .ck.bad { border-left: 5px solid #B3261E; } .ck.bad .mark { color: #B3261E; } .ck.wait .mark { color: #6B747C; } .ck small { display: block; margin-top: 3px; font-weight: 400; color: #4A5560; overflow-wrap: anywhere; } .ck code { font-size: 12px; overflow-wrap: anywhere; }
+.inp pre { max-height: 320px; overflow: auto; background: #F3F5F7; padding: 10px; border-radius: 6px; font-size: 12px; } .go { margin: 12px 0 4px; display: flex; flex-wrap: wrap; gap: 10px; }
+</style>
+</body>
+</html>
