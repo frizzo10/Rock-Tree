@@ -595,7 +595,9 @@ body.war .dec { color: var(--wb-red); }
 .rc2-grade.g-A, .rc2-grade.g-B { color: var(--wb-green); } .rc2-grade.g-C { color: #B07D10; } .rc2-grade.g-D, .rc2-grade.g-F { color: var(--wb-red); }
 .rc2-syn { flex: 1; min-width: 0; } .rc2-tag { margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #5A646E; }
 .rc2-text { margin: 0 0 6px; font-size: 18px; line-height: 1.5; color: #20262D; max-width: 62ch; }
-.rc2-note { margin: 4px 0; font-size: 15px; color: #4A5560; } .gmv { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin: 6px 0 2px; } .gmv-btn { width: auto; min-height: 44px; margin: 0; } .gmv .rc2-note { margin: 0; font-size: 13px; }
+.rc2-note { margin: 4px 0; font-size: 15px; color: #4A5560; }
+.rc2-vs { margin: 6px 0 12px; } .rc2-vsl { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 4px; font-size: 13px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #5A646E; } .rc2-vsl b { font: 400 26px/1 var(--marker); letter-spacing: 0; color: var(--wb-ink); }
+.rc2-bar { position: relative; height: 12px; background: #E2E5E3; border-radius: 6px; overflow: hidden; } .rc2-bar i { display: block; height: 100%; background: var(--wb-ink); border-radius: 6px; transition: width .5s; } .rc2-bar .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: #6B747C; opacity: .6; } .rc2-fine2 { white-space: nowrap; color: #6B747C; font-size: 13px; } .gmv { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin: 6px 0 2px; } .gmv-btn { width: auto; min-height: 44px; margin: 0; } .gmv .rc2-note { margin: 0; font-size: 13px; }
 .rc2-link { display: inline-block; background: none; border: 0; padding: 0 2px; margin: 0 0 6px; font: inherit; font-weight: 700; color: var(--wb-ink); text-decoration: underline; cursor: pointer; min-height: 44px; }
 .rc2-more { background: var(--wb-ink); color: #fff; border: 0; border-radius: 4px; padding: 11px 22px; font-weight: 600; cursor: pointer; margin: 4px 0 10px; min-height: 44px; }
 .rc2-more:hover { background: #17306E; }
@@ -2092,7 +2094,9 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     $('reportCard').innerHTML = '<p>Grading your draft: simulating 1,000 games against the computer…</p>';
     const r = await playSeries(simTeam('you', 'You'), simTeam('cpu', 'Computer'), 1000);
     if (D !== d0) { grading = false; return; }
-    D.report = { p: r.p, grade: letterFor(Math.round(r.p * 100) / 100), bo7: bestOf7(r.p), you: r.a, cpu: r.b, gy: teamGrades('you'), gc: teamGrades('cpu') };
+    const ny = await playSeries(simTeam('you', 'You'), NYY, 1000);
+    if (D !== d0) { grading = false; return; }
+    D.report = { p: r.p, grade: letterFor(Math.round(r.p * 100) / 100), bo7: bestOf7(r.p), you: r.a, cpu: r.b, ny: ny.p, nyYou: ny.a, nyThem: ny.b, gy: teamGrades('you'), gc: teamGrades('cpu') };
     save(); grading = false; justGraded = true;
     drawReportCard();
   }
@@ -2189,6 +2193,12 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     if (n) n.textContent = st.speaking && st.via === 'loading' ? 'Your GM is clearing his throat…' : st.speaking && st.via === 'device' ? "Speaking in your phone's voice." : '';
   }
   if (window.GMVoice) GMVoice.on(paintRcVoice);
+  let nyyBusy = false;
+  async function ensureNyy() {   // an older saved report has no 1927 Yankees number: work it out once, from the same 1,000-game kind of series
+    const R = D && D.report; if (!R || typeof R.ny === 'number' || nyyBusy) return; nyyBusy = true;
+    try { const ny = await playSeries(simTeam('you', 'You'), NYY, 1000); if (D && D.report === R) { R.ny = ny.p; R.nyYou = ny.a; R.nyThem = ny.b; save(); drawReportCard(); } } finally { nyyBusy = false; }
+  }
+  const nyyLine = R => { const pc = Math.round(R.ny * 100); return pc >= 50 ? `Your team would beat the 1927 Yankees ${pc} games in every 100. That beats one of the greatest teams in baseball history.` : pc >= 35 ? `Your team would beat the 1927 Yankees about ${pc} games in every 100, a real fight against one of the greatest teams in baseball history.` : pc >= 20 ? `Your team would beat the 1927 Yankees ${pc} games in every 100. They are a tough opponent.` : `Your team would beat the 1927 Yankees only ${pc} games in every 100. Few teams keep up with them.`; };
   function drawReportCard() {
     const R = D.report; if (!R) return;
     const st = strengths(R), picks = reviewPicks(), ai = R.ai, margin = R.you - R.cpu, g = R.grade;
@@ -2204,6 +2214,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
           <div class="rc2-grade g-${g[0]}" role="img" aria-label="Draft grade ${g}">${g}</div>
           <div class="rc2-syn"><p class="rc2-tag">${ai ? "Your GM's synopsis" : 'Synopsis'}</p><p class="rc2-text" id="rcSyn">${esc(syn)}</p>${ai ? '<div class="gmv"><button type="button" class="rc2-more gmv-btn" id="rcListen" aria-pressed="false">Hear it</button><p class="rc2-note" id="rcVoiceNote" role="status"></p></div>' : ''}${aiLine}</div>
         </div>
+        ${typeof R.ny === 'number' ? `<div class="rc2-vs"><p class="rc2-vsl">Your team vs the 1927 Yankees<b>${Math.round(R.ny * 100)}%</b></p><div class="rc2-bar" role="img" aria-label="Your team wins ${Math.round(R.ny * 100)} percent of games against the 1927 Yankees"><i style="width:${Math.max(2, Math.round(R.ny * 100))}%"></i><span class="mid" aria-hidden="true"></span></div><p class="rc2-note">${nyyLine(R)} <span class="rc2-fine2">Runs a game: you ${(R.nyYou || 0).toFixed(1)}, the Yankees ${(R.nyThem || 0).toFixed(1)}.</span></p></div>` : '<p class="rc2-note">Working out how you stack up against the 1927 Yankees…</p>'}
         <button type="button" class="rc2-more" id="rcMore" aria-expanded="${rcOpen}" aria-controls="rcDetail">${rcOpen ? 'Hide the walkthrough' : 'See the full walkthrough'}</button>
         <div id="rcDetail" ${rcOpen ? '' : 'hidden'}>
           <div class="rc">
@@ -2222,7 +2233,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     if ($('rcSign')) $('rcSign').onclick = () => window.CC.requireSignIn("Sign in to hear from your GM");
     if ($('rcAgain')) $('rcAgain').onclick = () => { R.aiTried = false; reviewAI(); };
     if (justGraded) { justGraded = false; $('donePanel').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); }
-    reviewAI();
+    reviewAI(); ensureNyy();
   }
   window.addEventListener('cc-auth', () => { if (D && D.done && D.report) drawReportCard(); });
 
