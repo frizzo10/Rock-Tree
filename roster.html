@@ -169,6 +169,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   const owned = () => new Set(Object.values(S.roster).map(pidOf));
 
   // ---------- loading ----------
+  const THEMES = { eighties: { name: '1980s Legends', lo: 1980, hi: 1989, note: 'Only seasons from 1980 to 1989 can be on your roster.' }, modern: { name: 'Modern All-Stars', lo: 2000, hi: 9999, note: 'Only seasons from 2000 on can be on your roster.' }, dynasty: { name: 'All-Time Dynasty', lo: 0, hi: 9999, note: 'Every season from 1901 to 2025 is open.' } };
   async function load() {
     const c = client();
     if (!S.id) { $('sub').innerHTML = 'No league was chosen. <a href="private.html">Go to your private leagues</a>.'; return; }
@@ -176,14 +177,16 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     $('sub').textContent = 'Loading…';
     try {
       const [lg, seat, ros, board, pool] = await Promise.all([
-        c.from('leagues').select('id,name,status,salary_cap,rosters_locked_at,roster_deadline_at,is_public').eq('id', S.id),
+        c.from('leagues').select('id,name,status,salary_cap,rosters_locked_at,roster_deadline_at,is_public,theme').eq('id', S.id),
         c.from('seats').select('seat_no,club_name').eq('league_id', S.id),
         c.from('league_rosters').select('user_id,slots,ready,payroll').eq('league_id', S.id),
         c.from('seat_board').select('seat_no,club_name,ready').eq('league_id', S.id),
         S.pool.length ? Promise.resolve(S.pool) : fetch('roster-pool.json').then(r => r.json())]);
       S.league = lg.data && lg.data[0]; S.seat = seat.data && seat.data[0];
       if (!S.league || !S.seat) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
-      S.pool = pool; S.byKey = new Map(pool.map(p => [p.k, p])); S.cap = Number(S.league.salary_cap);
+      const TH = THEMES[S.league.theme] || null; S.theme = TH; S.pool = TH ? pool.filter(p => p.y >= TH.lo && p.y <= TH.hi) : pool; S.byKey = new Map(S.pool.map(p => [p.k, p])); S.cap = Number(S.league.salary_cap);
+      if (!$('themeNote')) { const tn = document.createElement('p'); tn.id = 'themeNote'; tn.className = 'note'; tn.setAttribute('role', 'status'); $('sub').after(tn); }
+      $('themeNote').innerHTML = TH ? `<b>Theme: ${TH.name}.</b> ${TH.note} ${S.pool.length} seasons are in this league's pool.` : '';
       const mine = (ros.data || []).find(r => r.user_id === window.CC.user.id);
       S.roster = {}; if (mine) Object.entries(mine.slots || {}).forEach(([slot, k]) => { if (k && slotById[slot] && S.byKey.has(k)) S.roster[slot] = k; });
       S.ready = !!(mine && mine.ready); S.locked = !!S.league.rosters_locked_at || !['open', 'full'].includes(S.league.status); S.board = board.data || [];
@@ -196,7 +199,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
   function buildControls() {
     if ($('tabs').children.length) return;
     $('tabs').innerHTML = [['H', 'Hitters'], ['SP', 'Starters'], ['RP', 'Relievers']].map(([v, l]) => `<button class="tab" type="button" data-tab="${v}" aria-pressed="false">${l}</button>`).join('');
-    const eras = [['all', 'All eras'], ['pre1920', 'Before 1920']].concat([1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020].map(d => [String(d), d + 's']));
+    const TH = S.theme, eras = (TH ? [['all', 'All eras in this theme']] : [['all', 'All eras'], ['pre1920', 'Before 1920']]).concat([1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020].filter(d => !TH || (d + 9 >= TH.lo && d <= TH.hi)).map(d => [String(d), d + 's']));
     $('era').innerHTML = eras.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
     $('tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) { S.tab = b.dataset.tab; S.pos = 'all'; S.target = null; S.limit = 60; render(); } };
     $('poss').onclick = e => { const b = e.target.closest('[data-pos]'); if (b) { S.pos = b.dataset.pos; S.limit = 60; render(); } };

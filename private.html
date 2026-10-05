@@ -56,6 +56,7 @@ textarea { min-height: 70px; resize: vertical; }
 .lg header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .tag { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 10px; background: #E3E6E4; color: #3A434D; margin-left: 8px; }
 .tag.c { background: #D8E8DC; color: #17603A; }
+.themeblk { margin: 10px 0; } .themeblk select { min-height: 44px; max-width: 100%; font: inherit; } .themeblk .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } #lgTheme { min-height: 44px; max-width: 100%; font: inherit; display: block; margin: 4px 0 6px; }
 .sub { color: #4A5560; margin: 4px 0 0; }
 .members { columns: 2; margin: 8px 0 0; padding-left: 18px; }
 .invite, .ls { background: #EEF0F3; border-radius: 4px; padding: 10px 14px; margin-top: 12px; }
@@ -217,6 +218,9 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
       <input type="text" id="lgName" maxlength="40" autocomplete="off" placeholder="The Sandlot League">
       <label for="lgClub">Your club's name</label>
       <input type="text" id="lgClub" maxlength="24" autocomplete="off" placeholder="Sandlot Cubs">
+      <label for="lgTheme">Theme (optional)</label>
+      <select id="lgTheme" aria-describedby="lgThemeNote"><option value="">No theme: any season from 1901 to 2025</option><option value="eighties">1980s Legends: seasons 1980 to 1989</option><option value="modern">Modern All-Stars: seasons 2000 and later</option><option value="dynasty">All-Time Dynasty: every season, all of baseball history</option></select>
+      <p class="note" id="lgThemeNote">A theme limits every manager's roster to one pool of seasons. You can change it until someone starts a roster.</p>
       <div class="row"><button type="submit" class="btn btn-main" id="startGo">Start the league</button></div>
       <p class="msg" id="startMsg" role="status" aria-live="polite"></p>
     </form>
@@ -270,7 +274,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   function restorePending() {
     const v = pend.get(); if (!v || !window.CC || !window.CC.user) return;
     if (v.kind === 'start' && v.resume) {   // only after a trip to the inbox, not for leftovers
-      if (!$('lgName').value && !$('lgClub').value) { $('lgName').value = v.vals.name || ''; $('lgClub').value = v.vals.club || ''; }
+      if (!$('lgName').value && !$('lgClub').value) { $('lgName').value = v.vals.name || ''; $('lgClub').value = v.vals.club || ''; $('lgTheme').value = v.vals.theme || ''; }
       $('startDet').open = true; S.keepStartOpen = true; v.resume = false; store.set('cc-pending', JSON.stringify(v)); say('startMsg', "You're signed in. Picking up where you left off…"); setTimeout(() => $('startForm').requestSubmit(), 60);
     } else if (v.kind === 'join' && joinCode()) {   // the two confirmations (18 or older, invited by someone they know) are never pre-ticked or sent for them
       if (!$('joinClub').value && !$('joinRel').value) { $('joinClub').value = v.vals.club || ''; $('joinRel').value = v.vals.rel || ''; }
@@ -352,7 +356,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (!signedIn()) { S.leagues = []; S.seats = []; S.reqs = []; S.board = new Map(); S.signed = new Set(); S.sig = ''; return render(); }
     const [lg, ms, rq, sg, rst] = await Promise.all([
       // (rosters: only your own row matters here)
-      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at,buy_in_dollars,payout_split,cpu_seats,playoff_seeds,salary_cap,commish_free').eq('is_public', false).order('created_at', { ascending: true }),
+      c.from('leagues').select('id,name,status,commissioner_id,invite_code,hosting_fee_status,season_start_at,game_day_hours,phase,champion_seat,created_at,buy_in_dollars,payout_split,cpu_seats,playoff_seeds,salary_cap,commish_free,theme').eq('is_public', false).order('created_at', { ascending: true }),
       c.from('seats').select('league_id,seat_no,club_name'),
       c.from('league_requests').select('id,league_id,user_id,club_name,relationship,ai_review,status,created_at').order('created_at', { ascending: true }),
       S.agr ? c.from('agreement_signatures').select('role,version') : Promise.resolve({ data: [] }),
@@ -536,7 +540,7 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const body = ['Hi,', '', `I'm starting a baseball league called ${l.name} and I'd like you in it. It's a simulation game with real player stats and dice, and I'm only inviting people I know.`, '',
       buy > 0 ? 'The money' : 'The cost', ...moneyLines, '',
       'The game',
-      `- You build an 18-player roster of real player-seasons from baseball history, under a ${cap} salary cap. An AI scout gives advice if you want it.`,
+      `- You build an 18-player roster of real player-seasons ${THEMES[l.theme] ? `(the ${THEMES[l.theme][0]} theme: ${THEMES[l.theme][3]})` : 'from baseball history'}, under a ${cap} salary cap. An AI scout gives advice if you want it.`,
       "- It's a 27-game season, then playoffs for the top four. I'll pick the pace, from one game day a day (about 4 weeks) to three a day (about 9 days).",
       '- You roll the dice on your game days, or have the site play your game for you. If you miss a deadline, the site plays it for you. It takes a few minutes a day.',
       "- The standings, and who is in the money, are on the league page all season.",
@@ -594,16 +598,30 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     if (data) S.endv.set(id, { ...ev, votes: data.votes, needed: data.needed, managers: data.managers, mine: !!data.mine });
     S.sig = ''; await load(); say('evmsg-' + id, on ? 'Your vote is in.' : 'Your vote is taken back.', 'ok');
   }
+  const THEMES = { eighties: ['1980s Legends', 1980, 1989, 'seasons 1980 to 1989'], modern: ['Modern All-Stars', 2000, 9999, 'seasons 2000 and later'], dynasty: ['All-Time Dynasty', 0, 9999, 'every season from 1901 to 2025'] };
+  const themeOk = (t, y) => !THEMES[t] || (y >= THEMES[t][1] && y <= THEMES[t][2]);
+  const themeChip = l => THEMES[l.theme] ? `<span class="tag c" title="${esc(THEMES[l.theme][3])}">${esc(THEMES[l.theme][0])}</span>` : '';
+  // the commissioner can pick or change the theme until someone has started a roster
+  function themeBlock(l) {
+    const opts = [['', 'No theme: any season'], ['eighties', '1980s Legends: seasons 1980 to 1989'], ['modern', 'Modern All-Stars: seasons 2000 and later'], ['dynasty', 'All-Time Dynasty: every season']];
+    return `<div class="themeblk"><label for="th-${l.id}"><b>Theme</b></label><div class="row"><select id="th-${l.id}" data-theme-sel="${l.id}">${opts.map(([v, t]) => `<option value="${v}" ${(l.theme || '') === v ? 'selected' : ''}>${t}</option>`).join('')}</select><button class="btn btn-alt" type="button" data-theme-set="${l.id}">Save theme</button></div><p class="note">Every manager's roster is limited to this pool. You can change it until someone starts a roster.</p><p class="msg" id="thmsg-${l.id}" role="status" aria-live="polite"></p></div>`;
+  }
+  async function saveTheme(id) {
+    const v = $('th-' + id).value, msg = $('thmsg-' + id); msg.textContent = 'Saving…';
+    const { error } = await client().rpc('set_league_theme', { p_league_id: id, p_theme: v || null });
+    if (error) { msg.textContent = error.message; msg.className = 'msg err'; return; }
+    msg.textContent = 'Saved.'; msg.className = 'msg ok'; S.sig = ''; load();
+  }
   function leagueCard(l) {
     const me = window.CC.user.id, isC = l.commissioner_id === me, live = l.status === 'open' || l.status === 'full', started = l.status === 'started', over = l.status === 'complete', money = live || started || over;
     const members = (S.board.get(l.id) || []).slice().sort((a, b) => a.seat_no - b.seat_no), n = members.length;
     const pending = S.reqs.filter(r => r.league_id === l.id && r.status === 'pending' && r.user_id !== me);
     const mySeat = S.seats.find(s => s.league_id === l.id);
     const champ = (S.board.get(l.id) || []).find(m => m.seat_no === l.champion_seat), status = over ? (champ ? `The season is over. Champions: ${esc(champ.club_name)}.` : 'This league has ended.') : started ? (l.phase === 'playoffs' ? 'The playoffs are on.' : `Season underway: game day ${dayNow(l)} of 27.`) : l.status === 'full' ? 'All ten seats are filled.' : `${n} of 10 seats filled.`;
-    const head = `<header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}</h3><span class="note">${status}</span></header>`;
+    const head = `<header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}${themeChip(l)}</h3><span class="note">${status}</span></header>`;
     const memberList = `<ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>`;
     const ends = `<div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && live ? `<button class="btn btn-alt" data-end="${l.id}">Cancel this league</button>` : ''}</div>`;
-    if (isC && live) return `<article class="card lg" data-id="${l.id}">${head}${feeBlock(l)}${hqSteps(l, members, pending, mySeat)}${ends}</article>`;
+    if (isC && live) return `<article class="card lg" data-id="${l.id}">${head}${feeBlock(l)}${l.status === 'open' ? themeBlock(l) : ''}${hqSteps(l, members, pending, mySeat)}${ends}</article>`;
     return `<article class="card lg" data-id="${l.id}">${head}
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
       ${started ? seasonBar(l) : ''}
@@ -640,14 +658,15 @@ ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
     const buy = d.buy_in, sh = Array.isArray(d.split) ? d.split : null, free = buy === 0, set = buy != null, pot = set ? buy * (10 - (buy > 0 ? 1 : 0)) : 0, cap = d.salary_cap != null ? '$' + Number(d.salary_cap) + ' million' : 'a';
     const spots = sh && buy > 0 ? [['champion', sh[0]], ['runner-up', sh[1]], ['best regular-season record', sh[2]]].filter(x => x[1] > 0).map(x => `${x[0]} ${usd(pot * x[1] / 100)}`).join(', ') : '';
     const tile = (k, v) => `<div class="tile"><span>${k}</span><b>${v}</b></div>`;
-    const lg = (S.legends || []).map(c => `<article class="mini"><div class="y">${esc(c.yr)}</div><h4>${esc(c.name)}</h4><p>${esc(c.line)}</p></article>`).join('');
+    const lg = (S.legends || []).filter(c => themeOk(d.theme, Number(c.yr))).map(c => `<article class="mini"><div class="y">${esc(c.yr)}</div><h4>${esc(c.name)}</h4><p>${esc(c.line)}</p></article>`).join('');
     box.innerHTML = `<h2>${esc(d.name)}</h2><p class="lede">A baseball dice league with real stats from baseball history. You're here because someone who knows you asked you to play.</p>
-      <div class="tiles">${tile('Buy-in', !set ? 'To be announced' : free ? 'None' : usd(buy))}${buy > 0 ? tile('Pot if all 10 join', usd(pot)) : ''}${tile('Seats open', `${d.seats_left} of 10`)}</div>
+      <div class="tiles">${tile('Buy-in', !set ? 'To be announced' : free ? 'None' : usd(buy))}${buy > 0 ? tile('Pot if all 10 join', usd(pot)) : ''}${tile('Seats open', `${d.seats_left} of 10`)}${THEMES[d.theme] ? tile('Theme', esc(THEMES[d.theme][0])) : ''}</div>
+      ${THEMES[d.theme] ? `<p class="note"><b>${esc(THEMES[d.theme][0])}:</b> every roster in this league draws from ${esc(THEMES[d.theme][3])}.</p>` : ''}
       ${spots ? `<p class="pay"><b>Payouts if the league fills up:</b> ${esc(spots)}.</p>` : ''}
       ${buy > 0 ? '<p class="note">The commissioner is playing free, so a full league\'s pot is nine buy-ins.</p>' : ''}
       ${lg ? `<h3>Seasons you could be drafting</h3><div class="minis">${lg}</div>` : ''}
       <p><a class="btn btn-main" href="highlights.html">See the greatest seasons ever played</a></p>
-      <h3>What you'll do</h3><ul class="doing"><li>Build an 18-player roster of real seasons from baseball history, under ${cap === 'a' ? 'a' : cap} salary cap. An AI scout helps if you want it.</li><li>Play a 27-game season, then playoffs for the top four. Roll the dice on your game days, or let the site play for you if you miss one.</li><li>${buy > 0 ? 'Watch the standings, and who is in the money, all season.' : 'Watch the standings all season.'}</li></ul>
+      <h3>What you'll do</h3><ul class="doing"><li>Build an 18-player roster of real seasons ${THEMES[d.theme] ? `(${esc(THEMES[d.theme][3])})` : 'from baseball history'}, under ${cap === 'a' ? 'a' : cap} salary cap. An AI scout helps if you want it.</li><li>Play a 27-game season, then playoffs for the top four. Roll the dice on your game days, or let the site play for you if you miss one.</li><li>${buy > 0 ? 'Watch the standings, and who is in the money, all season.' : 'Watch the standings all season.'}</li></ul>
       ${buy > 0 ? `<p class="note"><b>How the money works.</b> After the commissioner approves you, the buy-in is collected and held by LeagueSafe, an independent service. The buy-in is never paid to Cooperstown Cash, and we never touch it.</p>` : ''}
       ${seatPassJoin()}
       <p class="note">The commissioner decides who joins, and you must be 18 or older.</p>`;
@@ -810,20 +829,21 @@ ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
     S.sig = ''; load();
   }
 
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-theme-set]'); if (b) saveTheme(b.dataset.themeSet); });
   $('startForm').onsubmit = async e => {
     e.preventDefault();
     if (!client()) return say('startMsg', "We couldn't reach the server. Refresh the page and try again.", 'err');
-    if (!window.CC.requireSignIn('Create your free account to start a league')) { pend.set('start', { name: $('lgName').value.trim(), club: $('lgClub').value.trim() }, true); return; }
+    if (!window.CC.requireSignIn('Create your free account to start a league')) { pend.set('start', { name: $('lgName').value.trim(), club: $('lgClub').value.trim(), theme: $('lgTheme').value }, true); return; }
     const name = $('lgName').value.trim(), club = $('lgClub').value.trim();
     if (name.length < 3) return say('startMsg', 'League names are 3 to 40 characters.', 'err');
     if (club.length < 2) return say('startMsg', 'Club names are 2 to 24 characters.', 'err');
     if (!S.agr) await loadAgreement();
     if (!(await requireAgreement('commissioner'))) return say('startMsg', 'You need to sign the commissioner agreement to start a league.', 'err');
     $('startGo').disabled = true; say('startMsg', 'Starting your league…');
-    const { error } = await client().rpc('create_private_league', { p_name: name, p_club: club });
+    const { error } = await client().rpc('create_private_league', { p_name: name, p_club: club, p_theme: $('lgTheme').value || null });
     $('startGo').disabled = false;
     if (error) return say('startMsg', error.message, 'err');
-    pend.clear(); S.keepStartOpen = false; $('lgName').value = ''; $('lgClub').value = ''; say('startMsg', 'Your league is ready. Copy the invite link above and share it with people you know.', 'ok');
+    pend.clear(); S.keepStartOpen = false; $('lgName').value = ''; $('lgClub').value = ''; $('lgTheme').value = ''; say('startMsg', 'Your league is ready. Copy the invite link above and share it with people you know.', 'ok');
     S.sig = ''; load();
   };
 
