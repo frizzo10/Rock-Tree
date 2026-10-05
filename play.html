@@ -310,6 +310,11 @@ body.war .dec { color: var(--wb-red); }
 <link rel="stylesheet" href="mobile.css">
 <style>
 .calls { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; } .calls[hidden] { display: none; } .calls .calls-t { flex: 1 0 100%; font-weight: 700; font-size: 14px; }
+.pk-lbl { font: 800 9px var(--display, Arial); letter-spacing: .04em; fill: #FFF; stroke: #10261C; stroke-width: 2.8px; paint-order: stroke; stroke-linejoin: round; text-anchor: middle; opacity: 0; animation: pklbl 2.4s ease-out forwards; animation-delay: var(--dl, 0s); }
+@keyframes pklbl { 0% { opacity: 0; transform: translateY(2px); } 8% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; } }
+.pk-ring { fill: none; stroke: #FFE37A; stroke-width: 1.6; opacity: 0; transform-box: fill-box; transform-origin: center; animation: pkring .55s ease-out forwards; animation-delay: var(--dl, 0s); }
+@keyframes pkring { 0% { opacity: .95; transform: scale(.4); } 100% { opacity: 0; transform: scale(2.6); } }
+.pk-fld { fill: #2F5FB3; stroke: #FFFFFF; stroke-width: 1.3; } .pk-trail { fill: none; stroke: rgba(255, 255, 255, .6); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 3; }
 .pen, .defp { flex: 1 0 100%; display: grid; gap: 6px; } .defp[hidden] { display: none; } .defp h4 { margin: 8px 0 0; font-size: 14px; } .defp .opt { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; } .defp .opt small { font-weight: 400; font-size: 13px; opacity: .85; } .defp .opt[aria-pressed="true"] { outline: 3px solid var(--lamp); } .defp .opt .on { font-weight: 700; color: #1E7B45; } .defp .opt-x { min-height: 44px; background: none; border: 0; text-decoration: underline; color: inherit; }
 .pen { flex: 1 0 100%; display: grid; gap: 6px; } .pen[hidden] { display: none; } .pen .pen-p { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; } .pen .pen-p small { font-weight: 400; font-size: 13px; opacity: .85; } .pen .pen-x { min-height: 44px; background: none; border: 0; text-decoration: underline; color: inherit; } .calls .call[disabled] { opacity: .55; }
 .calls .call { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 48px; padding: 8px 14px; flex: 1 1 190px; } .calls .call small { font-weight: 400; font-size: 13px; opacity: .85; line-height: 1.3; }
@@ -1059,13 +1064,57 @@ body.war .dec { color: var(--wb-red); }
     </svg>`;
   }
   function crowdWave() { const sv = $('park'); if (!sv || matchMedia('(prefers-reduced-motion: reduce)').matches) return; sv.classList.remove('pk-wave'); void sv.getBoundingClientRect(); sv.classList.add('pk-wave'); setTimeout(() => sv.classList.remove('pk-wave'), 2600); }   // a run scores: the scoreboard lights up
-  function ballFlight(play) { // a ball for the play, over the grass, drawn once
+  // what happened on the field, drawn once: the ball, the fielder who gets it, the throw, and a label (a fly out is caught, a grounder is thrown to first)
+  let flyN = 0;
+  function ballFlight(play) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; const dyn = $('parkBall'); if (!dyn) return;
-    const side = Math.random() < .5 ? -1 : 1, x = k => (170 + side * k).toFixed(0), P = PK.plate, y0 = P[1] - 4;
-    const paths = { HR: [`M${P[0]} ${y0} Q${x(50)} -6 ${x(92)} 40`, 1.8], '3B': [`M${P[0]} ${y0} Q${x(80)} 40 ${x(98)} 78`, 1.3], '2B': [`M${P[0]} ${y0} Q${x(58)} 50 ${x(70)} 84`, 1.2], S: [`M${P[0]} ${y0} Q${x(26)} 70 ${x(34)} 100`, 1], BH: [`M${P[0]} ${y0} L${x(8)} 140`, .6], FB: [`M${P[0]} ${y0} Q${x(14)} 20 ${x(26)} 78`, 1.6], LD: [`M${P[0]} ${y0} L${x(28)} 108`, .7], GB: [`M${P[0]} ${y0} L${x(34)} 130`, .9] };
-    const pick = paths[play.code] || null; if (!pick) return; const [d, secs] = pick;
-    dyn.insertAdjacentHTML('beforeend', `<circle class="pk-ball" r="3" fill="#fff" stroke="#8A8F96" stroke-width=".8"><animateMotion dur="${secs}s" path="${d}" fill="freeze"/><animate attributeName="opacity" values="1;1;0" keyTimes="0;.85;1" dur="${secs + .5}s" fill="freeze"/></circle>`);
-    setTimeout(() => { dyn.querySelectorAll('.pk-ball').forEach(e => e.remove()); }, (secs + .7) * 1000);
+    const code = play.code, dp = /double play/i.test(play.txt || ''), side = Math.random() < .5 ? -1 : 1, P = PK.plate, st = [P[0], P[1] - 4], id = 'fl' + (++flyN), pickOf = a => a[Math.floor(Math.random() * a.length)];
+    const FLD = { '1b': [231, 124], '2b': [201, 107], ss: [139, 107], '3b': [109, 124], lf: [104, 72], cf: [170, 62], rf: [236, 72] }, X = k => 170 + side * k;
+    const legs = [], flds = [], lbls = [], rings = [], snd = []; let hop = false;   // legs: the ball (from, control point, to, ms, delay); flds: fielders; lbls and rings: what pops up and when
+    const mid = (a, b, up) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - (up || 0)];
+    const to = (spot, ms, up) => legs.push({ a: st, c: mid(st, spot, up), b: spot, ms, dl: 0 });
+    const catcher = (who, spot, ms) => { const o = [spot[0] + pickOf([-14, 14]), spot[1] + pickOf([6, 12])]; flds.push({ a: o, b: spot, ms: Math.max(300, ms - 150) }); };
+    const label = (txt, at, dl) => lbls.push({ txt, at, dl }), ring = (at, dl) => rings.push({ at, dl });
+    if (code === 'HR') { legs.push({ a: st, c: [X(50), -6], b: [X(92), 40], ms: 1800, dl: 0 }); snd.push([0, 'crack', true]); }
+    else if (code === '3B') { legs.push({ a: st, c: [X(80), 40], b: [X(98), 78], ms: 1300, dl: 0 }); label('TRIPLE', [X(98), 70], 1300); snd.push([0, 'crack']); }
+    else if (code === '2B') { legs.push({ a: st, c: [X(58), 50], b: [X(70), 84], ms: 1200, dl: 0 }); label('DOUBLE', [X(70), 76], 1200); snd.push([0, 'crack']); }
+    else if (code === 'S') { legs.push({ a: st, c: [X(26), 70], b: [X(34), 100], ms: 1000, dl: 0 }); label('SINGLE', [X(34), 92], 1000); snd.push([0, 'crack']); }
+    else if (code === 'BH') { legs.push({ a: st, c: [X(4), 146], b: [X(8), 140], ms: 600, dl: 0 }); label('BUNT HIT', [X(8), 132], 600); snd.push([0, 'crack']); }
+    else if (code === 'SAC') { legs.push({ a: st, c: [X(3), 146], b: [X(6), 140], ms: 600, dl: 0 }); label('SACRIFICE', [X(6), 132], 600); snd.push([0, 'crack']); }
+    else if (code === 'FB') { const f = pickOf(['lf', 'cf', 'rf']), spot = FLD[f]; to(spot, 2000, 26); catcher(f, spot, 2000); ring(spot, 2000); label(play.scored > 0 ? 'SAC FLY' : 'FLY OUT', [spot[0], spot[1] - 9], 2000); snd.push([0, 'crack'], [2000, 'glove', true]); }
+    else if (code === 'LD') { const f = pickOf(['ss', '2b', '3b', '1b']), spot = FLD[f]; to(spot, 650, 4); catcher(f, spot, 650); ring(spot, 650); label('LINED OUT', [spot[0], spot[1] - 9], 650); snd.push([0, 'crack'], [650, 'glove']); }
+    else if (code === 'E') { const f = pickOf(['ss', '3b', '2b']), spot = FLD[f]; hop = true; to(spot, 900, 0); catcher(f, spot, 900); label('ERROR', [spot[0], spot[1] - 9], 900); snd.push([0, 'crack']); }
+    else if (code === 'GB') {
+      const f = pickOf(['3b', 'ss', '2b', '1b']), spot = FLD[f], first = PK.first, second = PK.second; hop = true; to(spot, 950, 0); catcher(f, spot, 950); snd.push([0, 'crack'], [950, 'glove', true]);
+      if (f === '1b') { ring(spot, 950); label('GROUND OUT', [spot[0], spot[1] - 9], 950); }
+      else if (dp && f !== '1b') { legs.push({ a: spot, c: mid(spot, second), b: second, ms: 420, dl: 1000 }); legs.push({ a: second, c: mid(second, first), b: first, ms: 420, dl: 1500 }); ring(second, 1420); ring(first, 1920); label('DOUBLE PLAY', [second[0], second[1] - 12], 1420); snd.push([1420, 'glove', true], [1920, 'glove', true]); }
+      else { legs.push({ a: spot, c: mid(spot, first), b: first, ms: 450, dl: 1000 }); ring(first, 1450); label('OUT AT FIRST', [first[0], first[1] - 12], 1450); snd.push([1450, 'glove', true]); }
+    }
+    else if (code === 'SO') { ring([P[0], P[1] + 6], 120); label('STRIKE 3', [P[0], P[1] - 14], 120); snd.push([60, 'glove']); }
+    else return;
+    // draw
+    dyn.querySelectorAll('.pk-fl').forEach(e => e.remove());
+    const lb = lbls.map(l => `<text class="pk-lbl pk-fl" x="${l.at[0].toFixed(1)}" y="${l.at[1].toFixed(1)}" style="--dl:${(l.dl / 1000).toFixed(2)}s">${l.txt}</text>`).join('');
+    const rg = rings.map(r => `<circle class="pk-ring pk-fl" cx="${r.at[0]}" cy="${r.at[1]}" r="5" style="--dl:${(r.dl / 1000).toFixed(2)}s"/>`).join('');
+    const fl = flds.map((f, i) => `<circle class="pk-fld pk-fl" id="${id}f${i}" r="3.8" cx="${f.a[0]}" cy="${f.a[1]}"/>`).join('');
+    const tr = legs.map((l, i) => `<polyline class="pk-trail pk-fl" id="${id}t${i}" points="" opacity="0"/>`).join('');
+    const bl = `<circle class="pk-ball pk-fl" id="${id}b" r="3.6" cx="${st[0]}" cy="${st[1]}" fill="#fff" stroke="#6F7780" stroke-width="1" opacity="0"/>`;
+    dyn.insertAdjacentHTML('beforeend', tr + fl + rg + bl + lb);
+    const ballEl = $(id + 'b'), end = Math.max(...legs.map(l => l.dl + l.ms), 0, ...lbls.map(l => l.dl + 2400), ...rings.map(r => r.dl + 600)), t0 = performance.now(), pts = legs.map(() => []);
+    const q = (a, c, b, t) => { const u = 1 - t; return [u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]]; };
+    const step = now => {
+      if (!ballEl || !ballEl.isConnected) return; const e = now - t0; let shown = false;
+      legs.forEach((l, i) => {
+        const tt = (e - l.dl) / l.ms, tr = $(id + 't' + i); if (tt < 0 || !tr) return; const c = Math.min(1, tt), p = q(l.a, l.c, l.b, c), hp = hop && i === 0 ? -Math.abs(Math.sin(c * Math.PI * 3)) * 3.2 * (1 - c) : 0;
+        pts[i].push(p[0].toFixed(1) + ',' + (p[1] + hp).toFixed(1)); if (pts[i].length > 14) pts[i].shift(); tr.setAttribute('points', pts[i].join(' ')); tr.setAttribute('opacity', tt > 1.6 ? Math.max(0, 1 - (tt - 1.6) * 2) : .9);
+        if (tt <= 1.12 && !shown) { shown = true; ballEl.setAttribute('cx', p[0].toFixed(1)); ballEl.setAttribute('cy', (p[1] + hp).toFixed(1)); ballEl.setAttribute('opacity', tt > 1 ? Math.max(0, 1 - (tt - 1) * 8) : 1); }
+      });
+      if (!shown) ballEl.setAttribute('opacity', 0);
+      flds.forEach((f, i) => { const el = $(id + 'f' + i); if (!el) return; const c = Math.min(1, e / f.ms), k = 1 - (1 - c) * (1 - c); el.setAttribute('cx', (f.a[0] + (f.b[0] - f.a[0]) * k).toFixed(1)); el.setAttribute('cy', (f.a[1] + (f.b[1] - f.a[1]) * k).toFixed(1)); });
+      if (e < end) requestAnimationFrame(step); else dyn.querySelectorAll('.pk-fl').forEach(x => x.remove());
+    };
+    requestAnimationFrame(step);
+    snd.forEach(([at, kind, soft]) => setTimeout(() => { if (window.FX && FX[kind]) FX[kind](soft); }, at));   // the crack of the bat, the pop of the glove
   }
   function drawField(snap) {
     if (!g) return;
@@ -1284,14 +1333,17 @@ body.war .dec { color: var(--wb-red); }
 
   // the home crowd: cheers for your hits and runs, groans for theirs
   function crowdReact(play) {
-    if (!window.FX) return; const mine = play.half === you, hit = ['S', 'BH', 'SB'].includes(play.code);
+    if (!window.FX) return; const mine = play.half === you, hit = ['S', 'BH', 'SB'].includes(play.code), xbh = play.code === '2B' || play.code === '3B';
     if (play.code === 'HR') { if (mine) FX.organ && FX.organ('charge'); else FX.reaction && FX.reaction('groan'); return; } // the home run celebration has its own roar
     if (!FX.reaction) return;
     if (play.scored > 0) FX.reaction(mine ? 'run' : 'groan');
-    else if (mine && (play.code === '2B' || play.code === '3B')) FX.reaction('xbh');
-    else if (mine && hit) FX.reaction('hit');
+    else if (mine && xbh) FX.reaction('xbh');
+    else if (mine && (hit || play.code === 'BB' || play.code === 'HBP')) FX.reaction('hit');
     else if (!mine && /double play/i.test(play.txt)) FX.reaction('dp');
     else if (!mine && (play.code === 'SO' || play.code === 'CS')) FX.reaction('k');
+    else if (!mine && (play.code === 'FB' || play.code === 'LD')) FX.reaction('catch');   // your defense makes the catch
+    else if (!mine && play.code === 'GB') FX.reaction('out');
+    else if (!mine && (hit || xbh)) FX.reaction('oh');   // the other club gets a hit: a worried murmur
     else if (mine && play.code === 'CS') FX.reaction('groan');
   }
   // a finished game goes on your record when you are signed in (once per game)

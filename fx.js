@@ -236,9 +236,9 @@
     if (!soundOn || !amb || !crowd || !ac) return;
     const t = ac.currentTime;
     amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(amb.bed.gain.value, t);
-    amb.bed.gain.linearRampToValueAtTime(amb.level * (big ? 2.6 : 1.9), t + 1); amb.bed.gain.linearRampToValueAtTime(amb.level, t + (big ? 7 : 4.5));
-    playBuf(crowd.roar, big ? .7 : .35, .1);
-    if (big) [.7, 1.6].forEach(d => playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], .45, d, rnd(-.8, .8)));
+    amb.bed.gain.linearRampToValueAtTime(amb.level * (big ? 3.4 : 2.4), t + 1); amb.bed.gain.linearRampToValueAtTime(amb.level, t + (big ? 7 : 4.5));
+    playBuf(crowd.roar, big ? 1 : .55, .1);
+    if (big) [.7, 1.6].forEach(d => playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], .7, d, rnd(-.8, .8)));
   }
 
   // plays a buffer over and over, overlapping each pass with the next by a second or so (equal-power fade), so the loop point can't be heard
@@ -269,7 +269,7 @@
       const len = a.sampleRate * 8; buf = a.createBuffer(2, len, a.sampleRate);
       for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); let b0 = 0, b1 = 0, b2 = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * .1848) * .11; } }
     }
-    const level = crowd && crowd.babble ? .085 : .32;
+    const level = crowd && crowd.babble ? .15 : .45;   // the crowd murmur: about 5 dB louder than before
     const bed = a.createGain(); bed.gain.value = 0.0001;
     const sway = a.createGain(); sway.gain.value = 1;
     const lfo = a.createOscillator(), lfoAmt = a.createGain(); lfo.frequency.value = .11; lfoAmt.gain.value = .12; // slow breathing, like a crowd
@@ -282,8 +282,8 @@
       ambTimer = setTimeout(() => {
         if (!amb) return; const t = a.currentTime, big = Math.random() < .3;
         amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(amb.bed.gain.value, t);
-        amb.bed.gain.linearRampToValueAtTime(level * (big ? 1.8 : 1.4), t + 1.3); amb.bed.gain.linearRampToValueAtTime(level, t + (big ? 6 : 4));
-        if (crowd) { if (big) playBuf(crowd.roar, .35, .2); if (Math.random() < .6) playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], rnd(.3, .6), rnd(.4, 1.6), rnd(-.8, .8)); }
+        amb.bed.gain.linearRampToValueAtTime(level * (big ? 2.3 : 1.7), t + 1.3); amb.bed.gain.linearRampToValueAtTime(level, t + (big ? 6 : 4));
+        if (crowd) { if (big) playBuf(crowd.roar, .55, .2); if (Math.random() < .6) playBuf(crowd.shouts[Math.floor(Math.random() * crowd.shouts.length)], rnd(.45, .8), rnd(.4, 1.6), rnd(-.8, .8)); }
         swell();
       }, rnd(14000, 32000));
     };
@@ -384,16 +384,22 @@
     const len = playTune('lose', 'organ'); if (crowd) playBuf(crowd.roar, .22, .3); duck(len, .25); return len;
   }
   // the crowd reacts to what just happened, for or against the home side
-  function reaction(kind) { // 'hit', 'xbh', 'k', 'dp', 'run', 'groan'
+  // the crack of the bat and the pop of a glove, so every ball in play and every strikeout has a sound
+  function crack(big) { if (!soundOn || !audio()) return; unlock(); noise(.05, 3200, big ? .6 : .45, 0, 'highpass', .001); noise(.15, 240, big ? .55 : .4, 0, 'lowpass', .002); noise(.03, 1800, .3, .012, 'bandpass', .001); }
+  function glove(soft) { if (!soundOn || !audio()) return; noise(.05, 1100, soft ? .28 : .5, 0, 'bandpass', .001); noise(.13, 420, soft ? .26 : .42, 0, 'lowpass', .002); }
+  function reaction(kind) { // 'hit', 'xbh', 'k', 'dp', 'run', 'groan', 'catch', 'out', 'oh'
     if (!soundOn || !audio()) return; const now = Date.now(); if (now - lastReact < 600 && kind !== 'run') return; lastReact = now;
     const shout = (g, d) => { if (crowd) playBuf(pick(crowd.shouts), g, d, rnd(-.8, .8)); };
     const swell = m => { if (!amb || !ac) return; const t = ac.currentTime; try { amb.bed.gain.cancelScheduledValues(t); amb.bed.gain.setValueAtTime(Math.max(.0001, amb.bed.gain.value), t); amb.bed.gain.linearRampToValueAtTime(amb.level * m, t + .6); amb.bed.gain.linearRampToValueAtTime(amb.level, t + 4.5); } catch (e) {} };
-    if (kind === 'hit') { if (crowd) playBuf(crowd.roar, .3, 0); else noise(1.2, 1800, .14, 0, 'lowpass', .3); shout(.35, .3); swell(1.7); }
-    else if (kind === 'xbh') { if (crowd) playBuf(crowd.roar, .55, 0); else noise(1.8, 1800, .2, 0, 'lowpass', .3); shout(.45, .25); shout(.4, .8); swell(2.2); }
-    else if (kind === 'k') { if (crowd) playBuf(crowd.roar, .25, 0); else noise(1, 1800, .1, 0, 'lowpass', .2); shout(.3, .25); }
-    else if (kind === 'dp') { if (crowd) playBuf(crowd.roar, .5, 0); else noise(1.6, 1800, .16, 0, 'lowpass', .3); shout(.4, .3); shout(.4, .9); swell(2); }
-    else if (kind === 'run') { if (crowd) playBuf(crowd.roar, 1, 0); else noise(3, 2200, .34, 0, 'lowpass', .5); [.3, .9, 1.5, 2.1].forEach(d => shout(.5, d)); noise(.5, 5200, .1, .1, 'bandpass'); swell(3); setTimeout(() => organ('charge'), 700); }
-    else if (kind === 'groan') { noise(1.4, 520, .28, 0, 'lowpass', .25); noise(1.1, 340, .22, .15, 'lowpass', .3); duck(1.2, .5); }
+    if (kind === 'hit') { if (crowd) playBuf(crowd.roar, .8, 0); else noise(1.4, 1800, .3, 0, 'lowpass', .3); shout(.7, .25); shout(.55, .7); swell(2.8); }
+    else if (kind === 'xbh') { if (crowd) playBuf(crowd.roar, 1.1, 0); else noise(2, 1800, .38, 0, 'lowpass', .3); shout(.8, .2); shout(.7, .7); shout(.6, 1.3); swell(3.6); }
+    else if (kind === 'k') { if (crowd) playBuf(crowd.roar, .65, 0); else noise(1.2, 1800, .26, 0, 'lowpass', .2); shout(.6, .2); shout(.45, .6); swell(2.2); }
+    else if (kind === 'dp') { if (crowd) playBuf(crowd.roar, 1.1, 0); else noise(1.8, 1800, .34, 0, 'lowpass', .3); shout(.8, .25); shout(.7, .8); shout(.6, 1.4); swell(3.4); }
+    else if (kind === 'run') { if (crowd) playBuf(crowd.roar, 1.25, 0); else noise(3, 2200, .5, 0, 'lowpass', .5); [.3, .9, 1.5, 2.1].forEach(d => shout(.8, d)); noise(.5, 5200, .14, .1, 'bandpass'); swell(4.6); setTimeout(() => organ('charge'), 700); }
+    else if (kind === 'catch') { if (crowd) playBuf(crowd.roar, .7, 0); else noise(1.2, 1800, .26, 0, 'lowpass', .25); shout(.6, .25); shout(.45, .7); swell(2.4); }   // a ball caught by your defense
+    else if (kind === 'out') { if (crowd) playBuf(crowd.roar, .4, 0); else noise(.9, 1800, .16, 0, 'lowpass', .2); shout(.4, .3); swell(1.6); }   // a ground out by your defense
+    else if (kind === 'oh') { noise(1.1, 900, .2, 0, 'lowpass', .2); if (crowd) shout(.3, .15); swell(1.5); }   // a hit by the other club: a worried murmur
+    else if (kind === 'groan') { noise(1.6, 520, .42, 0, 'lowpass', .25); noise(1.3, 340, .34, .15, 'lowpass', .3); duck(1.2, .5); }
   }
   // the end of a game: the banner, the fanfare (or a quiet organ if you lost) and, for a win, fireworks. Resolves when it is time to look at the box score.
   function finale(win, title, sub) {
@@ -431,7 +437,7 @@
     homeRun(o) { queue.push(o || {}); if (!flushT) flushT = setTimeout(flush, 0); }, // same-moment home runs become one celebration
     setSound,
     cheer,
-    crowdUp, reaction, organ, finale, fanfare,
+    crowdUp, reaction, organ, finale, fanfare, crack, glove,
     vendor,
     prepare() { return prepCrowd(); }, // pages that play games call this early so the crowd voices are ready
     ambience(on) { ambWanted = !!on; if (ambWanted) startAmb(); else stopAmb(); }, // ballpark crowd noise while a game is being played
