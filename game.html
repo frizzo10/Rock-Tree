@@ -33,7 +33,8 @@ button { font: inherit; }
 .card h2 { font: 400 24px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
 .note { font-size: 14px; color: #4A5560; }
 .btn { border: 0; border-radius: 4px; padding: 10px 20px; font-weight: 600; cursor: pointer; min-height: 46px; text-decoration: none; display: inline-block; background: var(--wb-ink); color: #fff; }
-.btn:hover { background: #17306E; } .btn.alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; } .btn.alt:hover { background: #E9ECEA; }
+.btn:hover { background: #17306E; } .gm { margin: 18px 0 0; padding: 14px 16px; background: #FFF7E0; border: 2px solid #C69A2B; border-radius: 8px; color: #1B1F24; text-align: left; } .gm h3 { margin: 0 0 6px; font: 700 22px var(--display, Georgia, serif); color: #5A3F06; } .gm h4 { margin: 12px 0 2px; font: 700 13px var(--text, sans-serif); letter-spacing: .05em; text-transform: uppercase; color: #6B4E0E; } .gm p { margin: 4px 0; max-width: 70ch; line-height: 1.45; } .gm .btn { margin-top: 8px; min-height: 44px; } .gm-chg { margin: 8px 0; padding: 8px 10px; background: #fff; border-left: 4px solid #C69A2B; border-radius: 4px; } .gm-chg b { font-size: 15px; } .gm-chg p { margin: 2px 0 0; } .gm .gmv { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 10px; } .gm .gmv .note { margin: 0; font-size: 13px; }
+.btn.alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; } .btn.alt:hover { background: #E9ECEA; }
 .btn.big { font-size: 20px; padding: 12px 30px; min-height: 54px; }
 .btn[disabled] { opacity: .5; cursor: default; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
@@ -108,6 +109,8 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
 <script src="fx.js"></script>
+<script src="gmfacts.js"></script>
+<script src="gmvoice.js"></script>
 <script>if (window.FX && FX.prepare) setTimeout(FX.prepare, 600); // build the crowd voices in the background</script>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -267,6 +270,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
         <div class="dice" id="dice" aria-live="polite"></div><p class="dnote" id="dnote"></p><p class="result" id="result"></p>
         <div class="row" id="ctl"></div></section>
       <section class="card final" id="fin" hidden></section>
+      <section class="gm" id="gmBox" aria-live="polite" hidden></section>
       <section class="card" id="feedCard"><div class="feedhead"><h2>Play by play</h2><button class="btn alt" id="feedToggle" type="button" aria-controls="feed"></button></div><ul class="feed" id="feed"></ul></section>`;
     updateAll();
   }
@@ -355,9 +359,57 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     return `<h3 class="tm">${esc(R.names[i])}</h3><div class="scroll"><table class="box"><thead><tr><th>Batter</th><th class="n">AB</th><th class="n">R</th><th class="n">H</th><th class="n">RBI</th><th class="n">BB</th><th class="n">SO</th><th class="n">HR</th></tr></thead><tbody>${bat.map(x => `<tr><td>${esc(x.name)} <span class="note">${esc((x.pos || '').toUpperCase())}</span></td><td class="n">${x.AB}</td><td class="n">${x.R}</td><td class="n">${x.H}</td><td class="n">${x.RBI}</td><td class="n">${x.BB}</td><td class="n">${x.SO}</td><td class="n">${x.HR}</td></tr>`).join('')}<tr class="tot"><td>Totals</td><td class="n">${sum('AB')}</td><td class="n">${sum('R')}</td><td class="n">${sum('H')}</td><td class="n">${sum('RBI')}</td><td class="n">${sum('BB')}</td><td class="n">${sum('SO')}</td><td class="n">${sum('HR')}</td></tr></tbody></table>
       <table class="box"><thead><tr><th>Pitcher</th><th class="n">IP</th><th class="n">H</th><th class="n">R</th><th class="n">ER</th><th class="n">BB</th><th class="n">SO</th><th class="n">HR</th></tr></thead><tbody>${pit.map(x => `<tr><td>${esc(x.name)}${x.dec ? ` <b>(${x.dec})</b>` : ''}</td><td class="n">${esc(ipText(x))}</td><td class="n">${x.H}</td><td class="n">${x.R}</td><td class="n">${x.ER}</td><td class="n">${x.BB}</td><td class="n">${x.SO}</td><td class="n">${x.HR}</td></tr>`).join('')}</tbody></table></div>${stealNote(bat)}`;
   }
+  // ---------- your GM: a candid review of the game, the pitching changes and the turning point, spoken if you like ----------
+  const GM = { gameId: 0, view: { state: 'idle' } };
+  const myHalf = () => (S.mySeat === S.game.home_seat ? 1 : 0);
+  function gmFacts() { const g = S.game, other = S.mySeat === g.home_seat ? g.away_seat : g.home_seat; return GMFacts.build(S.log, { youHalf: myHalf(), yourClub: name(S.mySeat), opponentClub: name(other), mode: 'league' }); }
+  function paintGM() {
+    const box = $('gmBox'); if (!box) return; const v = GM.view, cc = window.CC; box.innerHTML = '';
+    const h = document.createElement('h3'); h.textContent = 'Your GM'; box.appendChild(h);
+    const para = (txt, cls) => { const p = document.createElement('p'); if (cls) p.className = cls; p.textContent = txt; box.appendChild(p); return p; };
+    const button = (label, id, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.id = id; b.textContent = label; b.onclick = fn; box.appendChild(b); };
+    if (v.state === 'loading') return para('Your GM is going over the game…', 'note');
+    if (v.state === 'done') {
+      const r = v.result, section = (title, txt) => { if (!txt) return; const t = document.createElement('h4'); t.textContent = title; box.appendChild(t); para(txt); };
+      const vb = document.createElement('div'); vb.className = 'gmv'; const lb = document.createElement('button'); lb.type = 'button'; lb.className = 'btn alt'; lb.id = 'gmListen'; lb.setAttribute('aria-pressed', 'false'); lb.onclick = () => { if (GMVoice.state.speaking) GMVoice.stop(); else GMVoice.speak(v.item); }; vb.appendChild(lb); const vn = document.createElement('p'); vn.className = 'note'; vn.id = 'gmVoiceNote'; vn.setAttribute('role', 'status'); vb.appendChild(vn); box.appendChild(vb); paintVoice();
+      section('The verdict', r.verdict); section('Pitching', r.pitching);
+      for (const c of v.facts.changes.filter(c => c.side === 'you' && r.changes && r.changes[c.n])) { const d = document.createElement('div'); d.className = 'gm-chg'; const b = document.createElement('b'); b.textContent = `${c.half === 'top' ? 'Top' : 'Bottom'} ${ord(c.inning)}: ${c.entering.name} replaces ${c.leaving.name}`; d.appendChild(b); const p = document.createElement('p'); p.textContent = r.changes[c.n]; d.appendChild(p); box.appendChild(d); }
+      section('The turning point', r.moment); section('Next time', r.next); return;
+    }
+    if (!cc || !cc.client || !cc.client.functions) return;
+    if (!cc.user) { para('Sign in free and your general manager will go over this game with you: the pitching changes, the turning point, and what to try next.'); button('Sign in', 'gmSign', () => cc.requireSignIn && cc.requireSignIn('Sign in to hear from your GM')); return; }
+    if (v.state === 'failed') para(v.msg);
+    else para('Your general manager can go over this game with you: how the pitching changes worked and what turned it.');
+    if (v.state !== 'failed' || v.again) button(v.state === 'failed' ? 'Ask again' : 'Hear from your GM', 'gmAsk', askGM);
+  }
+  function paintVoice() {
+    const b = $('gmListen'), n = $('gmVoiceNote'), st = GMVoice.state; if (!b) return;
+    b.textContent = st.speaking ? 'Stop' : (GM.view.item && (GM.view.item.blob || st.via) ? 'Hear it again' : 'Hear it'); b.setAttribute('aria-pressed', String(st.speaking));
+    if (n) n.textContent = st.speaking && st.via === 'loading' ? 'Your GM is clearing his throat…' : st.speaking && st.via === 'device' ? 'Speaking in your phone\'s voice.' : '';
+  }
+  GMVoice.on(paintVoice);
+  function showGM() {
+    const box = $('gmBox'); if (!box) return;
+    const mine = S.game && S.mySeat != null && (S.mySeat === S.game.away_seat || S.mySeat === S.game.home_seat), over = S.log && S.idx >= S.log.length && S.result;
+    if (!mine || !over || !window.GMFacts || !window.GMVoice) { box.hidden = true; return; }
+    const cc = window.CC; if (!cc || !cc.client || !cc.client.functions) { box.hidden = true; return; }
+    if (GM.gameId !== S.id) { GMVoice.stop(); GM.gameId = S.id; GM.view = { state: 'idle' }; }
+    box.hidden = false; if (!box.firstChild || box.dataset.state !== GM.view.state + (cc.user ? 'u' : 'a')) { box.dataset.state = GM.view.state + (cc.user ? 'u' : 'a'); paintGM(); }
+  }
+  async function askGM() {
+    const cc = window.CC; if (!cc || !cc.user || GM.view.state === 'loading') return; const id = S.id, facts = gmFacts(); GMVoice.stop(); GMVoice.prime(); GM.view = { state: 'loading' }; showGM(); $('gmBox').dataset.state = ''; paintGM();
+    let res = null, reason = 'error';
+    try { const { data, error } = await cc.client.functions.invoke('gm-critic', { body: { kind: 'game', facts } }); if (!error && data) { res = data.game || null; reason = data.reason || (res ? '' : 'unusable'); } } catch (e) { res = null; }
+    if (id !== S.id) return;   // another game is open now
+    if (res && res.verdict) {
+      const tone = GMVoice.toneForGame(facts); GM.view = { state: 'done', result: res, facts, item: { text: GMVoice.gameScript(res, facts, tone), tone } };
+      if (GMVoice.soundOn()) setTimeout(() => { if (id === S.id && GM.view.state === 'done') GMVoice.speak(GM.view.item); }, 250);
+    } else { const msg = { limit: 'You have used all of today\'s GM reviews. Come back tomorrow.', unavailable: 'Your GM is not available right now.', unusable: 'Your GM could not put it into words this time.' }[reason] || 'Your GM could not be reached just now.'; GM.view = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
+    $('gmBox').dataset.state = ''; showGM();
+  }
   function updateFinal() {
     const el = $('fin'); if (!el) return;
-    if (S.idx < S.log.length) { el.hidden = true; return; }
+    if (S.idx < S.log.length) { el.hidden = true; const gb = $('gmBox'); if (gb) gb.hidden = true; return; }
     const R = S.result, g = S.game, win = R.winner, recorded = g.status === 'final';
     const decs = R.pitching.flat().filter(x => x.dec).map(x => `${x.dec}: ${x.name}`).join(' · ');
     el.hidden = false;
@@ -366,6 +418,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
       <div class="row" style="justify-content:center"><a class="btn" href="season.html?league=${g.league_id}">Back to the season</a></div>
       <div style="text-align:left"><h2 style="margin-top:20px">Box score</h2>${boxTable(R, 0)}${boxTable(R, 1)}</div>`;
     const rb = $('retry'); if (rb) rb.onclick = finish;
+    showGM();
     if (S.mode === 'playing' && !S.finalSeen) { S.finalSeen = true; requestAnimationFrame(() => el.scrollIntoView({ behavior: S.reduce ? 'auto' : 'smooth', block: 'start' })); }
   }
 

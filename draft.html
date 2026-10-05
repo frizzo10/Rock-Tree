@@ -595,7 +595,7 @@ body.war .dec { color: var(--wb-red); }
 .rc2-grade.g-A, .rc2-grade.g-B { color: var(--wb-green); } .rc2-grade.g-C { color: #B07D10; } .rc2-grade.g-D, .rc2-grade.g-F { color: var(--wb-red); }
 .rc2-syn { flex: 1; min-width: 0; } .rc2-tag { margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #5A646E; }
 .rc2-text { margin: 0 0 6px; font-size: 18px; line-height: 1.5; color: #20262D; max-width: 62ch; }
-.rc2-note { margin: 4px 0; font-size: 15px; color: #4A5560; }
+.rc2-note { margin: 4px 0; font-size: 15px; color: #4A5560; } .gmv { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin: 6px 0 2px; } .gmv-btn { width: auto; min-height: 44px; margin: 0; } .gmv .rc2-note { margin: 0; font-size: 13px; }
 .rc2-link { display: inline-block; background: none; border: 0; padding: 0 2px; margin: 0 0 6px; font: inherit; font-weight: 700; color: var(--wb-ink); text-decoration: underline; cursor: pointer; min-height: 44px; }
 .rc2-more { background: var(--wb-ink); color: #fff; border: 0; border-radius: 4px; padding: 11px 22px; font-weight: 600; cursor: pointer; margin: 4px 0 10px; min-height: 44px; }
 .rc2-more:hover { background: #17306E; }
@@ -667,6 +667,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
 <script src="nb.js"></script>
 <script src="nbsheet.js"></script>
 <script src="fx.js"></script>
+<script src="gmvoice.js"></script>
 <link rel="stylesheet" href="mobile.css">
 </head>
 <body class="war">
@@ -2177,23 +2178,31 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
   async function reviewAI() {
     const R = D && D.report, cc = window.CC; if (!R || R.ai || R.aiTried || R.aiState === 'loading' || !cc || !cc.client || !cc.user || !cc.client.functions) return;
     R.aiState = 'loading'; drawReportCard();
-    let review = null;
-    try { const { data, error } = await cc.client.functions.invoke('scout-ai', { body: { kind: 'review', facts: reviewFacts() } }); review = !error && data && data.review && data.review.synopsis ? data.review : null; } catch (e) { review = null; }
+    let review = null; R.aiReason = '';
+    try { const { data, error } = await cc.client.functions.invoke('gm-critic', { body: { kind: 'draft', facts: reviewFacts() } }); review = !error && data && data.draft && data.draft.synopsis ? data.draft : null; if (!review && data && data.reason) R.aiReason = data.reason; } catch (e) { review = null; }
     R.aiTried = true; R.aiState = 'done'; if (review) R.ai = review; save(); if (D && D.report === R) drawReportCard();
   }
+  let rcVoice = null;   // the GM's spoken report for this card, kept so a replay does not ask the server again
+  function paintRcVoice() {
+    const b = $('rcListen'), n = $('rcVoiceNote'), st = GMVoice.state; if (!b) return;
+    b.textContent = st.speaking ? 'Stop' : (rcVoice && (rcVoice.blob || st.via) ? 'Hear it again' : 'Hear it'); b.setAttribute('aria-pressed', String(st.speaking));
+    if (n) n.textContent = st.speaking && st.via === 'loading' ? 'Your GM is clearing his throat…' : st.speaking && st.via === 'device' ? "Speaking in your phone's voice." : '';
+  }
+  if (window.GMVoice) GMVoice.on(paintRcVoice);
   function drawReportCard() {
     const R = D.report; if (!R) return;
     const st = strengths(R), picks = reviewPicks(), ai = R.ai, margin = R.you - R.cpu, g = R.grade;
     const cc = window.CC, canAI = !!(cc && cc.client && cc.client.functions), signedIn = !!(cc && cc.user);
     const syn = ai ? ai.synopsis : reviewSynopsis(R, picks, st);
-    const aiLine = R.aiState === 'loading' ? '<p class="rc2-note">The scout is writing his critique…</p>' : ai || !canAI ? '' : !signedIn ? '<div><p class="rc2-note">Sign in free and the scout will write you a personal critique of your picks.</p><button type="button" class="rc2-link" id="rcSign">Sign in</button></div>' : '';
+    const failed = R.aiTried && !ai && signedIn && canAI, failMsg = R.aiReason === 'limit' ? "You have used all of today's GM reviews. Come back tomorrow." : R.aiReason === 'unavailable' ? 'Your GM is not available right now.' : 'Your GM could not put it into words this time.', canAgain = failed && R.aiReason !== 'limit' && R.aiReason !== 'unavailable';
+    const aiLine = failed ? `<div><p class="rc2-note">${failMsg}</p>${canAgain ? '<button type="button" class="rc2-link" id="rcAgain">Ask again</button>' : ''}</div>` : R.aiState === 'loading' ? '<p class="rc2-note">Your GM is going over your draft…</p>' : ai || !canAI ? '' : !signedIn ? '<div><p class="rc2-note">Sign in free and your general manager will go over your draft with you, pick by pick.</p><button type="button" class="rc2-link" id="rcSign">Sign in</button></div>' : '';
     const rows = st.cats.map(c => `<tr><td>${c.name}</td><td class="g-${c.mine}">${c.mine}</td><td class="g-${c.theirs}">${c.theirs}</td></tr>`).join('');
     const walk = picks.map(p => `<li class="wk"><div class="wk-top"><span class="wk-n">Pick ${p.n}<small> · round ${p.round}</small></span><span class="wk-chip wk-c-${p.tag}">${CHIP[p.tag]}</span></div><div class="wk-who"><b>${esc(p.player)}</b> (${p.season}) at ${esc(p.spot)} · ${money(p.price)}</div><p class="wk-note">${esc(ai && ai.picks && ai.picks[p.n] ? ai.picks[p.n] : pickLine(p))}</p>${ai && ai.picks && ai.picks[p.n] ? `<p class="wk-fact">${esc(pickLine(p))}</p>` : ''}</li>`).join('');
-    const retry = R.aiTried && !ai && signedIn && canAI ? '<div><p class="rc2-note">The scout could not write his critique this time.</p><button type="button" class="rc2-link" id="rcAgain">Ask again</button></div>' : '';
+    const retry = '';
     $('reportCard').innerHTML = `<div class="rc2">
         <div class="rc2-top">
           <div class="rc2-grade g-${g[0]}" role="img" aria-label="Draft grade ${g}">${g}</div>
-          <div class="rc2-syn"><p class="rc2-tag">${ai ? "The scout's synopsis" : 'Synopsis'}</p><p class="rc2-text" id="rcSyn">${esc(syn)}</p>${aiLine}</div>
+          <div class="rc2-syn"><p class="rc2-tag">${ai ? "Your GM's synopsis" : 'Synopsis'}</p><p class="rc2-text" id="rcSyn">${esc(syn)}</p>${ai ? '<div class="gmv"><button type="button" class="rc2-more gmv-btn" id="rcListen" aria-pressed="false">Hear it</button><p class="rc2-note" id="rcVoiceNote" role="status"></p></div>' : ''}${aiLine}</div>
         </div>
         <button type="button" class="rc2-more" id="rcMore" aria-expanded="${rcOpen}" aria-controls="rcDetail">${rcOpen ? 'Hide the walkthrough' : 'See the full walkthrough'}</button>
         <div id="rcDetail" ${rcOpen ? '' : 'hidden'}>
@@ -2209,7 +2218,8 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
         </div>
       </div>`;
     $('rcMore').onclick = () => { rcOpen = !rcOpen; $('rcDetail').hidden = !rcOpen; $('rcMore').setAttribute('aria-expanded', String(rcOpen)); $('rcMore').textContent = rcOpen ? 'Hide the walkthrough' : 'See the full walkthrough'; };
-    if ($('rcSign')) $('rcSign').onclick = () => window.CC.requireSignIn("Sign in to get the scout's critique");
+    if ($('rcListen')) { const item = () => (rcVoice && rcVoice.for === ai) ? rcVoice : (rcVoice = { for: ai, tone: GMVoice.toneForDraft(g), text: GMVoice.draftScript(ai, reviewFacts().notable, GMVoice.toneForDraft(g)) }); $('rcListen').onclick = () => { if (GMVoice.state.speaking) GMVoice.stop(); else { GMVoice.prime(); GMVoice.speak(item()); } }; paintRcVoice(); }
+    if ($('rcSign')) $('rcSign').onclick = () => window.CC.requireSignIn("Sign in to hear from your GM");
     if ($('rcAgain')) $('rcAgain').onclick = () => { R.aiTried = false; reviewAI(); };
     if (justGraded) { justGraded = false; $('donePanel').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); }
     reviewAI();
