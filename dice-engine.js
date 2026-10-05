@@ -169,7 +169,7 @@
       const off = this.off, def = this.def, b = this.batter(), bRec = off.bat.get(b.id), pr = def.cur, B = this.bases;
       off.idx++; pr.BF++;
       const fx = this.dfx(); let dnote = '';
-      if (code === 'GB') { for (const [on, p, note] of [[fx.inIn, DEFN.inSingle, 'through the drawn-in infield'], [fx.dp, DEFN.dpSingle, 'through the middle'], [fx.cor, DEFN.corSingle, 'past the charging corners'], [fx.hold, DEFN.holdSingle, 'through the right side']]) if (on && rnd() < p) { code = 'S'; dnote = note; break; } }
+      if (code === 'GB') { for (const [on, p, note] of [[fx.inIn, DEFN.inSingle, 'through the drawn-in infield'], [fx.dp, DEFN.dpSingle, 'with the infield back at double-play depth'], [fx.cor, DEFN.corSingle, 'past the charging corners'], [fx.hold, DEFN.holdSingle, 'past the first baseman holding the runner']]) if (on && rnd() < p) { code = 'S'; dnote = note; break; } }
       else if (code === 'FB') { if (fx.ofIn && rnd() < DEFN.ofInDouble) { code = '2B'; dnote = 'over the drawn-in outfield'; } else if (fx.ofDeep && rnd() < DEFN.ofDeepFall) { code = 'S'; dnote = 'in front of the deep outfield'; } }
       else if ((code === '2B' || code === '3B') && fx.ofDeep && rnd() < DEFN.ofDeepHeld) { code = 'S'; dnote = 'held to a single by the deep outfield'; }
       const runner = { b, pr, unearned: false }, before = off.runs, sp = r => (r.b.spd - 0.3) * 0.3;
