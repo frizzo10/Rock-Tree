@@ -103,6 +103,9 @@
     .acct .go { background: #1F3F8F; color: #fff; border: 0; border-radius: 4px; padding: 7px 12px; font-weight: 600; cursor: pointer; }
     .acct .msg { width: 100%; font-size: 13px; opacity: .85; }
     .acctbar { display: flex; margin: 0 0 10px; }
+    .acct .acc-solo { min-width: 44px; justify-content: center; text-decoration: none; }
+    .acc-solo .av { width: 40px; height: 40px; font-size: 22px; }
+    .acct.solo { background: none; padding: 0; border-radius: 0; }
     .crumbs { flex-wrap: wrap; row-gap: 6px; }`;
   // the avatar: an emoji on a colored circle, picked on the account page. It is remembered on this device so the bar draws it at once, then checked against the account.
   let avatar = null;
@@ -183,8 +186,10 @@
   function render() {
     if (!host) return;
     if (!client) { host.innerHTML = ''; return; }
+    host.classList.toggle('solo', !!user);
     if (user) {
-      host.innerHTML = `<a class="acclink" href="account.html" aria-label="Your account">${avatarHtml()}<span>My account</span></a><span>Progress saved to <b>${esc(user.email)}</b></span><button class="lnk" id="accOut">Sign out</button>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
+      // signed in: just the avatar, linking to the account page (Sign out lives there; the hidden button stays because account.html clicks it to save progress first)
+      host.innerHTML = `<a class="acclink acc-solo" href="account.html" aria-label="Your account">${avatarHtml()}</a><button class="lnk" id="accOut" hidden>Sign out</button>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
       host.querySelector('#accOut').onclick = async () => { await push(); await client.auth.signOut(); };
     } else if (mode === 'form') {
       host.innerHTML = `<form id="accForm"><label class="msg" for="accEmail">We'll email you a sign-in link. No password.</label><input id="accEmail" type="email" required placeholder="you@example.com" autocomplete="email"><button class="go" type="submit">Email me a link</button><button class="lnk" type="button" id="accCancel">Cancel</button></form>${status ? `<span class="msg">${esc(status)}</span>` : ''}`;
