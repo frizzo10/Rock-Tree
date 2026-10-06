@@ -110,6 +110,8 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
 .ms .nx { background: #fff; border: 1px dashed #8C959E; display: flex; gap: 10px; align-items: center; } .ms .nx b { color: #1F3F8F; } .msh { margin: 14px 0 0; font-size: 17px; }
 table.rec th[scope=row] { text-align: left; font-weight: 600; }
 .kvs { margin: 10px 0 0; } .kv { display: grid; grid-template-columns: 1fr auto; gap: 1px 14px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid rgba(60,45,20,.18); } .kv .k { font-weight: 600; } .kv .v { font-size: 20px; text-align: right; color: #1F3F8F; } .kv .n { grid-column: 1 / -1; font-size: 14px; color: #5A646E; }
+.tips { display: grid; gap: 8px; margin: 10px 0; } .tip { padding: 10px 12px; border-radius: 6px; background: #fff; border-left: 5px solid #8C959E; } .tip.weakness { border-left-color: #B07D10; } .tip.strength { border-left-color: #1E7B45; } .tip b { display: block; } .tip .kind { font-weight: 600; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: #5A646E; margin-left: 6px; } .tip p { margin: 4px 0 0; }
+.goal { font-weight: 600; } #coach .gmv { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 10px; } #coach .gmv .muted { margin: 0; font-size: 13px; } #coach .cta.alt { background: transparent; color: #1F3F8F; border: 2px solid #1F3F8F; }
 </style>
 <link rel="stylesheet" href="mobile.css">
 </head>
@@ -122,6 +124,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
 </div>
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
+<script src="gmvoice.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -199,20 +202,91 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
     </section>`;
   }
   // milestones: each one is earned by something you really did, and the next ones show how close you are
-  function milestones(c, st) {
+  function milestoneList(c, st) {
     const q = st.quick || {}, ds = st.drafts || {}, l = c.leagues || {}, S = k => sumOf(st, k), dw = n((c.drafts || {}).wins), qw = n(q.wins);
-    const M = [
+    return [
       ['First quick-game win', qw, 1], ['10 quick-game wins', qw, 10], ['25 quick-game wins', qw, 25],
       ['A 3-game win streak', n(q.best_streak), 3], ['A 5-game win streak', n(q.best_streak), 5],
       ['A walk-off win', n(q.walkoffs), 1], ['An extra-innings win', n(q.extra_w), 1],
       ['10 stolen bases', S('sb'), 10], ['25 home runs', S('hr'), 25],
       ['Your first graded draft', n(ds.n), 1], ['A draft graded A or better', GRADES.indexOf(ds.best_grade) >= 0 && GRADES.indexOf(ds.best_grade) <= 2 ? 1 : 0, 1], ['A team that beats the 1927 Yankees', n(ds.beat_ny), 1],
       ['Legends unlocked (3 wins with a drafted team)', dw, 3], ['Your first league season', n(l.joined), 1], ['A league championship', n(l.championships), 1]];
+  }
+  function milestones(c, st) {
+    const M = milestoneList(c, st);
     const done = M.filter(m => m[1] >= m[2]), next = M.filter(m => m[1] < m[2]).sort((a, b) => b[1] / b[2] - a[1] / a[2]).slice(0, 3);
     return `<section class="card2" id="milestones"><h2>Milestones</h2><p>${done.length} of ${M.length} earned.</p>
       ${done.length ? `<ul class="ms">${done.map(m => `<li class="got"><span aria-hidden="true">&#9733;</span> ${esc(m[0])}</li>`).join('')}</ul>` : '<p class="muted">Your first one is one game away.</p>'}
       ${next.length ? `<h3 class="msh">Next up</h3><ul class="ms">${next.map(m => `<li class="nx"><span>${esc(m[0])}</span><b>${Math.min(n(m[1]), m[2])} of ${m[2]}</b></li>`).join('')}</ul>` : ''}</section>`;
   }
+  // ---------- your coach: the game works out what stands out in your numbers, the GM puts it into words ----------
+  const GUIDE = {
+    steals: "In thousands of test games, selective steals changed a team's scoring by less than 1%, so stealing is a small lever. A caught stealing costs your club an out.",
+    bunts: "In thousands of test games, bunting cost about 2.7% of a team's runs. A bunt makes more sense late in a close game than early.",
+    defense: 'Each defensive call only works in its own spot. For example the infield in needs a runner on third with fewer than two outs. Out of place, a call costs a little.',
+    pitching: 'Walks put runners on without the other team earning it, so fewer free passes is the surest way to cut runs.',
+    close: 'Close games often turn on the bullpen: who you bring in, and who closes.',
+    drafts: 'Stars cost depth. The strongest drafts spend the salary cap evenly, so every spot gets a good player and not just a few big names.'
+  };
+  const pl = (x, one, many) => (x === 1 ? one : many), wins = x => `${x} ${pl(x, 'win', 'wins')}`, losses = x => `${x} ${pl(x, 'loss', 'losses')}`;
+  const TOPIC = { steals: 'Stolen bases', bunts: 'Bunts', defense: 'Defense calls', pitching: 'Pitching', close: 'Close games', drafts: 'Drafts' }, KIND = { weakness: 'Work on', note: 'Worth a look', strength: 'Keep doing' };
+  function coachFacts(c, st) {
+    const q = st.quick || {}, lg = st.leagues || {}, ds = st.drafts || {}, l = c.leagues || {}, S = k => sumOf(st, k), games = n(q.with_stats) + n(lg.games), sig = [];
+    const tries = S('sb') + S('cs'), bunts = S('sac') + S('bhit'), bAll = bunts + S('bfail'), outs = S('outs'), ip = outs / 3, p = (a, b) => Math.round(a / b * 100);
+    if (tries >= 10) { const pc = p(S('sb'), tries); sig.push({ topic: 'steals', kind: pc < 60 ? 'weakness' : pc >= 75 ? 'strength' : 'note', says: `${n(S('sb'))} of your ${tries} steal tries were safe, which is ${pc}%.` }); }
+    if (bAll >= 6) sig.push({ topic: 'bunts', kind: games && bAll / games >= 0.5 ? 'weakness' : 'note', says: `You called ${bAll} bunts and ${n(bunts)} worked, which is ${p(bunts, bAll)}%.` });
+    if (n(sumOf({ quick: q }, 'defset')) >= 5) sig.push({ topic: 'defense', kind: 'note', says: `You set your defense ${n(sumOf({ quick: q }, 'defset'))} times in quick games, and your defense calls changed ${n(S('defeff'))} plays.` });
+    if (outs >= 90) { const k9 = S('soa') * 9 / ip, b9 = S('bba') * 9 / ip, ra = (n(q.ra) + n(lg.ra)) / Math.max(1, n(q.games) + n(lg.games)); sig.push({ topic: 'pitching', kind: b9 > 4 ? 'weakness' : k9 >= 8 ? 'strength' : 'note', says: `Your pitchers strike out ${k9.toFixed(2)} batters per 9 innings, walk ${b9.toFixed(2)} and allow ${ra.toFixed(2)} runs a game.` }); }
+    if (n(q.one_run) >= 4) { const w = n(q.one_run_w), lo = n(q.one_run) - w; sig.push({ topic: 'close', kind: w / n(q.one_run) >= 0.6 ? 'strength' : w / n(q.one_run) <= 0.4 ? 'weakness' : 'note', says: `In one-run quick games you are ${wins(w)} and ${losses(lo)}.` }); }
+    if (n(ds.n) >= 2) { const avg = Math.round(+ds.avg_win * 100); sig.push({ topic: 'drafts', kind: avg < 50 ? 'weakness' : avg >= 60 ? 'strength' : 'note', says: `Across ${n(ds.n)} drafts your best grade is ${ds.best_grade} and your average win chance is ${avg}%.${ds.best_ny != null ? ` Your best against the 1927 Yankees is ${Math.round(+ds.best_ny * 100)}%.` : ''}` }); }
+    if (!sig.length) return null;
+    const order = { weakness: 0, note: 1, strength: 2 }; sig.sort((a, b) => order[a.kind] - order[b.kind]); const signals = sig.slice(0, 5).map((x, i) => ({ n: i + 1, topic: x.topic, kind: x.kind, says: x.says, guide: GUIDE[x.topic] }));
+    const rec = []; if (n(q.games)) rec.push(`In quick games you are ${wins(n(q.wins))} and ${losses(n(q.games) - n(q.wins))}.`); if (n(l.reg_w) + n(l.reg_l)) rec.push(`In league games you are ${wins(n(l.reg_w))} and ${losses(n(l.reg_l))}.`); rec.push(`${games} games are counted for the numbers below.`);
+    const next = nextMilestone(c, st); const facts = { record: { says: rec.join(' ') }, signals }; if (next) facts.goal = { says: next };
+    return { facts, wins: n(q.wins), games: n(q.games) };
+  }
+  function nextMilestone(c, st) { const m = milestoneList(c, st).filter(x => x[1] < x[2]).sort((a, b) => b[1] / b[2] - a[1] / a[2])[0]; return m ? `Your next milestone: ${m[0]}. You are at ${n(m[1])} of ${m[2]}, so ${m[2] - n(m[1])} to go.` : ''; }
+  const COACH = { view: { state: 'idle' } };
+  function coachScript(r, f, tone) { const open = tone === 'upbeat' ? 'Good news, skipper. Here is where you stand.' : 'Here is where you stand, skipper.'; return [open, r.summary, ...f.signals.filter(s => r.tips[s.n]).map(s => r.tips[s.n]), r.goal].filter(Boolean).join(' ').replace(/\s+/g, ' '); }
+  const coachSig = f => { const t = JSON.stringify(f); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return String(h >>> 0); };
+  function paintCoach() {
+    const box = $('coachBox'); if (!box) return; const v = COACH.view, cc = window.CC; box.innerHTML = '';
+    const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; box.appendChild(e); return e; };
+    const btn = (label, id, fn, cls) => { const b = el('button', cls || 'cta', label); b.type = 'button'; b.id = id; b.onclick = fn; return b; };
+    if (v.state === 'none') { el('p', 'muted', 'Your coach needs a few more games with stats to say anything useful. Make some steal, bunt and defense calls, finish a couple of drafts, and come back.'); return; }
+    if (v.state === 'loading') { el('p', 'muted', 'Your coach is looking over your numbers…'); return; }
+    if (v.state === 'done') {
+      const r = v.result, f = v.facts; el('p', '', r.summary);
+      const list = el('div', 'tips'); for (const s of f.signals) if (r.tips[s.n]) { const d = document.createElement('div'); d.className = 'tip ' + s.kind; const h = document.createElement('b'); h.textContent = TOPIC[s.topic] + ' '; const k = document.createElement('span'); k.className = 'kind'; k.textContent = KIND[s.kind]; h.appendChild(k); const p = document.createElement('p'); p.textContent = r.tips[s.n]; d.appendChild(h); d.appendChild(p); list.appendChild(d); }
+      if (r.goal) el('p', 'goal', r.goal);
+      const row = el('div', 'gmv'); const lb = document.createElement('button'); lb.type = 'button'; lb.className = 'cta alt'; lb.id = 'coachListen'; lb.setAttribute('aria-pressed', 'false'); lb.onclick = () => { if (GMVoice.state.speaking) GMVoice.stop(); else { GMVoice.prime(); GMVoice.speak(v.item); } }; row.appendChild(lb); const nt = document.createElement('p'); nt.className = 'muted'; nt.id = 'coachVoiceNote'; nt.setAttribute('role', 'status'); row.appendChild(nt);
+      const ag = document.createElement('button'); ag.type = 'button'; ag.className = 'cta alt'; ag.id = 'coachAgain'; ag.textContent = 'Ask again'; ag.onclick = () => askCoach(true); row.appendChild(ag); paintCoachVoice(); return;
+    }
+    if (!cc || !cc.client || !cc.client.functions) return;
+    if (v.state === 'failed') el('p', '', v.msg); else el('p', '', 'Your GM looks over your numbers and tells you what stands out and what to try next. It only uses your own numbers and what the game has measured.');
+    if (v.state !== 'failed' || v.again) btn(v.state === 'failed' ? 'Ask again' : 'Ask your coach', 'coachAsk', () => askCoach(false));
+  }
+  function paintCoachVoice() { const b = $('coachListen'), nt = $('coachVoiceNote'), st = GMVoice.state, it = COACH.view.item; if (!b) return; b.textContent = st.speaking ? 'Stop' : (it && (it.blob || st.via) ? 'Hear it again' : 'Hear it'); b.setAttribute('aria-pressed', String(st.speaking)); if (nt) nt.textContent = st.speaking && st.via === 'loading' ? 'Your GM is clearing his throat…' : st.speaking && st.via === 'device' ? "Speaking in your phone's voice." : ''; }
+  async function askCoach(force) {
+    const cc = window.CC, built = COACH.built; if (!cc || !cc.user || !built || COACH.view.state === 'loading') return;
+    GMVoice.stop(); GMVoice.prime(); const sig = coachSig(built.facts), key = 'gts-coach:' + cc.user.id;
+    if (!force) { try { const raw = JSON.parse(localStorage.getItem(key) || 'null'); if (raw && raw.sig === sig && raw.result) { COACH.view = { state: 'done', result: raw.result, facts: built.facts, item: { text: coachScript(raw.result, built.facts, built.wins / Math.max(1, built.games) >= 0.5 ? 'upbeat' : 'even'), tone: built.wins / Math.max(1, built.games) >= 0.5 ? 'upbeat' : 'even' } }; paintCoach(); return; } } catch (e) {} }
+    COACH.view = { state: 'loading' }; paintCoach(); let res = null, reason = 'error';
+    try { const { data, error } = await cc.client.functions.invoke('gm-critic', { body: { kind: 'coach', facts: built.facts } }); if (!error && data) { res = data.coach || null; reason = data.reason || (res ? '' : 'unusable'); } } catch (e) { res = null; }
+    if (res && res.summary) {
+      const tone = built.wins / Math.max(1, built.games) >= 0.5 ? 'upbeat' : 'even'; try { localStorage.setItem(key, JSON.stringify({ sig, result: res, at: Date.now() })); } catch (e) {}
+      COACH.view = { state: 'done', result: res, facts: built.facts, item: { text: coachScript(res, built.facts, tone), tone } };
+    } else { const msg = { limit: "You have used all of today's GM reviews. Come back tomorrow.", unavailable: 'Your coach is not available right now.', unusable: 'Your coach could not put it into words this time.' }[reason] || 'Your coach could not be reached just now.'; COACH.view = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
+    paintCoach();
+  }
+  function wireCoach(c, st) {
+    COACH.built = null; COACH.view = { state: 'idle' }; const box = $('coachBox'); if (!box) return;
+    const built = coachFacts(c, st); if (!built) { COACH.view = { state: 'none' }; paintCoach(); return; }
+    COACH.built = built; paintCoach(); if (window.GMVoice) GMVoice.on(paintCoachVoice);
+    // an answer asked for earlier about these same numbers is shown straight away, without asking again
+    const cc = window.CC; if (cc && cc.user) { try { const raw = JSON.parse(localStorage.getItem('gts-coach:' + cc.user.id) || 'null'); if (raw && raw.sig === coachSig(built.facts) && raw.result) askCoach(false); } catch (e) {} }
+  }
+  function coachCard(c, st) { if (!st || !st.quick) return ''; return `<section class="card2" id="coach"><h2>Your coach</h2><div id="coachBox"></div></section>`; }
   function render(c, st) {
     st = st || {};
     const q = c.quick || {}, d = c.drafts || {}, l = c.leagues || {}, qw = n(q.wins), ql = n(q.losses), dw = n(d.wins), dg = n(d.games), seasons = Array.isArray(l.seasons) ? l.seasons : [];
@@ -222,7 +296,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
     const recent = Array.isArray(q.recent) ? q.recent : [];
     $('main').innerHTML = `
       <section class="stats" aria-label="At a glance">${stat(titles, titles === 1 ? 'championship' : 'championships', titles ? 'gold' : '')}${stat(n(l.joined), n(l.joined) === 1 ? 'league season' : 'league seasons')}${stat(rw + '-' + rl, 'league regular season' + (rw + rl ? ' (' + pct(rw, rl) + ')' : ''))}${stat(qw + '-' + ql, 'quick games' + (qw + ql ? ' (' + pct(qw, ql) + ')' : ''))}</section>
-      ${numbersCard(st)}${styleCard(st)}${streaksCard(st)}
+      ${numbersCard(st)}${styleCard(st)}${coachCard(c, st)}${streaksCard(st)}
       <section class="card2"><h2>Leagues</h2>
         ${seasons.length ? `<p>${n(l.completed)} finished, ${n(l.active)} in progress. Playoffs: ${wl(pw, pl)}${pw + pl ? ' (' + pct(pw, pl) + ')' : ''}. Runner-up finishes: ${n(l.runner_ups)}. Best regular-season records: ${n(l.best_records)}.</p>
           <div class="scrollx"><table class="rec"><thead><tr><th>League</th><th>When</th><th>Record</th><th>Playoffs</th><th>Finish</th></tr></thead><tbody>${seasons.map(s => `<tr><td>${esc(s.league)}</td><td>${esc(when(s.at))}</td><td>${wl(n(s.rw), n(s.rl))}</td><td>${n(s.pw) + n(s.pl) ? wl(n(s.pw), n(s.pl)) : '&ndash;'}</td><td>${finish(s)}</td></tr>`).join('')}</tbody></table></div>`
@@ -241,7 +315,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
     let res; try { res = await cc.client.rpc('my_career'); } catch (e) { res = { error: e }; }
     if (res.error || !res.data) { main.innerHTML = '<section class="card2"><p>We could not load your record. Please refresh the page.</p></section>'; return; }
     let st = null; try { const r2 = await cc.client.rpc('my_stats'); if (!r2.error) st = r2.data; } catch (e) {}   // the bigger numbers are a bonus: if they cannot load, the record still shows
-    render(res.data, st);
+    render(res.data, st); wireCoach(res.data, st || {});
   }
   window.addEventListener('cc-auth', load);
   (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
