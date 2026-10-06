@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cooperstown Cash: Historical Simulation Leagues</title>
+<title>Cooperstown Cash: Baseball Simulation Leagues with Real Players from 125 Years</title>
+<meta name="description" content="A free baseball simulation game. Draft real players from 125 years of baseball history, play them on your phone, and start a league with your friends.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
@@ -181,6 +182,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
 .board .rec, .board .nbhint { text-align: center; }
 .board .autohint { margin-top: 10px; font-size: 16px; } .board .autohint a { font-weight: 700; color: var(--wb-ink); }
 @media (max-width: 720px) { .board { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 10px; } .board .logo { width: 180px; height: 180px; } .board .herotext { padding-left: 0; } .board .lede { font-size: 23px; } }
+.signup { margin: 14px 0 6px; } .btn-signup { display: block; width: 100%; max-width: 440px; min-height: 64px; padding: 14px 24px; border: 0; border-radius: 12px; background: var(--wb-green); color: #fff; font: 700 26px/1.1 var(--text); letter-spacing: .01em; cursor: pointer; box-shadow: 0 5px 0 #14562F, 0 10px 22px rgba(0,0,0,.28); } .btn-signup:hover { background: #17693B; } .btn-signup:active { transform: translateY(3px); box-shadow: 0 2px 0 #14562F, 0 5px 12px rgba(0,0,0,.28); } .signup-note { margin: 10px 0 0; font-weight: 600; color: var(--ink-soft); }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -195,8 +197,9 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     <img class="logo" src="logo.webp" alt="" width="260" height="260">
     <div class="herotext">
     <h1>Cooperstown Cash</h1>
-    <p class="tag">Historical simulation leagues</p>
-    <p class="lede">Do you have what it takes to be an epic manager? Play the best players from over the past 125 years all on your phone. Draft and strategize to beat the computer or your friends.</p>
+    <p class="tag">Historical baseball simulation leagues</p>
+    <p class="lede">Do you have what it takes to be an epic manager? Play the best baseball players from over the past 125 years all on your phone. Draft and strategize to beat the computer or your friends.</p>
+    <div class="signup" id="signupTop" hidden><button class="btn-signup" id="signUpBtn" type="button">Sign up free</button><p class="signup-note">Just your email. No password. Free to play.</p></div>
     <p class="phone">Made for the few minutes of free time you get in a day: a draft can be paused, a game takes a few minutes, and a league plays one game day at a time. A free account is just your email, no password.</p>
     <p class="howto"><a class="btn btn-main" href="howtoplay.html">How the game is played</a> <a class="btn btn-cards" id="allCardsTop" href="cards.html" hidden>See all 1,430 cards</a></p>
     <p class="autohint">In a quick game you make the calls live: steals, bunts, walks, your defense and your bullpen. In a league you set most of them ahead of time. The game handles the rest, such as extra bases, tag-ups and double plays. <a href="howtoplay.html#calls">See the calls</a> or <a href="howtoplay.html#auto">which ones the game makes.</a></p>
@@ -415,6 +418,13 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     scoutCache.set(i, { ai: text, tried: true }); if (el.isConnected) el.innerHTML = text ? `<p class="voice">${esc(text)}</p>` : '';
   }
   window.addEventListener('cc-auth', () => document.querySelectorAll('.ask[aria-expanded="true"]').forEach(b => voice(+b.dataset.i, $('sc' + b.dataset.i).querySelector('.sv'))));
+
+  // ----- the big Sign up free button: for anyone who is not signed in yet -----
+  (() => {
+    const box = $('signupTop'), paint = () => { const cc = window.CC; box.hidden = !(cc && cc.client && !cc.user); };
+    $('signUpBtn').onclick = () => { const cc = window.CC; if (cc && cc.requireSignIn) cc.requireSignIn('Create your free account'); };
+    window.addEventListener('cc-auth', paint); (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(paint);
+  })();
 
   // ----- step 2: invite a friend (copy a link, email it, or use the phone's share sheet) -----
   (() => {
