@@ -387,9 +387,14 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     }));
     // buy-in and winnings confirmations: only the answers people gave, never a record of the money (the site cannot see LeagueSafe)
     const mn = new Map();
-    await Promise.all(leagues.filter(l => (l.buy_in_dollars || 0) > 0 && l.status !== 'canceled' && (ms.data || []).some(s => s.league_id === l.id)).map(async l => {
-      const o = {}, b = await c.rpc('buyin_status', { p_league_id: l.id }); if (!b.error && b.data) o.buyin = b.data;
-      if (l.status === 'complete') { const p = await c.rpc('payout_status', { p_league_id: l.id }); if (!p.error && p.data) o.payouts = p.data; }
+    const feeOn = !!(S.fee && S.fee.seat > 0);   // the member Private League Hosting Fee is set up in the site settings
+    await Promise.all(leagues.filter(l => l.status !== 'canceled' && ((l.buy_in_dollars || 0) > 0 || feeOn) && (ms.data || []).some(s => s.league_id === l.id)).map(async l => {
+      const o = {};
+      if ((l.buy_in_dollars || 0) > 0) {
+        const b = await c.rpc('buyin_status', { p_league_id: l.id }); if (!b.error && b.data) o.buyin = b.data;
+        if (l.status === 'complete') { const p = await c.rpc('payout_status', { p_league_id: l.id }); if (!p.error && p.data) o.payouts = p.data; }
+      }
+      if (feeOn && (l.status === 'open' || l.status === 'full' || l.status === 'started')) { const f = await c.rpc('fee_status', { p_league_id: l.id }); if (!f.error && f.data) o.fee = f.data; }
       mn.set(l.id, o);
     }));
     S.mn = mn;
@@ -621,13 +626,14 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
     const head = `<header><h3>${esc(l.name)}${isC ? '<span class="tag c">Commissioner</span>' : ''}${themeChip(l)}</h3><span class="note">${status}</span></header>`;
     const memberList = `<ul class="members">${members.map(m => `<li>${esc(m.club_name)}${m.ready ? ' <span class="ok" title="Roster submitted">&#10003;</span>' : ''}</li>`).join('')}</ul>`;
     const ends = `<div class="row">${mySeat && !isC && live ? `<button class="btn btn-alt" data-leave="${l.id}">Leave this league</button>` : ''}${isC && live ? `<button class="btn btn-alt" data-end="${l.id}">Cancel this league</button>` : ''}</div>`;
-    if (isC && live) return `<article class="card lg" data-id="${l.id}">${head}${feeBlock(l)}${l.status === 'open' ? themeBlock(l) : ''}${hqSteps(l, members, pending, mySeat)}${ends}</article>`;
+    if (isC && live) return `<article class="card lg" data-id="${l.id}">${head}${feeBlock(l)}${l.status === 'open' ? themeBlock(l) : ''}${hqSteps(l, members, pending, mySeat)}${feeCheckHtml(l, true)}${ends}</article>`;
     return `<article class="card lg" data-id="${l.id}">${head}
       ${mySeat ? `<p class="sub">You're in seat ${mySeat.seat_no} as ${esc(mySeat.club_name)}.</p>` : ''}
       ${started ? seasonBar(l) : ''}
       ${started || over ? moneyBoard(l) : ''}
       ${isC && money ? `<details class="mp" data-step="${l.id}:moneypanel" data-def="0" ${S.open[l.id + ':moneypanel'] ? 'open' : ''}><summary><b>Money and payouts</b></summary>${moneyExplainC(l, false, true)}</details>` : ''}
       ${money && (isC || mySeat) && l.buy_in_dollars > 0 ? moneyCheckHtml(l, isC) : ''}
+      ${money && !over && (isC || mySeat) ? feeCheckHtml(l, isC) : ''}
 ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
       ${!started && !over ? memberList : ''}
       ${mySeat && live ? rosterBar(l, members) : ''}
@@ -791,6 +797,25 @@ ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
     if (l.status === 'complete' && pl.length) h += `<h4>Prizes</h4><ul class="polist">${pl.map(p => `<li class="po-${esc(p.label)}"><b>${esc(PLACE_NAME[p.place] || p.place)}</b>${amt[p.place] ? ' (' + usd(amt[p.place]) + ')' : ''}: ${esc(p.club)}. <span class="polab">${PO_LABEL[p.label] || esc(p.label)}</span>${p.mine && p.label !== 'self' && p.label !== 'cpu' && p.label !== 'purged' ? `<div class="row"><button class="btn btn-alt" type="button" data-po-me="${l.id}" data-place="${esc(p.place)}" data-says="received">I received it</button><button class="btn btn-alt" type="button" data-po-me="${l.id}" data-place="${esc(p.place)}" data-says="problem">Not yet, or a different amount</button></div>` : ''}${isC && p.label !== 'cpu' && p.label !== 'self' && p.label !== 'purged' ? `<label class="check"><input type="checkbox" data-po-c="${l.id}" data-place="${esc(p.place)}" ${p.commish_assigned ? 'checked' : ''}> I assigned this prize on LeagueSafe</label>` : ''}</li>`).join('')}</ul>`;
     h += `<details class="rep"><summary>Report a problem with this league</summary><textarea id="rep-${l.id}" maxlength="1000" rows="3" placeholder="What happened?" aria-label="Describe the problem"></textarea><div class="row"><button class="btn btn-alt" type="button" data-rep-send="${l.id}">Send report</button></div><p class="note" id="repmsg-${l.id}" role="status">Reports go to the owner of Cooperstown Cash.</p></details>`;
     return `<div class="mcheck"><b>LeagueSafe and buy-ins</b>${h}</div>`;
+  }
+  // The Private League Hosting Fee: each member pays Cooperstown Cash once per league (the commissioner and computer-run clubs pay nothing).
+  // The payment link carries "<league id>_<your user id>" so the payment lands on the right member; the page just shows what the site has recorded.
+  function feePayUrl(l) {
+    try { const u = new URL(S.fee.url); u.searchParams.set('client_reference_id', l.id + '_' + window.CC.user.id); if (window.CC.user.email) u.searchParams.set('prefilled_email', window.CC.user.email); return u.toString(); } catch (e) { return ''; }
+  }
+  function feeCheckHtml(l, isC) {
+    const f = (S.mn.get(l.id) || {}).fee; if (!f || !(f.fee_cents > 0) || l.status === 'canceled') return '';
+    const cn = f.counts || {}, per = money(f.fee_cents), live = l.status === 'open' || l.status === 'full', mine = f.mine && f.mine.fee, pay = S.fee && S.fee.url ? feePayUrl(l) : '';
+    let h = '';
+    if (isC) h += `<p class="note" style="margin:4px 0">You pay nothing. Each member pays the ${per} Private League Hosting Fee to Cooperstown Cash. It is separate from the buy-in and never comes out of the pot.</p>`;
+    else if (mine === 'paid') h += `<p class="note" style="margin:4px 0"><b>Your ${per} Private League Hosting Fee is paid. &#10003;</b> Thank you.</p>`;
+    else if (mine === 'waived') h += `<p class="note" style="margin:4px 0"><b>Your Private League Hosting Fee was waived.</b></p>`;
+    else if (pay) h += `<p><a class="btn btn-main" href="${esc(pay)}" target="_blank" rel="noopener noreferrer">Pay the ${per} Private League Hosting Fee</a></p><p class="note">This goes to Cooperstown Cash, not to the pot or your commissioner. It is the same in every league, with or without a buy-in. After you pay, this page updates by itself within a minute.</p>`;
+    else h += `<p class="note" style="margin:4px 0">The Private League Hosting Fee (${per}) is not switched on yet, so nothing is due right now.</p>`;
+    if (cn.members) h += `<p class="note" style="margin:4px 0">${cn.paid} of ${cn.members} member${cn.members === 1 ? '' : 's'} ${cn.members === 1 ? 'has' : 'have'} paid the hosting fee.</p>`;
+    else if (live) h += '<p class="note" style="margin:4px 0">No members have joined yet.</p>';
+    if (isC && Array.isArray(f.rows) && f.rows.length) h += `<div class="scroll"><table class="eg"><thead><tr><th>Member</th><th>Hosting fee</th></tr></thead><tbody>${f.rows.map(r => `<tr class="${r.fee === 'unpaid' ? '' : 'st-matched'}"><td>${esc(r.club)}</td><td>${r.fee === 'paid' ? 'Paid &#10003;' : r.fee === 'waived' ? 'Waived' : 'Not paid yet'}</td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="mcheck"><b>Private League Hosting Fee</b>${h}</div>`;
   }
   async function mnCall(name, args, msgId) {
     const { error } = await client().rpc(name, args);
