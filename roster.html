@@ -87,6 +87,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
 .pch { list-style: none; margin: 0; padding: 0; } .pch li { display: flex; align-items: center; gap: 8px; padding: 2px 0; } .pch li.next { background: rgba(31,63,143,.07); border-radius: 4px; margin: 0 -6px; padding: 2px 6px; } .pch .cl { flex: none; width: 1.6em; height: 1.6em; border-radius: 50%; background: #1F3F8F; color: #fff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; } .pch .pn { flex: 1; min-width: 0; } .pch small, .tgtlist small { color: #5A646E; }
 @media (max-width: 700px) { #planList .add { min-height: 44px; min-width: 64px; } }
 .tgtlist { list-style: none; margin: 8px 0; padding: 0; } .tgtlist li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #E3E6EA; } .tact { display: flex; align-items: center; gap: 12px; flex: none; } #planList .lk { all: unset; cursor: pointer; font-weight: 600; text-decoration: underline; color: #1F3F8F; min-height: 44px; display: inline-flex; align-items: center; }
+.backlg { margin: 12px 0 0; } .backlg .btn { display: inline-block; min-height: 44px; }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -114,6 +115,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
         <button class="btn btn-alt" id="clear" type="button">Clear roster</button>
         <span class="saved" id="saved"></span>
       </div>
+      <p class="backlg"><a class="btn btn-alt" id="backLeague" href="private.html" hidden>Back to your league</a></p>
       <p class="note" style="margin-top:10px">18 spots: a lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH), five starters and four relievers. Same cap for everyone. Two clubs can have the same player. A person can be on your roster once, in one season.</p>
     </div>
   </header>
@@ -183,6 +185,11 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
         c.from('seat_board').select('seat_no,club_name,ready').eq('league_id', S.id),
         S.pool.length ? Promise.resolve(S.pool) : fetch('roster-pool.json').then(r => r.json())]);
       S.league = lg.data && lg.data[0]; S.seat = seat.data && seat.data[0];
+      if (S.league) {   // wherever this league lives: a started season, a free table, or a private league that is still filling
+        const L = S.league, started = L.status === 'started' || L.status === 'complete', href = started ? 'season.html?league=' + L.id : L.is_public ? 'lobby.html' : 'private.html', where = started ? 'Your season' : L.is_public ? 'Find a table' : 'Private leagues';
+        const crumb = document.querySelector('.crumbs a[href="private.html"]'); if (crumb) { crumb.href = href; crumb.textContent = where; }
+        const bl = $('backLeague'); if (bl) { bl.href = href; bl.textContent = started ? 'Back to your season' : L.is_public ? 'Back to your table' : 'Back to your league'; bl.hidden = false; }
+      }
       if (!S.league || !S.seat) { $('sub').innerHTML = 'You don\'t have a seat in that league. <a href="private.html">Go to your private leagues</a>.'; return; }
       const TH = THEMES[S.league.theme] || null; S.theme = TH; S.pool = TH ? pool.filter(p => p.y >= TH.lo && p.y <= TH.hi) : pool; S.byKey = new Map(S.pool.map(p => [p.k, p])); S.cap = Number(S.league.salary_cap);
       if (!$('themeNote')) { const tn = document.createElement('p'); tn.id = 'themeNote'; tn.className = 'note'; tn.setAttribute('role', 'status'); $('sub').after(tn); }

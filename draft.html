@@ -747,6 +747,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
       <div class="row-btns">
         <button class="btn btn-main" id="toPlay">Play the computer's team</button>
         <button class="btn btn-alt" id="redraft">Start a new mock draft</button>
+        <a class="btn btn-alt" id="toSolo" href="solo.html">Back to Play solo</a>
       </div>
     </div>
   </section>
@@ -782,6 +783,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     <div class="setup-row">
       <button class="btn btn-alt" id="backRoom">Back to the draft room</button>
       <button class="btn btn-alt" id="newDraft2">Start a new mock draft</button>
+      <a class="btn btn-alt" id="toSolo2" href="solo.html">Back to Play solo</a>
     </div>
   </section>
 
@@ -2308,9 +2310,9 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
 
   // ---------- the game ----------
   function gameTeam(side, name) {
-    const r = D.teams[side], get = id => ({ ...BY.get(r[id]) });
-    const lineup = {}; for (const p of ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']) lineup[p] = get(p);
-    const t = Diamond.prepTeam({ nick: name, league: NL, lineup, rotation: [1, 2, 3, 4, 5].map(i => get('sp' + i)), bullpen: [1, 2, 3, 4].map(i => get('rp' + i)) }, N);
+    const r = D.teams[side], get = (id, fb) => (r[id] && BY.get(r[id]) ? { ...BY.get(r[id]) } : { ...fb, id: side + id, yr: '' });   // an empty spot counts as an average player, as it does in the report card
+    const lineup = {}; for (const p of ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']) lineup[p] = get(p, AVG_H);
+    const t = Diamond.prepTeam({ nick: name, league: NL, lineup, rotation: [1, 2, 3, 4, 5].map(i => get('sp' + i, AVG_SP)), bullpen: [1, 2, 3, 4].map(i => get('rp' + i, AVG_RP)) }, N);
     for (const x of [...t.order, ...t.rotation, ...t.bullpen]) { x.card = DuelDice.cardFor(x, !!x.IPOuts, N); }
     t.rotation.sort((a, b) => a.fip - b.fip);
     return t;
@@ -2360,7 +2362,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
       ${outs >= 3 && !g.over ? '<p class="fv-note">Three outs. Side retired.</p>' : ''}`;
   }
   function cardHtml(x, isBatter, mine, hitRoll) {
-    const sub = isBatter ? `${x.yr} ${x.fpos.toUpperCase()}, ${f3(x.avg)} AVG, ${x.HR} HR, ${f3(x.obp)} OBP` : `${x.yr} ${x.W}-${x.L}, ${x.era.toFixed(2)} ERA, ${x.SO} SO`;
+    const sub = isBatter ? `${x.yr ? x.yr + ' ' : ''}${x.fpos.toUpperCase()}, ${f3(x.avg)} AVG, ${x.HR} HR, ${f3(x.obp)} OBP` : `${x.yr ? x.yr + ' ' : ''}${x.W}-${x.L}, ${x.era.toFixed(2)} ERA, ${x.SO} SO`;
     const rows = x.card.map(r => { const hit = hitRoll != null && hitRoll >= r.lo && hitRoll <= r.hi;
       const rng = r.lo === r.hi ? String(r.lo).padStart(2, '0') : `${String(r.lo).padStart(2, '0')}–${r.hi === 100 ? '00' : String(r.hi).padStart(2, '0')}`;
       return `<li class="${GOOD.has(r.code) ? 'good' : ''} ${hit ? 'hit' : ''}"><b>${rng}</b><span>${r.label}</span></li>`; }).join('');
@@ -2459,7 +2461,7 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
     g.teams.forEach(s => {
       const rows = s.t.order.map(b => s.bat.get(b.id)), tot = k => rows.reduce((n, r) => n + r[k], 0);
       html += `<div class="tablewrap"><table class="box"><caption>${esc(s.t.nick)}</caption><thead><tr><th>Batter</th><th></th><th>AB</th><th>R</th><th>H</th><th>RBI</th><th>BB</th><th>SO</th></tr></thead><tbody>`;
-      for (const r of rows) html += `<tr><td>${esc(r.b.name)} <small>'${String(r.b.yr).slice(2)}</small></td><td class="pos">${r.b.fpos.toUpperCase()}</td><td>${r.AB}</td><td>${r.R}</td><td>${r.H}</td><td>${r.RBI}</td><td>${r.BB}</td><td>${r.SO}</td></tr>`;
+      for (const r of rows) html += `<tr><td>${esc(r.b.name)} <small>${r.b.yr ? "'" + String(r.b.yr).slice(2) : ''}</small></td><td class="pos">${r.b.fpos.toUpperCase()}</td><td>${r.AB}</td><td>${r.R}</td><td>${r.H}</td><td>${r.RBI}</td><td>${r.BB}</td><td>${r.SO}</td></tr>`;
       html += `<tr class="tot"><td>Totals</td><td></td><td>${tot('AB')}</td><td>${tot('R')}</td><td>${tot('H')}</td><td>${tot('RBI')}</td><td>${tot('BB')}</td><td>${tot('SO')}</td></tr></tbody></table></div>`;
       const note = (k, lab) => { const l = rows.filter(r => r[k]).map(r => r.b.short + (r[k] > 1 ? ' ' + r[k] : '')); return l.length ? `${lab}: ${l.join(', ')}.` : ''; };
       const n = [note('D', '2B'), note('T', '3B'), note('HR', 'HR')].filter(Boolean).join(' ');
@@ -2482,6 +2484,8 @@ ol.walk { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 8px; 
   if (lastProj) showProj(lastProj[0], lastProj[1]);
   drawSetup();
   if (location.hash === '#resume' && D && !D.done && D.pick > 0) enterRoom();
+  // "Play your drafted team" on the Play solo page comes here with ?play=1: a finished draft goes straight to the game
+  else if (/[?&]play=1(?:&|$)/.test(location.search) && D && D.done) { try { history.replaceState(null, '', location.pathname); } catch (e) {} startGame(); }
 })();
 </script>
 </body>
