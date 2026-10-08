@@ -128,6 +128,8 @@
   }
   window.addEventListener('cc-avatar', e => { const a = e && e.detail; avatar = avOk(a) ? a : null; render(); });   // the account page tells the bar the moment it is saved
   // an app on the home screen has its own storage: the email's link opens the browser instead, so inside the app the code is the way to sign in
+  const nativeApp = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());   // the phone app; Google blocks sign-in inside an app's built-in browser, so it gets its own route later
+  const GOOGLE_G = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3.1-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
   const inApp = (() => { try { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; } catch (e) { return false; } })();
   let host = null, mode = 'idle', status = '';
   function setStatus(s) { status = s; render(); }
@@ -227,7 +229,10 @@
     .ccgate-card button { background: #1F3F8F; color: #fff; border: 0; border-radius: 4px; padding: 12px 16px; font: 600 17px inherit; cursor: pointer; }
     .ccgate-card button:disabled { opacity: .55; cursor: default; }
     .ccgate-card .small { font-size: 13px; color: #5A6470; margin: 12px 0 0; }
-    .ccgate-card .err { color: #C0392B; font-weight: 600; margin: 10px 0 0; }`;
+    .ccgate-card .err { color: #C0392B; font-weight: 600; margin: 10px 0 0; }
+    .ccgate-card .ccg-google { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; background: #fff; color: #1F1F1F; border: 1.5px solid #8C959E; font-weight: 600; }
+    .ccgate-card .ccg-google svg { width: 20px; height: 20px; flex: none; }
+    .ccgate-card .ccg-or { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: #5A6470; font-size: 14px; } .ccgate-card .ccg-or::before, .ccgate-card .ccg-or::after { content: ''; flex: 1; height: 1px; background: #B7BDC2; }`;
   let gateEl = null, gateState = 'checking', gateMsg = '', forced = false, gateHead = null;
   function drawGate() {
     if (!GATED && !forced) return;
@@ -244,6 +249,7 @@
     else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>${sentOwn ? (inApp ? "We emailed you a sign-in code. Type it below. Skip the link in the email: in an installed app it opens your browser, not this app, and you would be signed in there instead." : "We emailed you a sign-in code and a link. Type the code below, or open the link on this device and you'll land right back here, ready to play.") : "We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play."}</p><form id="ccgCodeForm"><label for="ccgCode">${sentOwn ? 'Code from the email' : 'Or, if the email has a code, type it here'}</label><input id="ccgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="12345678"><button type="submit" id="ccgCodeGo">Sign in with the code</button></form>${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600;display:inline-block;padding:13px 4px">try a different email</button>.</p>
       <details class="rescue"${gateMsg ? ' open' : ''}><summary>The link opened a page that can't be reached?</summary><p class="small">Your sign-in is in that page's address. Copy the whole address from the top of your browser, paste it here, and you're signed in.</p><form id="ccgRescueForm"><input id="ccgAddr" placeholder="Paste the address here" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="submit" id="ccgRescueGo">Sign in</button></form></details>`;
     else body = `${head}<h2 id="ccgT">${esc(gateHead || 'Create your free account to play')}</h2><p>Play for fun or learn strategy. Your drafts, wins and unlocks are saved to your account. Just your email, no password.</p>
+      ${nativeApp ? '' : `<button type="button" id="ccgGoogle" class="ccg-google">${GOOGLE_G}<span>Continue with Google</span></button><p class="ccg-or" aria-hidden="true"><span>or</span></p>`}
       <form id="ccgForm"><label for="ccgEmail">Email</label><input id="ccgEmail" type="email" required autocomplete="email" placeholder="you@example.com" value="${esc(pendingEmail)}"><button type="submit" id="ccgGo">Email me a sign-in link</button></form>
       ${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Already have an account? Use the same email and we'll send you a fresh link.</p>${forced && !GATED ? '<p class="small"><button type="button" id="ccgClose" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">Not now</button></p>' : ''}`;
     gateEl.innerHTML = `<div class="ccgate-card">${body}</div>`;
@@ -263,6 +269,12 @@
     if (rf) rf.onsubmit = async e => { e.preventDefault(); const b = gateEl.querySelector('#ccgRescueGo'); b.disabled = true; b.textContent = 'Checking…'; const bad = await rescueFromAddress(gateEl.querySelector('#ccgAddr').value); if (bad) { gateMsg = bad; drawGate(); } };
     const cf = gateEl.querySelector('#ccgCodeForm');
     if (cf) { gateEl.querySelector('#ccgCode').focus(); cf.onsubmit = async e => { e.preventDefault(); const b = gateEl.querySelector('#ccgCodeGo'); b.disabled = true; b.textContent = 'Checking…'; const bad = await verifyCode(pendingEmail, gateEl.querySelector('#ccgCode').value); if (bad) { gateMsg = bad; drawGate(); } }; }
+    const gbtn = gateEl.querySelector('#ccgGoogle');
+    if (gbtn) gbtn.onclick = async () => {
+      gbtn.disabled = true; gbtn.querySelector('span').textContent = 'Opening Google…';
+      const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+      if (error) { gateMsg = 'We could not open Google sign-in. Use your email below instead.'; gateState = 'form'; drawGate(); }
+    };
     const closeBtn = gateEl.querySelector('#ccgClose'); if (closeBtn) closeBtn.onclick = () => { forced = false; openGate(); };
     const again = gateEl.querySelector('#ccgAgain'); if (again) again.onclick = () => { gateState = 'form'; gateMsg = ''; drawGate(); };
   }
