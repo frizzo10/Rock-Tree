@@ -300,6 +300,7 @@ body.war .dec { color: var(--wb-red); }
 .crumbs { display: flex; align-items: center; gap: 10px; }
 .crumbs .badge { width: 52px; height: 52px; display: block; }
 .crumbs .badge img { width: 100%; height: 100%; }
+  .bf { margin: 0; padding: 8px 12px 12px; font-size: 14px; line-height: 1.35; color: #3A434D; text-align: center; } .bf b { color: #1B1F24; }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -1148,11 +1149,16 @@ body.war .dec { color: var(--wb-red); }
     return `<div class="card-head">${whose}<h3>${esc(pl.name)}</h3><p>${esc(pl.year || '')}${sub}</p></div><ol class="rows">${rows}</ol>`;
   }
 
+  // how tired the man on the mound is: batters faced so far, and about where he is taken out (his limit comes from his real season)
+  function bfLine(p) {
+    const cur = g && g.def && g.def.cur; if (!cur || !p || !(p.stamina > 0)) return '';
+    return `<p class="bf"><b>Batters faced ${cur.BF}</b> · usually taken out around ${Math.round(p.stamina)}</p>`;
+  }
   function drawCards(ownerSide, roll) {
     const b = g.batter(), p = g.pitcher(), youBat = g.half === you;
     b.year = ''; p.year = '';
     $('batCard').innerHTML = cardHtml(b, true, youBat, ownerSide === 'batter' ? roll : null);
-    $('pitCard').innerHTML = cardHtml(p, false, !youBat, ownerSide === 'pitcher' ? roll : null);
+    $('pitCard').innerHTML = cardHtml(p, false, !youBat, ownerSide === 'pitcher' ? roll : null) + bfLine(p);
     $('batCard').classList.toggle('owner', ownerSide === 'batter');
     $('pitCard').classList.toggle('owner', ownerSide === 'pitcher');
   }
@@ -1198,7 +1204,7 @@ body.war .dec { color: var(--wb-red); }
   const CPU_CALLS = { steals: 'selective', bunts: 'situational', walks: 'situational', defense: { infield_in: 'situational', dp_depth: 'situational', corners_in: 'situational', outfield_in: 'situational', outfield_deep: 'situational', hold: 'situational' } };
   function clearCalls() { const c = $('calls'); if (c) { c.hidden = true; c.innerHTML = ''; } }
   const callNote = o => o.id === 'bunt' ? `${o.who}. About 3 in 4 move the runner up.` : o.id === 'ibb' ? `Put ${o.who} on first.` : `${o.who}: ${Math.round(o.chance * 100)}% to make it.`;
-  function penNote(p) { const c = g.def.t.closer; return `${p.era.toFixed(2)} ERA, ${p.SO} SO${c && c.id === p.id ? ', closer' : ''}`; }
+  function penNote(p) { const c = g.def.t.closer; return `${p.era.toFixed(2)} ERA, ${p.SO} SO, usually faces about ${Math.round(p.stamina)} batters${c && c.id === p.id ? ', closer' : ''}`; }
   // ---- your defense: set before the pitch, it stays until you change it, and each call only works in its own spot ----
   let defOpen = false;
   const DEF_TEXT = {
