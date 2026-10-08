@@ -157,7 +157,8 @@ footer p { margin: 0 0 6px; }
       <section class="board"><h2 style="margin-top:0">Your leagues and tables</h2>${mine.length ? `<ul class="acl">${mine.map(({ s, l }) => `<li><a href="${where(l)}"><b>${esc(l.name)}</b></a><span class="note">${esc(s.club_name)} &middot; ${esc(STATUS[l.status] || l.status)}${THEME[l.theme] ? ' &middot; ' + esc(THEME[l.theme]) : ''}</span></li>`).join('')}</ul>` : '<p>You aren\'t in a league yet.</p><p><a class="btn btn-main" href="lobby.html">Find a free table</a> <a class="btn btn-alt" href="private.html">Start a private league</a></p>'}</section>
       <section class="board"><h2 style="margin-top:0">Your record</h2><p>Your wins, your quick games and the legends you have unlocked.</p><p><a class="btn btn-alt" href="career.html">See my record</a></p></section>
       <section class="board"><h2 style="margin-top:0">Emails</h2><p>We send league emails to <b>${esc(cc.user.email || 'the email on your account')}</b>.</p><label class="opt" style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="on" ${nt.data ? 'checked' : ''} style="width:22px;height:22px"> Email me about my tables and leagues</label><p class="note" id="saved" role="status" aria-live="polite"></p></section>${window.CC_NATIVE && window.CC_NATIVE.enablePush ? '<section class="board" id="pushSec"><h2 style="margin-top:0">Phone alerts</h2><p>Get an alert on this phone when something happens in your tables and leagues.</p><p><button class="btn" id="pushOn" type="button">Turn on phone alerts</button></p><p class="note" id="pushMsg" role="status" aria-live="polite"></p></section>' : ''}
-      <section class="board"><h2 style="margin-top:0">Signing in</h2><p>There is no password. Each time you sign in we email you a one-time code, and a link that does the same thing.</p><p><button class="btn btn-alt" id="out" type="button">Sign out</button></p></section>`;
+      <section class="board"><h2 style="margin-top:0">Signing in</h2><p>There is no password. Each time you sign in we email you a one-time code, and a link that does the same thing.</p><p><button class="btn btn-alt" id="out" type="button">Sign out</button></p></section>
+      <section class="board" id="delSec"><h2 style="margin-top:0">Delete your account</h2><p>This permanently deletes your account and the information tied to it. Leagues that have finished keep their results, with your seat shown as "Former manager". It cannot be undone.</p><p><button class="btn btn-alt" id="delStart" type="button" style="border-color:#9E2B22;color:#9E2B22">Delete my account</button></p><div id="delBody" role="status" aria-live="polite"></div></section>`;
     $('on').onchange = async () => { const want = $('on').checked; $('on').disabled = true; const r = await c.rpc('set_email_notices', { p: want }); $('on').disabled = false; if (r.error) { $('on').checked = !want; $('saved').style.color = '#9E2B22'; $('saved').textContent = 'We could not save that. Please try again.'; return; } $('saved').style.color = ''; $('saved').textContent = want ? 'Saved. You will get league emails.' : 'Saved. You will not get league emails.'; };
     if ($('pushOn')) $('pushOn').onclick = async () => { $('pushOn').disabled = true; const r = await window.CC_NATIVE.enablePush(); $('pushOn').disabled = false; $('pushMsg').style.color = r === 'granted' ? '' : '#9E2B22'; $('pushMsg').textContent = r === 'granted' ? 'Phone alerts are on for this phone.' : r === 'denied' ? 'Alerts are off for this app. You can turn them on in your phone\'s Settings.' : 'We could not turn alerts on. Please try again.'; };
     // ---- the avatar picker ----
@@ -181,6 +182,28 @@ footer p { margin: 0 0 6px; }
     };
     $('avSave').onclick = () => sendAv(pick.emoji, pick.color); $('avReset').onclick = () => { pick = { emoji: '', color: '' }; sendAv('', '').then(() => {}); };
     drawAv();
+    // ---- delete my account ----
+    const delBody = $('delBody'), delStart = $('delStart');
+    delStart.onclick = async () => {
+      delStart.disabled = true; delBody.innerHTML = '<p>Checking…</p>';
+      const r = await c.rpc('delete_my_account', { p_confirm: false }); delStart.disabled = false;
+      if (r.error || !r.data) { delBody.innerHTML = '<p class="note" style="color:#9E2B22">We could not check your account right now. Please try again.</p>'; return; }
+      if (!r.data.ok) {
+        delBody.innerHTML = '<p><b>We can\'t delete your account yet.</b></p><ul>' + (r.data.blockers || []).map(x => '<li>' + esc(x.league ? x.league + ': ' : '') + esc(x.why) + '</li>').join('') + '</ul><p class="note">Once that is sorted, come back here.</p>'; return;
+      }
+      delBody.innerHTML = '<p><b>This is permanent.</b> Type <b>DELETE</b> to confirm.</p><input id="delType" type="text" autocomplete="off" autocapitalize="characters" aria-label="Type DELETE to confirm" style="width:100%;box-sizing:border-box;min-height:44px;padding:8px 10px;margin:6px 0;font:inherit;border:1.5px solid #8C959E;border-radius:4px"><p style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0"><button class="btn" id="delGo" type="button" disabled style="background:#9E2B22;border-color:#9E2B22;color:#fff">Yes, delete my account forever</button><button class="btn btn-alt" id="delNo" type="button">Keep my account</button></p><p class="note" id="delMsg"></p>';
+      $('delType').oninput = () => { $('delGo').disabled = $('delType').value.trim().toUpperCase() !== 'DELETE'; };
+      $('delNo').onclick = () => { delBody.innerHTML = ''; };
+      $('delGo').onclick = async () => {
+        $('delGo').disabled = true; $('delNo').disabled = true; $('delType').disabled = true; $('delMsg').textContent = 'Deleting…';
+        const d = await c.rpc('delete_my_account', { p_confirm: true });
+        if (d.error || !d.data || !d.data.deleted) { $('delMsg').style.color = '#9E2B22'; $('delMsg').textContent = 'We could not delete your account. Nothing was changed. Please try again.'; $('delNo').disabled = false; $('delType').disabled = false; return; }
+        try { localStorage.clear(); } catch (e) {}
+        try { await c.auth.signOut(); } catch (e) {}
+        box.innerHTML = '<section class="board"><h2 style="margin-top:0">Your account is deleted</h2><p>Thank you for playing. You can start fresh any time.</p><p><a class="btn" href="index.html">Go to the home page</a></p></section>';
+        $('who').textContent = '';
+      };
+    };
     $('out').onclick = async () => { $('out').disabled = true; const bar = document.getElementById('accOut'); if (bar) bar.click(); else await c.auth.signOut(); };   // the bar's button also saves your progress first
   }
   window.addEventListener('cc-auth', paint);
