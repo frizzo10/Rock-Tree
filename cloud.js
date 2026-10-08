@@ -248,10 +248,13 @@
     else if (gateState === 'offline') body = `${head}<h2 id="ccgT">We couldn't reach sign-in</h2><p>Check your connection and refresh the page. You need a free account to play.</p>`;
     else if (gateState === 'sent') body = `${head}<h2 id="ccgT">Check your email</h2><p>${sentOwn ? (inApp ? "We emailed you a sign-in code. Type it below. Skip the link in the email: in an installed app it opens your browser, not this app, and you would be signed in there instead." : "We emailed you a sign-in code and a link. Type the code below, or open the link on this device and you'll land right back here, ready to play.") : "We sent you a sign-in link. Open it on this device and you'll land right back here, ready to play."}</p><form id="ccgCodeForm"><label for="ccgCode">${sentOwn ? 'Code from the email' : 'Or, if the email has a code, type it here'}</label><input id="ccgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="12345678"><button type="submit" id="ccgCodeGo">Sign in with the code</button></form>${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Nothing there? Check your spam folder, or <button type="button" id="ccgAgain" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600;display:inline-block;padding:13px 4px">try a different email</button>.</p>
       <details class="rescue"${gateMsg ? ' open' : ''}><summary>The link opened a page that can't be reached?</summary><p class="small">Your sign-in is in that page's address. Copy the whole address from the top of your browser, paste it here, and you're signed in.</p><form id="ccgRescueForm"><input id="ccgAddr" placeholder="Paste the address here" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="submit" id="ccgRescueGo">Sign in</button></form></details>`;
+    else if (gateState === 'review') body = `${head}<h2 id="ccgT">App Review sign-in</h2><p>For the App Store and Google Play review team. Players sign in with their email on the previous screen.</p>
+      <form id="ccgReviewForm"><label for="ccgREmail">Email</label><input id="ccgREmail" type="email" required autocomplete="username"><label for="ccgRPass">Password</label><input id="ccgRPass" type="password" required autocomplete="current-password"><button type="submit" id="ccgRGo">Sign in</button></form>
+      ${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small"><button type="button" id="ccgRBack" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">Back</button></p>`;
     else body = `${head}<h2 id="ccgT">${esc(gateHead || 'Create your free account to play')}</h2><p>Play for fun or learn strategy. Your drafts, wins and unlocks are saved to your account. Just your email, no password.</p>
       ${nativeApp ? '' : `<button type="button" id="ccgGoogle" class="ccg-google">${GOOGLE_G}<span>Continue with Google</span></button><p class="ccg-or" aria-hidden="true"><span>or</span></p>`}
       <form id="ccgForm"><label for="ccgEmail">Email</label><input id="ccgEmail" type="email" required autocomplete="email" placeholder="you@example.com" value="${esc(pendingEmail)}"><button type="submit" id="ccgGo">Email me a sign-in link</button></form>
-      ${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Already have an account? Use the same email and we'll send you a fresh link.</p>${forced && !GATED ? '<p class="small"><button type="button" id="ccgClose" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">Not now</button></p>' : ''}`;
+      ${gateMsg ? `<p class="err" role="alert">${esc(gateMsg)}</p>` : ''}<p class="small">Already have an account? Use the same email and we'll send you a fresh link.</p>${nativeApp ? '<p class="small"><button type="button" id="ccgReview" style="all:unset;cursor:pointer;text-decoration:underline">App Review sign-in</button></p>' : ''}${forced && !GATED ? '<p class="small"><button type="button" id="ccgClose" style="all:unset;cursor:pointer;text-decoration:underline;font-weight:600">Not now</button></p>' : ''}`;
     gateEl.innerHTML = `<div class="ccgate-card">${body}</div>`;
     const form = gateEl.querySelector('#ccgForm');
     if (form) {
@@ -275,6 +278,18 @@
       const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
       if (error) { gateMsg = 'We could not open Google sign-in. Use your email below instead.'; gateState = 'form'; drawGate(); }
     };
+    const rvb = gateEl.querySelector('#ccgReview'); if (rvb) rvb.onclick = () => { gateState = 'review'; gateMsg = ''; drawGate(); };
+    const rvf = gateEl.querySelector('#ccgReviewForm');
+    if (rvf) {
+      gateEl.querySelector('#ccgREmail').focus();
+      gateEl.querySelector('#ccgRBack').onclick = () => { gateState = 'form'; gateMsg = ''; drawGate(); };
+      rvf.onsubmit = async e => {
+        e.preventDefault();
+        const b = gateEl.querySelector('#ccgRGo'); b.disabled = true; b.textContent = 'Signing in…';
+        const { error } = await client.auth.signInWithPassword({ email: gateEl.querySelector('#ccgREmail').value.trim(), password: gateEl.querySelector('#ccgRPass').value });
+        if (error) { gateMsg = 'That email and password did not work.'; drawGate(); }
+      };
+    }
     const closeBtn = gateEl.querySelector('#ccgClose'); if (closeBtn) closeBtn.onclick = () => { forced = false; openGate(); };
     const again = gateEl.querySelector('#ccgAgain'); if (again) again.onclick = () => { gateState = 'form'; gateMsg = ''; drawGate(); };
   }
