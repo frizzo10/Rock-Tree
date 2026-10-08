@@ -138,7 +138,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
 <script>
 (() => {
   // The operator's details live here, in one place. Until they are filled in and the documents are reviewed, the draft notice shows.
-  const LEGAL = { operator: '', email: '', address: '', reviewed: false };
+  const LEGAL = { operator: 'Frank Rizzo', email: 'frizzo1@gmail.com', address: '', reviewed: false };
   const fill = (key, text) => document.querySelectorAll('[data-legal="' + key + '"]').forEach(el => { if (text) { el.textContent = text; el.classList.remove('todo'); } });
   fill('operator', LEGAL.operator); fill('email', LEGAL.email); fill('address', LEGAL.address);
   document.querySelectorAll('a[data-legal="email"]').forEach(a => { if (LEGAL.email) a.href = 'mailto:' + LEGAL.email; });
