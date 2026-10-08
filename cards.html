@@ -68,6 +68,24 @@ button { font: inherit; }
 .empty { background: rgba(247,242,228,.95); border-radius: 4px; padding: 20px 24px; font-size: 17px; }
 footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); display: inline-block; padding: 8px 14px; border-radius: 4px; } footer a { color: inherit; font-weight: 600; }
 
+.pick { background: rgba(247,242,228,.95); border-radius: 4px; padding: 16px 16px 18px; margin: 18px 0 8px; } .pick h2 { font: 400 28px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .pick p { margin: 0 0 12px; font-size: 16px; }
+.pickgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .pickgrid .btn { min-height: 64px; font-size: 18px; text-align: center; }
+.phoneonly { display: none; }
+@media (max-width: 600px) {
+  body.picked .board p { display: none; } .tools.collapsed .fl { display: none; } .tools { padding: 10px 12px; gap: 8px; margin-top: 10px; } .tools .grow { flex: 1 1 100%; }
+  .phoneonly { display: inline-flex; } .tools label, .tools .grow { flex: 1 1 140px; } .tools input, .tools select { min-width: 0; width: 100%; }
+  .deck { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .card { padding: 5px; border-radius: 8px; cursor: pointer; } .card .in { padding: 8px 8px 8px; border-width: 2px; }
+  .card .yr { font-size: 28px; } .card .nm { font-size: 19px; } .card .badgeL { margin-left: 0; display: table; margin-top: 3px; font-size: 11px; } .card .meta { font-size: 11px; letter-spacing: .03em; }
+  .card .stats { gap: 3px; margin: 8px 0 6px; } .card .stats b { font-size: 17px; } .card .stats.game { margin: 3px 0 4px; } .card .stats.game b { font-size: 16px; }
+  .card:not(.open) .gl, .card:not(.open) .roll, .card:not(.open) .ask, .card:not(.open) .scoutbox, .card:not(.open) .foot, .card:not(.open) .bargain { display: none; }
+  .card:not(.open) .in::after { content: 'Tap for the full card'; display: block; margin-top: 4px; font-size: 11.5px; font-weight: 600; color: #6B5A2C; text-align: center; }
+  .card.open { grid-column: 1 / -1; cursor: default; } .card.open .in { padding: 12px 14px; border-width: 3px; } .card.open .yr { font-size: 40px; } .card.open .nm { font-size: 24px; } .card.open .badgeL { display: inline-block; margin-left: 8px; margin-top: 0; } .card.open .meta { font-size: 12.5px; }
+  .card.open .stats b { font-size: 24px; } .card.open .stats.game b { font-size: 21px; } .card.open .stats { gap: 6px; margin: 10px 0; } .card.open .stats.game { margin: 4px 0 10px; }
+  .card.open .shut { display: inline-flex; }
+  .card:not(.open) .stats small { white-space: nowrap; letter-spacing: 0; font-size: 11px !important; } .card:not(.open) .stats.game b { font-size: 15px; white-space: nowrap; } .card:not(.open) .stats div { padding: 4px 0 3px; }
+}
+.card .shut { display: none; align-self: flex-start; min-height: 44px; align-items: center; margin: 0 0 8px; padding: 6px 4px; background: none; border: 0; font: 700 15px var(--text); color: var(--wb-ink); text-decoration: underline; cursor: pointer; }
 </style>
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
@@ -82,15 +100,19 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
   </header>
   <div class="gate" id="gate" hidden><h2>Sign in to see every card</h2><p>The full set of cards is for signed-in managers. A free account is just your email, with no password.</p><button class="btn btn-main" id="gateGo" type="button">Sign in</button></div>
   <div id="app" hidden>
-    <div class="tools" role="search">
+    <section class="pick" id="pick" hidden aria-labelledby="pickT"><h2 id="pickT">What are you looking for?</h2><p>Pick one to narrow down all 1,430 cards. You can narrow it further after.</p>
+      <div class="pickgrid"><button type="button" class="btn btn-alt" data-t="H">Hitters</button><button type="button" class="btn btn-alt" data-t="SP">Starting pitchers</button><button type="button" class="btn btn-alt" data-t="RP">Relievers</button><button type="button" class="btn btn-alt" data-t="L">Legends</button><button type="button" class="btn btn-alt" data-t="B">Bargains</button><button type="button" class="btn btn-alt" data-t="">Every card</button></div></section>
+    <div class="tools collapsed" id="tools" role="search">
+      <button type="button" class="btn btn-alt phoneonly" id="again">&lsaquo; Change</button><button type="button" class="btn btn-alt phoneonly" id="flt" aria-expanded="false" aria-controls="tools">Filters</button>
       <label class="grow">Search<input id="q" type="search" placeholder="Name, team or year" autocomplete="off"></label>
-      <label>Show<select id="fType"><option value="">Every card</option><option value="H">Hitters</option><option value="SP">Starting pitchers</option><option value="RP">Relievers</option><option value="L">Legends only</option><option value="B">Bargains only</option></select></label>
-      <label>Decade<select id="fDec"><option value="">Any decade</option></select></label>
-      <label>Sort by<select id="fSort"><option value="price-d">Price, high to low</option><option value="price-a">Price, low to high</option><option value="bargain">Biggest bargains</option><option value="name">Name, A to Z</option><option value="year-a">Year, oldest first</option><option value="year-d">Year, newest first</option></select></label>
+      <label class="fl">Show<select id="fType"><option value="">Every card</option><option value="H">Hitters</option><option value="SP">Starting pitchers</option><option value="RP">Relievers</option><option value="L">Legends only</option><option value="B">Bargains only</option></select></label>
+      <label class="fl">Decade<select id="fDec"><option value="">Any decade</option></select></label>
+      <label class="fl">Team<select id="fTeam"><option value="">Any team</option></select></label>
+      <label class="fl">Sort by<select id="fSort"><option value="price-d">Price, high to low</option><option value="price-a">Price, low to high</option><option value="bargain">Biggest bargains</option><option value="name">Name, A to Z</option><option value="year-a">Year, oldest first</option><option value="year-d">Year, newest first</option></select></label>
     </div>
-    <p class="count" id="count" aria-live="polite"></p>
+    <div id="list"><p class="count" id="count" aria-live="polite"></p>
     <div class="deck" id="deck"></div>
-    <nav class="pager" aria-label="Pages"><button class="btn btn-alt" id="prev" type="button">Previous</button><span id="pg"></span><button class="btn btn-alt" id="next" type="button">Next</button></nav>
+    <nav class="pager" aria-label="Pages"><button class="btn btn-alt" id="prev" type="button">Previous</button><span id="pg"></span><button class="btn btn-alt" id="next" type="button">Next</button></nav></div>
   </div>
   <footer><a href="terms.html">Terms of Service</a> &middot; <a href="privacy.html">Privacy Policy</a></footer>
 </div>
@@ -107,7 +129,7 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
   const listOf = a => a.length < 2 ? a.join('') : a.length === 2 ? a.join(' and ') : a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1];
   const padn = n => n >= 100 ? '00' : String(n).padStart(2, '0');
   const progress = () => { try { return JSON.parse(localStorage.getItem('gts-progress')) || {}; } catch (e) { return {}; } };
-  let DATA = null, LAB = {}, ALL = [], VIEW = [], page = 0; const cache = new Map();
+  let DATA = null, LAB = {}, ALL = [], VIEW = [], page = 0, picked = false; const phoneW = () => window.matchMedia('(max-width: 600px)').matches; const cache = new Map();
 
   const rolls = p => p.c.split(',').map(s => { const m = s.match(/^(\d?[A-Z]+)(\d+)-(\d+)$/); return [+m[2], +m[3], m[1]]; });
   function slotsOf(p) {
@@ -141,7 +163,7 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
     const real = hit ? [[q[0], 'AVG'], [strip(q[1], 'HR'), 'HR'], [strip(q[2], 'RBI'), 'RBI']] : p.kd === 'SP' ? [[strip(q[0], 'ERA'), 'ERA'], [q[1], 'W-L'], [strip(q[2], 'K'), 'K']] : [[strip(q[0], 'ERA'), 'ERA'], [strip(q[1], 'SV'), 'SV'], [strip(q[2], 'K'), 'K']];
     const game = [[String(runsOf(p)), 'Runs+'], [p.sv[0], hit ? 'OBP' : 'WHIP'], [mon(p.s), 'Cap price']], tile = t => `<div><b>${esc(t[0])}</b><small>${esc(t[1])}</small></div>`;
     const rows = rolls(p).map(([a, b, c]) => `<li class="${LAB[c] && LAB[c][1] ? 'g' : ''}"><b>${padn(a)}${a === b ? '' : '&ndash;' + padn(b)}</b><span>${esc(LAB[c] ? LAB[c][0] : c)}</span></li>`).join('');
-    return `<article class="card"><div class="in"><div class="yr">${p.y}</div><div class="nm">${esc(p.n)}${p.g ? '<span class="badgeL">Legend</span>' : ''}</div><div class="meta">${hit ? esc(p.p.toUpperCase()) : p.kd} &middot; ${esc(p.t)}</div>
+    return `<article class="card" data-c="${i}"><div class="in"><button type="button" class="shut">Close this card</button><div class="yr">${p.y}</div><div class="nm">${esc(p.n)}${p.g ? '<span class="badgeL">Legend</span>' : ''}</div><div class="meta">${hit ? esc(p.p.toUpperCase()) : p.kd} &middot; ${esc(p.t)}</div>
       <div class="stats">${real.map(tile).join('')}</div><p class="gl">In the game</p><div class="stats game">${game.map(tile).join('')}</div>${p.st > 0 ? `<p class="bargain">Bargain: priced ${mon(p.st)} under what his season is worth.</p>` : ''}
       <p class="gl">His roll card, 1 to 100</p><ol class="roll">${rows}</ol>
       <button class="ask" type="button" data-i="${i}" aria-expanded="false" aria-controls="sc${i}">Ask the scout</button><div class="scoutbox" id="sc${i}" role="region" aria-label="The scout on ${esc(p.n)}" hidden></div>
@@ -151,7 +173,7 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
   function evenCards() {
     const deck = $('deck'), cards = [...deck.querySelectorAll('.card')]; cards.forEach(c => { c.style.minHeight = ''; });
     if (getComputedStyle(deck).gridTemplateColumns.split(' ').length < 2) return;
-    const closed = cards.filter(c => c.querySelector('.ask').getAttribute('aria-expanded') !== 'true'), h = Math.max(0, ...closed.map(c => c.offsetHeight));
+    const closed = cards.filter(c => !c.classList.contains('open') && c.querySelector('.ask').getAttribute('aria-expanded') !== 'true'), h = Math.max(0, ...closed.map(c => c.offsetHeight));
     closed.forEach(c => { c.style.minHeight = h + 'px'; });
   }
   function openScout(btn) {
@@ -174,8 +196,8 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
   };
   let lastSig = '';
   function apply() {
-    const q = $('q').value.trim().toLowerCase(), t = $('fType').value, d = $('fDec').value, prev = VIEW;
-    VIEW = ALL.filter(p => (!q || `${p.n} ${p.y} ${p.t}`.toLowerCase().includes(q)) && (!t || (t === 'L' ? p.g : t === 'B' ? p.st > 0 : p.kd === t)) && (!d || Math.floor(p.y / 10) * 10 === +d)).sort(SORTS[$('fSort').value]);
+    const q = $('q').value.trim().toLowerCase(), t = $('fType').value, d = $('fDec').value, tm = $('fTeam').value, prev = VIEW;
+    VIEW = ALL.filter(p => (!q || `${p.n} ${p.y} ${p.t}`.toLowerCase().includes(q)) && (!t || (t === 'L' ? p.g : t === 'B' ? p.st > 0 : p.kd === t)) && (!d || Math.floor(p.y / 10) * 10 === +d) && (!tm || p.t === tm)).sort(SORTS[$('fSort').value]);
     const sig = VIEW.map(p => p.k).join('|') + '/' + $('fSort').value;
     if (sig === lastSig) return;   // nothing changed: do not redraw, or a tap that is in progress would be lost
     lastSig = sig; page = 0; draw();
@@ -187,6 +209,17 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
     $('deck').querySelectorAll('.ask').forEach(b => b.onclick = () => openScout(b));
     $('prev').disabled = page === 0; $('next').disabled = page >= pages - 1; $('pg').textContent = `Page ${page + 1} of ${pages}`; $('prev').hidden = $('next').hidden = pages < 2; evenCards();
   }
+  // phone: pick what you are looking for first, then browse two cards to a row; tap a card to open it
+  function layout() { const gate = phoneW() && !picked; document.body.classList.toggle('picked', phoneW() && picked); $('pick').hidden = !gate; $('tools').hidden = gate; $('list').hidden = gate; if (!gate) evenCards(); }
+  document.querySelectorAll('#pick [data-t]').forEach(b => { b.onclick = () => { $('fType').value = b.dataset.t; picked = true; lastSig = ''; apply(); layout(); window.scrollTo(0, 0); }; });
+  $('flt').onclick = () => { const c = $('tools').classList.toggle('collapsed'); $('flt').setAttribute('aria-expanded', String(!c)); };
+  $('again').onclick = () => { picked = false; $('q').value = ''; $('fDec').value = ''; $('fTeam').value = ''; layout(); window.scrollTo(0, 0); };
+  $('deck').addEventListener('click', e => {
+    if (!phoneW()) return; const c = e.target.closest('.card'); if (!c || e.target.closest('.ask, .scoutbox')) return;
+    if (e.target.closest('.shut')) { c.classList.remove('open'); evenCards(); c.scrollIntoView({ block: 'nearest' }); return; }
+    if (!c.classList.contains('open')) { c.classList.add('open'); evenCards(); c.scrollIntoView({ block: 'nearest' }); }
+  });
+  window.matchMedia('(max-width: 600px)').addEventListener('change', layout);
   async function start() {
     const cc = window.CC;
     if (!cc || !cc.client) { $('gate').hidden = false; $('app').hidden = true; $('gate').querySelector('h2').textContent = "We couldn't reach the server"; $('gate').querySelector('p').textContent = 'Check your connection and refresh the page.'; $('gateGo').hidden = true; return; }
@@ -194,10 +227,10 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
     $('gate').hidden = true; $('app').hidden = false;
     if (!DATA) {
       try { const r = await fetch('cards-data.json'); if (!r.ok) throw new Error(r.status); DATA = await r.json(); } catch (e) { $('count').textContent = "We couldn't load the cards. Please refresh the page."; return; }
-      LAB = DATA.labels; ALL = DATA.p; const decs = [...new Set(ALL.map(p => Math.floor(p.y / 10) * 10))].sort((a, b) => a - b); $('fDec').innerHTML = '<option value="">Any decade</option>' + decs.map(d => `<option value="${d}">${d}s</option>`).join(''); apply();
+      LAB = DATA.labels; ALL = DATA.p; const decs = [...new Set(ALL.map(p => Math.floor(p.y / 10) * 10))].sort((a, b) => a - b); $('fDec').innerHTML = '<option value="">Any decade</option>' + decs.map(d => `<option value="${d}">${d}s</option>`).join(''); $('fTeam').innerHTML = '<option value="">Any team</option>' + [...new Set(ALL.map(p => p.t))].sort().map(x => `<option>${esc(x)}</option>`).join(''); apply(); layout();
     }
   }
-  $('q').oninput = apply; ['fType', 'fDec', 'fSort'].forEach(id => { $(id).onchange = apply; });
+  $('q').oninput = apply; ['fType', 'fDec', 'fTeam', 'fSort'].forEach(id => { $(id).onchange = apply; });
   $('prev').onclick = () => { page--; draw(); $('count').scrollIntoView({ block: 'start' }); }; $('next').onclick = () => { page++; draw(); $('count').scrollIntoView({ block: 'start' }); };
   let evenT = null; window.addEventListener('resize', () => { clearTimeout(evenT); evenT = setTimeout(evenCards, 150); });
   window.addEventListener('cc-auth', start);
