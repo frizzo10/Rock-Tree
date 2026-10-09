@@ -288,6 +288,16 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
     const cc = window.CC; if (cc && cc.user) { try { const raw = JSON.parse(localStorage.getItem('gts-coach:' + cc.user.id) || 'null'); if (raw && raw.sig === coachSig(built.facts) && raw.result) askCoach(false); } catch (e) {} }
   }
   function coachCard(c, st) { if (!st || !st.quick) return ''; return `<section class="card2" id="coach"><h2>Your coach</h2><div id="coachBox"></div></section>`; }
+  let FR = null;   // the versus-friends record, loaded separately so a failure never hides the rest
+  function friendsCard() {
+    const f = FR; if (!f) return '';
+    const w = n(f.w), l = n(f.l), rows = f.recent || [];
+    return `<section class="card2"><h2>Versus friends</h2>
+      ${w + l ? `<p>${wl(w, l)} (${pct(w, l)}) in live games against friends. These are kept apart from your quick games. Your last ${rows.length}:</p><div class="scrollx"><table class="rec"><thead><tr><th>Date</th><th>Friend</th><th>Score</th><th></th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(when(r.at))}</td><td>${esc(r.opp)}${r.mode === 'draft' ? ' (drafted)' : ''}</td><td>${n(r.for)}&ndash;${n(r.against)}</td><td>${r.won ? 'Won' : 'Lost'}</td></tr>`).join('')}</tbody></table></div>
+        <p>Want a whole season against your friends? <a href="private.html" style="color:#1F3F8F;font-weight:700">Start a private league</a> and be the commissioner.</p>`
+      : `<p>No live games against friends yet. Send a friend a link and play them head to head.</p><p><a class="cta" href="friend.html">Play a friend</a></p>`}
+    </section>`;
+  }
   function render(c, st) {
     st = st || {};
     const q = c.quick || {}, d = c.drafts || {}, l = c.leagues || {}, qw = n(q.wins), ql = n(q.losses), dw = n(d.wins), dg = n(d.games), seasons = Array.isArray(l.seasons) ? l.seasons : [];
@@ -308,6 +318,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
         ${qw + ql ? `<p>${wl(qw, ql)} (${pct(qw, ql)}) against the computer. Your last ${recent.length}:</p><div class="scrollx"><table class="rec"><thead><tr><th>Date</th><th>Your club</th><th>Opponent</th><th>Score</th><th></th></tr></thead><tbody>${recent.map(r => `<tr><td>${esc(when(r.at))}</td><td>${esc(r.me)}</td><td>${esc(r.opp)}</td><td>${n(r.for)}&ndash;${n(r.against)}</td><td>${r.won ? '<span class="w">W</span>' : '<span class="l">L</span>'}</td></tr>`).join('')}</tbody></table></div><p class="muted">Quick games are played in your browser, so this is your own scorebook, not a standings table.</p>`
           : `<p>No quick games on your record yet. Every quick game you finish while signed in is added here.</p><p><a class="cta" href="play.html">Play a quick game</a></p>`}
       </section>
+      ${friendsCard()}
       ${draftsCard(c, st)}
       ${milestones(c, st)}`;
   }
@@ -317,6 +328,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
     let res; try { res = await cc.client.rpc('my_career'); } catch (e) { res = { error: e }; }
     if (res.error || !res.data) { main.innerHTML = '<section class="card2"><p>We could not load your record. Please refresh the page.</p></section>'; return; }
     let st = null; try { const r2 = await cc.client.rpc('my_stats'); if (!r2.error) st = r2.data; } catch (e) {}   // the bigger numbers are a bonus: if they cannot load, the record still shows
+    FR = null; try { const r3 = await cc.client.rpc('my_friend_record'); if (!r3.error) FR = r3.data; } catch (e) {}
     render(res.data, st); if (window.CCCharts) CCCharts.wire($('charts')); wireCoach(res.data, st || {});
   }
   window.addEventListener('cc-auth', load);
