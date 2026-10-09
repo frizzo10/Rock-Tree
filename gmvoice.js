@@ -82,6 +82,7 @@
     }
     if (!speakDevice(text, tone, tok)) { S.speaking = false; S.via = ''; emit(); }
   }
-  addEventListener('pagehide', () => { try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {} });
+  addEventListener('pagehide', () => { try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {} try { if (S.audio) S.audio.pause(); } catch (e) {} });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S.speaking) stop(); });
   window.GMVoice = { state: S, prime, stop, speak, on: f => subs.push(f), toneForGame, toneForDraft, gameScript, draftScript, soundOn: () => !!(window.FX && FX.soundOn) };
 })();

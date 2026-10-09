@@ -1472,7 +1472,8 @@ body.war .dec { color: var(--wb-red); }
     }
     if (!gmSpeakDevice(text, tone, tok)) { GMV.speaking = false; GMV.via = ''; paintVoice(); }
   }
-  addEventListener('pagehide', () => { try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {} });
+  addEventListener('pagehide', () => { try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {} try { if (GMV.audio) GMV.audio.pause(); } catch (e) {} });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && GMV.speaking) gmStop(); });
   function paintVoice() {
     const b = $('gmListen'), n = $('gmVoiceNote'); if (!b) return;
     b.textContent = GMV.speaking ? (GMV.via === 'loading' ? 'Stop' : 'Stop') : (gmView && gmView.blob || GMV.via ? 'Hear it again' : 'Hear it'); b.setAttribute('aria-pressed', String(GMV.speaking));

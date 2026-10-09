@@ -94,7 +94,7 @@
       const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = .003; comp.release.value = .25;
       master.connect(comp); comp.connect(ac.destination); outNode = master;
     }
-    if (ac.state === 'suspended') ac.resume(); return ac;
+    if (ac.state === 'suspended' && !document.hidden) ac.resume(); return ac;
   }
   // iPhones play web audio like a ringtone: silent switch on = silence, and ringer volume instead of media volume. Playing a silent
   // <audio> clip (and asking Safari for the 'playback' audio session) makes the sounds behave like media. This runs inside a tap.
@@ -290,7 +290,7 @@
     swell();
     loadVendors().then(() => { if (amb) scheduleVendor(true); });
     if (a.state !== 'running') { // browsers hold audio until the first tap or key press
-      const go = () => { a.resume(); ['pointerdown', 'keydown', 'touchend'].forEach(e => removeEventListener(e, go, true)); };
+      const go = () => { if (!document.hidden) a.resume(); ['pointerdown', 'keydown', 'touchend'].forEach(e => removeEventListener(e, go, true)); };
       ['pointerdown', 'keydown', 'touchend'].forEach(e => addEventListener(e, go, true));
     }
   }
@@ -302,8 +302,9 @@
   function stopAmbNow() { clearTimeout(ambTimer); clearTimeout(vendorTimer); const m = amb; amb = null; if (m) { try { m.loop.stop(0); m.lfo.stop(0); m.bed.disconnect(); } catch (e) {} } }
   let sleeping = false;
   function paintSound() { if (!soundBtn) return; soundBtn.textContent = !soundOn ? 'Sound off' : sleeping ? 'Tap for sound' : 'Sound on'; soundBtn.setAttribute('aria-pressed', String(soundOn)); }
-  function wake() { if (!ac || !soundOn) return; if (ac.state !== 'running') { try { const p = ac.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) {} } }
+  function wake() { if (!ac || !soundOn || document.hidden) return; if (ac.state !== 'running') { try { const p = ac.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) {} } }
   function checkAudio() {
+    if (document.hidden) return;   // closed or in the background: stay silent
     if (!ac || !soundOn) { if (sleeping) { sleeping = false; paintSound(); } return; }
     const was = sleeping; sleeping = ac.state !== 'running'; if (sleeping) wake(); if (was !== sleeping) paintSound();
     if (!sleeping && ambWanted) {
@@ -313,7 +314,8 @@
   }
   ['touchend', 'pointerdown', 'click', 'keydown'].forEach(e => addEventListener(e, () => { wake(); checkAudio(); }, true));
   setInterval(checkAudio, 2500);
-  document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else { wake(); setTimeout(checkAudio, 300); } });
+  addEventListener('pagehide', () => { try { stopAmbNow(); if (silentEl) silentEl.pause(); if (ac) ac.suspend(); } catch (e) {} });
+  document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) { stopAmbNow(); if (silentEl) silentEl.pause(); ac.suspend(); } else { if (soundOn) unlock(); wake(); setTimeout(checkAudio, 300); } });
 
   // walking into the park: a roar that builds, cheers and whistles on top, and scattered claps
   function cheer() {
