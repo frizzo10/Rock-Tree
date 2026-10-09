@@ -39,7 +39,7 @@
   function pickVoice() {
     const vs = (window.speechSynthesis && speechSynthesis.getVoices && speechSynthesis.getVoices() || []).filter(v => /^en[-_]/i.test(v.lang) || v.lang === 'en');
     if (!vs.length) return null;
-    const score = v => { const n = v.name + ' ' + (v.voiceURI || ''); let sc = 0; if (/premium|enhanced|natural|neural|siri/i.test(n)) sc += 6; if (/microsoft (guy|davis|ryan|christopher|eric|roger|steffan|brian)|google uk english male/i.test(n)) sc += 4; if (/\b(daniel|alex|aaron|evan|fred|oliver|arthur|guy|ryan|david|mark|james|tom|thomas|gordon|lee|rishi|reed|eddy|rocko|grandpa|christopher|eric|roger|steffan|brian|male)\b/i.test(n)) sc += 12; if (/\b(samantha|karen|moira|tessa|fiona|victoria|allison|ava|susan|zira|aria|jenny|sonia|libby|hazel|catherine|kate|serena|veena|nicky|joelle|nora|kathy|princess|shelley|sandy|flo|grandma|female)\b|google (us|uk) english(?! male)/i.test(n)) sc -= 12; if (/compact|espeak|novelty|whisper|zarvox|bad news|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|trinoids|wobble/i.test(n)) sc -= 9; if (/^en[-_]US/i.test(v.lang)) sc += 2; if (v.localService === false) sc += 1; return sc; };
+    const score = v => { const n = v.name + ' ' + (v.voiceURI || ''); let sc = 0; if (/\btessa\b/i.test(n)) return 100; if (/premium|enhanced|natural|neural|siri/i.test(n)) sc += 6; if (/microsoft (guy|davis|ryan|christopher|eric|roger|steffan|brian)|google uk english male/i.test(n)) sc += 4; if (/\b(daniel|alex|aaron|evan|fred|oliver|arthur|guy|ryan|david|mark|james|tom|thomas|gordon|lee|rishi|reed|eddy|rocko|grandpa|christopher|eric|roger|steffan|brian|male)\b/i.test(n)) sc += 12; if (/\b(samantha|karen|moira|tessa|fiona|victoria|allison|ava|susan|zira|aria|jenny|sonia|libby|hazel|catherine|kate|serena|veena|nicky|joelle|nora|kathy|princess|shelley|sandy|flo|grandma|female)\b|google (us|uk) english(?! male)/i.test(n)) sc -= 12; if (/compact|espeak|novelty|whisper|zarvox|bad news|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|trinoids|wobble/i.test(n)) sc -= 9; if (/^en[-_]US/i.test(v.lang)) sc += 2; if (v.localService === false) sc += 1; return sc; };
     return vs.sort((a, b) => score(b) - score(a))[0];
   }
   const FEEL = { thrilled: { rate: 1.06, pitch: 1.08 }, upbeat: { rate: 1.02, pitch: 1.04 }, even: { rate: .98, pitch: 1 }, down: { rate: .94, pitch: .94 }, grim: { rate: .9, pitch: .88 } };
@@ -79,7 +79,7 @@
     try { speechSynthesis.cancel(); } catch (e) {} S.speaking = true; S.via = 'loading'; emit();
     const cc = window.CC;
     if (item.blob) { if (await playBlob(item.blob, tok)) return; }
-    else if (cc && cc.client && cc.client.functions) {
+    else if (!/\btessa\b/i.test((pickVoice() || {}).name || '') && cc && cc.client && cc.client.functions) {   // Tessa is the GM's voice when the phone has her; otherwise the natural server voice
       try {
         const ask = cc.client.functions.invoke('gm-voice', { body: { text, tone } }), timed = new Promise(r => setTimeout(() => r({ timeout: true }), 35000)), out = await Promise.race([ask, timed]);
         if (tok !== S.token) return;
