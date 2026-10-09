@@ -42,7 +42,7 @@
     const score = v => { const n = v.name + ' ' + (v.voiceURI || ''); let sc = 0; if (/\btessa\b/i.test(n)) return 100; if (/premium|enhanced|natural|neural|siri/i.test(n)) sc += 6; if (/microsoft (guy|davis|ryan|christopher|eric|roger|steffan|brian)|google uk english male/i.test(n)) sc += 4; if (/\b(daniel|alex|aaron|evan|fred|oliver|arthur|guy|ryan|david|mark|james|tom|thomas|gordon|lee|rishi|reed|eddy|rocko|grandpa|christopher|eric|roger|steffan|brian|male)\b/i.test(n)) sc += 12; if (/\b(samantha|karen|moira|tessa|fiona|victoria|allison|ava|susan|zira|aria|jenny|sonia|libby|hazel|catherine|kate|serena|veena|nicky|joelle|nora|kathy|princess|shelley|sandy|flo|grandma|female)\b|google (us|uk) english(?! male)/i.test(n)) sc -= 12; if (/compact|espeak|novelty|whisper|zarvox|bad news|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|trinoids|wobble/i.test(n)) sc -= 9; if (/^en[-_]US/i.test(v.lang)) sc += 2; if (v.localService === false) sc += 1; return sc; };
     return vs.sort((a, b) => score(b) - score(a))[0];
   }
-  const FEEL = { thrilled: { rate: 1.06, pitch: 1.08 }, upbeat: { rate: 1.02, pitch: 1.04 }, even: { rate: .98, pitch: 1 }, down: { rate: .94, pitch: .94 }, grim: { rate: .9, pitch: .88 } };
+  const FEEL = { thrilled: { rate: 1.16, pitch: 1.26 }, upbeat: { rate: 1.09, pitch: 1.12 }, even: { rate: .98, pitch: 1 }, down: { rate: .87, pitch: .8 }, grim: { rate: .8, pitch: .66 } };
   function speakDevice(text, tone, tok) {
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return false;
     const sents = (text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [text]).map(x => x.trim()).filter(Boolean), feel = FEEL[tone] || FEEL.even, voice = pickVoice();
@@ -51,7 +51,7 @@
       if (tok !== S.token) return; if (i >= sents.length) { S.speaking = false; emit(); return; }
       const sentence = sents[i++], u = new SpeechSynthesisUtterance(sentence), q = /[?]$/.test(sentence), ex = /!$/.test(sentence);
       if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = 'en-US';
-      u.rate = Math.max(.7, Math.min(1.3, feel.rate + (Math.random() - .5) * .06)); u.pitch = Math.max(.6, Math.min(1.5, feel.pitch + (ex ? .06 : 0) + (q ? .08 : 0) + (Math.random() - .5) * .08)); u.volume = 1;
+      u.rate = Math.max(.7, Math.min(1.35, feel.rate + (Math.random() - .5) * .06)); u.pitch = Math.max(.5, Math.min(1.7, feel.pitch + (/^next time/i.test(sentence) ? .14 : 0) + (ex ? .06 : 0) + (q ? .08 : 0) + (Math.random() - .5) * .08)); u.volume = 1;
       u.onend = () => setTimeout(next, /[.!?]$/.test(sentence) ? 170 + Math.random() * 140 : 60); u.onerror = () => { if (tok === S.token) { S.speaking = false; emit(); } };
       speechSynthesis.speak(u);
     };
