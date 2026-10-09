@@ -79,7 +79,7 @@
     try { speechSynthesis.cancel(); } catch (e) {} S.speaking = true; S.via = 'loading'; emit();
     const cc = window.CC;
     if (item.blob) { if (await playBlob(item.blob, tok)) return; }
-    else if (!/\btessa\b/i.test((pickVoice() || {}).name || '') && cc && cc.client && cc.client.functions) {   // Tessa is the GM's voice when the phone has her; otherwise the natural server voice
+    else if (cc && cc.client && cc.client.functions) {
       try {
         const ask = cc.client.functions.invoke('gm-voice', { body: { text, tone } }), timed = new Promise(r => setTimeout(() => r({ timeout: true }), 35000)), out = await Promise.race([ask, timed]);
         if (tok !== S.token) return;
