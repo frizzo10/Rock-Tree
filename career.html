@@ -107,7 +107,7 @@ details.opp { margin: 12px 0; background: #fff; border: 1px solid #D9DDE2; borde
 .w { color: #1D6B34; font-weight: 700; } .l { color: #A12A22; font-weight: 700; }
 .cta { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; background: #1F3F8F; color: #fff; border: 0; border-radius: 6px; font: 700 17px var(--text); text-decoration: none; cursor: pointer; }
 .ms { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; } .ms li { padding: 8px 12px; border-radius: 18px; font-size: 15px; } .ms .got { background: #FFF1C2; border: 1px solid #C69A2B; font-weight: 600; } .ms .got span { color: #B07D10; }
-.ms .nx { background: #fff; border: 1px dashed #8C959E; display: flex; gap: 10px; align-items: center; } .ms .nx b { color: #1F3F8F; } .msh { margin: 14px 0 0; font-size: 17px; }
+.ms .nx { background: #fff; border: 1px dashed #8C959E; display: flex; gap: 10px; align-items: center; } .ms .nx b { color: #1F3F8F; } .rwd { font-size: 18px; margin-left: 4px; } .msh { margin: 14px 0 0; font-size: 17px; }
 table.rec th[scope=row] { text-align: left; font-weight: 600; }
 .kvs { margin: 10px 0 0; } .kv { display: grid; grid-template-columns: 1fr auto; gap: 1px 14px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid rgba(60,45,20,.18); } .kv .k { font-weight: 600; } .kv .v { font-size: 20px; text-align: right; color: #1F3F8F; } .kv .n { grid-column: 1 / -1; font-size: 14px; color: #5A646E; }
 .tips { display: grid; gap: 8px; margin: 10px 0; } .tip { padding: 10px 12px; border-radius: 6px; background: #fff; border-left: 5px solid #8C959E; } .tip.weakness { border-left-color: #B07D10; } .tip.strength { border-left-color: #1E7B45; } .tip b { display: block; } .tip .kind { font-weight: 600; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: #5A646E; margin-left: 6px; } .tip p { margin: 4px 0 0; }
@@ -216,10 +216,13 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
   }
   function milestones(c, st) {
     const M = milestoneList(c, st);
+    const REW = ['\u{1F389}', '\u{1F948}', '\u{1F3C5}', '\u{1F30B}', '\u{1F409}', '\u{1F386}', '\u231B', '\u{1F4A8}', '\u{1F4A5}', '\u{1F4CB}', '\u{1F393}', '\u{1F5FD}', '\u{1F984}', '\u{1F3AB}', '\u{1F3F0}'];   // the avatar each milestone unlocks, in list order (the server checks them too)
+    M.forEach((m, i) => { m[3] = REW[i] || ''; });
     const done = M.filter(m => m[1] >= m[2]), next = M.filter(m => m[1] < m[2]).sort((a, b) => b[1] / b[2] - a[1] / a[2]).slice(0, 3);
     return `<section class="card2" id="milestones"><h2>Milestones</h2><p>${done.length} of ${M.length} earned.</p>
-      ${done.length ? `<ul class="ms">${done.map(m => `<li class="got"><span aria-hidden="true">&#9733;</span> ${esc(m[0])}</li>`).join('')}</ul>` : '<p class="muted">Your first one is one game away.</p>'}
-      ${next.length ? `<h3 class="msh">Next up</h3><ul class="ms">${next.map(m => `<li class="nx"><span>${esc(m[0])}</span><b>${Math.min(n(m[1]), m[2])} of ${m[2]}</b></li>`).join('')}</ul>` : ''}</section>`;
+      ${done.length ? `<ul class="ms">${done.map(m => `<li class="got"><span aria-hidden="true">&#9733;</span> ${esc(m[0])}${m[3] ? ` <span class="rwd" title="Avatar unlocked">${m[3]}</span>` : ''}</li>`).join('')}</ul>
+      <p class="muted">Each milestone unlocks its own avatar. Pick yours under <a href="account.html">Your avatar</a> on your account page.</p>` : '<p class="muted">Your first one is one game away.</p>'}
+      ${next.length ? `<h3 class="msh">Next up</h3><ul class="ms">${next.map(m => `<li class="nx"><span>${esc(m[0])}${m[3] ? ` <span class="rwd" aria-label="unlocks the ${m[3]} avatar" title="Unlocks an avatar">${m[3]}</span>` : ''}</span><b>${Math.min(n(m[1]), m[2])} of ${m[2]}</b></li>`).join('')}</ul>` : ''}</section>`;
   }
   // ---------- your coach: the game works out what stands out in your numbers, the GM puts it into words ----------
   const GUIDE = {

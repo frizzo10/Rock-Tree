@@ -155,6 +155,7 @@ footer p { margin: 0 0 6px; }
         <p id="avEditRow" hidden><button class="btn btn-alt" id="avEdit" type="button">Change my avatar</button></p>
         <div id="avPicker">
         <div role="radiogroup" aria-label="Emoji" class="avgrid">${EMOJIS.map(e => `<button type="button" role="radio" class="avb" data-emoji="${e}" aria-checked="false" aria-label="${e}">${e}</button>`).join('')}</div>
+        <div id="avRewards"></div>
         <div role="radiogroup" aria-label="Color" class="avcols">${COLORS.map(([c, n]) => `<button type="button" role="radio" class="avc" data-color="${c}" aria-checked="false" aria-label="${n}" title="${n}" style="background:${c}"></button>`).join('')}</div>
         <p class="avact"><button class="btn btn-main" id="avSave" type="button" disabled>Save my avatar</button> <button class="btn btn-alt" id="avReset" type="button">Use the default</button></p>
         </div>
@@ -190,6 +191,17 @@ footer p { margin: 0 0 6px; }
     $('avSave').onclick = () => sendAv(pick.emoji, pick.color); $('avReset').onclick = () => { pick = { emoji: '', color: '' }; sendAv('', '').then(() => {}); };
     $('avEdit').onclick = () => { editing = true; $('avMsg').textContent = ''; drawAv(); };
     drawAv();
+    // ---- milestone rewards: extra avatars you unlock by reaching milestones (a bonus: if they cannot load, the picker still works) ----
+    (async () => { try {
+      const r = await c.rpc('my_rewards'); if (r.error || !Array.isArray(r.data) || !r.data.length || !$('avRewards')) return;
+      const got = r.data.filter(x => x.earned).length;
+      $('avRewards').innerHTML = `<h3 class="msh" style="margin:12px 0 2px">Milestone rewards</h3><p class="note" style="margin:0 0 4px">${got} of ${r.data.length} unlocked. Reach a milestone on <a href="career.html#milestones">My record</a> to unlock its avatar.</p>
+        <div role="radiogroup" aria-label="Milestone reward emoji" class="avgrid">${r.data.map(x => x.earned
+          ? `<button type="button" role="radio" class="avb" data-emoji="${esc(x.emoji)}" aria-checked="false" aria-label="${esc(x.emoji)}, unlocked by: ${esc(x.label)}" title="${esc(x.label)}">${esc(x.emoji)}</button>`
+          : `<button type="button" class="avb" disabled aria-label="Locked. Unlock it with: ${esc(x.label)}" title="Locked: ${esc(x.label)}" style="opacity:.4;cursor:not-allowed;font-size:20px">&#128274;</button>`).join('')}</div>`;
+      $('avRewards').querySelectorAll('.avb:not([disabled])').forEach(b => b.onclick = () => { pick.emoji = b.dataset.emoji; if (!pick.color) pick.color = COLORS[0][0]; $('avMsg').textContent = ''; drawAv(); });
+      drawAv();
+    } catch (e) {} })();
     // ---- charts under "Your record" (a bonus: if they cannot load, the rest of the page still works) ----
     (async () => { try {
       if (!window.CCCharts || !$('acCharts')) return;
