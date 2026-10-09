@@ -125,6 +125,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
 <script src="gmvoice.js"></script>
+<script src="charts.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -296,6 +297,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
     const recent = Array.isArray(q.recent) ? q.recent : [];
     $('main').innerHTML = `
       <section class="stats" aria-label="At a glance">${stat(titles, titles === 1 ? 'championship' : 'championships', titles ? 'gold' : '')}${stat(n(l.joined), n(l.joined) === 1 ? 'league season' : 'league seasons')}${stat(rw + '-' + rl, 'league regular season' + (rw + rl ? ' (' + pct(rw, rl) + ')' : ''))}${stat(qw + '-' + ql, 'quick games' + (qw + ql ? ' (' + pct(qw, ql) + ')' : ''))}</section>
+      <section class="card2" id="charts"><h2>Charts</h2>${window.CCCharts ? CCCharts.html(c, st) : ''}</section>
       ${numbersCard(st)}${styleCard(st)}${coachCard(c, st)}${streaksCard(st)}
       <section class="card2"><h2>Leagues</h2>
         ${seasons.length ? `<p>${n(l.completed)} finished, ${n(l.active)} in progress. Playoffs: ${wl(pw, pl)}${pw + pl ? ' (' + pct(pw, pl) + ')' : ''}. Runner-up finishes: ${n(l.runner_ups)}. Best regular-season records: ${n(l.best_records)}.</p>
@@ -315,7 +317,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
     let res; try { res = await cc.client.rpc('my_career'); } catch (e) { res = { error: e }; }
     if (res.error || !res.data) { main.innerHTML = '<section class="card2"><p>We could not load your record. Please refresh the page.</p></section>'; return; }
     let st = null; try { const r2 = await cc.client.rpc('my_stats'); if (!r2.error) st = r2.data; } catch (e) {}   // the bigger numbers are a bonus: if they cannot load, the record still shows
-    render(res.data, st); wireCoach(res.data, st || {});
+    render(res.data, st); if (window.CCCharts) CCCharts.wire($('charts')); wireCoach(res.data, st || {});
   }
   window.addEventListener('cc-auth', load);
   (window.CC ? window.CC.whenReady.bind(window.CC) : fn => fn())(load);
