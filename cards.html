@@ -71,19 +71,29 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
 .pick { background: rgba(247,242,228,.95); border-radius: 4px; padding: 16px 16px 18px; margin: 18px 0 8px; } .pick h2 { font: 400 28px/1.1 var(--marker); color: var(--wb-ink); margin: 0 0 6px; } .pick p { margin: 0 0 12px; font-size: 16px; }
 .pickgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .pickgrid .btn { min-height: 64px; font-size: 18px; text-align: center; }
 .phoneonly { display: none; }
+.card .sl { display: none; }
 @media (max-width: 600px) {
   body.picked .board p { display: none; } .tools.collapsed .fl { display: none; } .tools { padding: 10px 12px; gap: 8px; margin-top: 10px; } .tools .grow { flex: 1 1 100%; }
   .phoneonly { display: inline-flex; } .tools label, .tools .grow { flex: 1 1 140px; } .tools input, .tools select { min-width: 0; width: 100%; }
   .deck { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .card { padding: 5px; border-radius: 8px; cursor: pointer; } .card .in { padding: 8px 8px 8px; border-width: 2px; }
-  .card .yr { font-size: 28px; } .card .nm { font-size: 19px; } .card .badgeL { margin-left: 0; display: table; margin-top: 3px; font-size: 11px; } .card .meta { font-size: 11px; letter-spacing: .03em; }
-  .card .stats { gap: 3px; margin: 8px 0 6px; } .card .stats b { font-size: 17px; } .card .stats.game { margin: 3px 0 4px; } .card .stats.game b { font-size: 16px; }
-  .card:not(.open) .gl, .card:not(.open) .roll, .card:not(.open) .ask, .card:not(.open) .scoutbox, .card:not(.open) .foot, .card:not(.open) .bargain { display: none; }
-  .card:not(.open) .in::after { content: 'Tap for the full card'; display: block; margin-top: 4px; font-size: 11.5px; font-weight: 600; color: #6B5A2C; text-align: center; }
-  .card.open { grid-column: 1 / -1; cursor: default; } .card.open .in { padding: 12px 14px; border-width: 3px; } .card.open .yr { font-size: 40px; } .card.open .nm { font-size: 24px; } .card.open .badgeL { display: inline-block; margin-left: 8px; margin-top: 0; } .card.open .meta { font-size: 12.5px; }
-  .card.open .stats b { font-size: 24px; } .card.open .stats.game b { font-size: 21px; } .card.open .stats { gap: 6px; margin: 10px 0; } .card.open .stats.game { margin: 4px 0 10px; }
-  .card.open .shut { display: inline-flex; }
-  .card:not(.open) .stats small { white-space: nowrap; letter-spacing: 0; font-size: 11px !important; } .card:not(.open) .stats.game b { font-size: 15px; white-space: nowrap; } .card:not(.open) .stats div { padding: 4px 0 3px; }
+  /* phone cards look like the cards in a game: navy header, then the dice roll list, hits in red */
+  .card { padding: 0; border-radius: 10px; overflow: hidden; cursor: pointer; background: #F3ECD8; box-shadow: 0 2px 0 #C9B27A, 0 6px 12px rgba(0,0,0,.18); }
+  .card .in { border: 0; border-radius: 0; padding: 0; background: none; }
+  .card .hd { background: #1D2D5C; color: #fff; padding: 8px 10px 9px; }
+  .card .yr { font: 700 13px var(--text); color: #F2B33D; margin: 0; letter-spacing: .04em; }
+  .card .nm { font: 700 20px/1.05 var(--text); color: #fff; margin: 2px 0 2px; }
+  .card .meta { font-size: 11.5px; color: #AEB7C8; text-transform: none; letter-spacing: 0; font-weight: 500; }
+  .card .sl { display: block; margin: 2px 0 0; font-size: 12.5px; color: #AEB7C8; }
+  .card .badgeL { display: table; margin: 4px 0 0; font-size: 10.5px; padding: 0 8px; vertical-align: baseline; }
+  .card .stats { gap: 3px; } .card .stats.game { margin: 8px 8px 2px; } .card .stats.game b { font: 700 15px var(--text); white-space: nowrap; color: #1D2D5C; } .card .stats.game small { white-space: nowrap; letter-spacing: 0; font-size: 11px !important; } .card .stats div { padding: 4px 0 3px; }
+  .card .roll { margin: 2px 0 0; padding: 4px 8px 8px; font-size: 14px; } .card .roll li { display: grid; grid-template-columns: 64px 1fr; gap: 0; padding: 1px 2px; }
+  .card .roll b { font: 700 16px var(--text); color: #4A5560; min-width: 0; } .card .roll li.g b, .card .roll li.g span { color: #A8342B; font-weight: 700; } .card .roll li span { color: #19231E; }
+  .card:not(.open) .stats:not(.game), .card:not(.open) .gl, .card:not(.open) .ask, .card:not(.open) .scoutbox, .card:not(.open) .foot, .card:not(.open) .bargain { display: none; }
+  .card:not(.open) .in::after { content: 'Tap for the full card'; display: block; padding: 0 8px 9px; font-size: 11.5px; font-weight: 600; color: #6B5A2C; text-align: center; }
+  .card.open { grid-column: 1 / -1; cursor: default; } .card.open .hd { padding: 12px 14px; } .card.open .yr { font-size: 15px; } .card.open .nm { font-size: 26px; } .card.open .sl { display: none; } .card.open .meta { font-size: 13px; }
+  .card.open .badgeL { display: inline-block; margin: 0 0 0 8px; font-size: 12px; } .card.open .stats:not(.game) { margin: 10px 14px; } .card.open .stats b { font: 700 22px var(--text); color: #1D2D5C; } .card.open .stats.game { margin: 4px 14px 8px; }
+  .card.open .gl, .card.open .bargain, .card.open .ask, .card.open .foot { margin-left: 14px; margin-right: 14px; } .card.open .roll { padding: 4px 14px 10px; } .card.open .scoutbox { margin: 0 14px 10px; } .card.open .foot { padding-bottom: 12px; }
+  .card.open .shut { display: inline-flex; margin: 4px 14px 0; }
 }
 .card .shut { display: none; align-self: flex-start; min-height: 44px; align-items: center; margin: 0 0 8px; padding: 6px 4px; background: none; border: 0; font: 700 15px var(--text); color: var(--wb-ink); text-decoration: underline; cursor: pointer; }
 </style>
@@ -163,7 +173,7 @@ footer { margin-top: 30px; font-size: 14px; background: rgba(247,242,228,.9); di
     const real = hit ? [[q[0], 'AVG'], [strip(q[1], 'HR'), 'HR'], [strip(q[2], 'RBI'), 'RBI']] : p.kd === 'SP' ? [[strip(q[0], 'ERA'), 'ERA'], [q[1], 'W-L'], [strip(q[2], 'K'), 'K']] : [[strip(q[0], 'ERA'), 'ERA'], [strip(q[1], 'SV'), 'SV'], [strip(q[2], 'K'), 'K']];
     const game = [[String(runsOf(p)), 'Runs+'], [p.sv[0], hit ? 'OBP' : 'WHIP'], [mon(p.s), 'Cap price']], tile = t => `<div><b>${esc(t[0])}</b><small>${esc(t[1])}</small></div>`;
     const rows = rolls(p).map(([a, b, c]) => `<li class="${LAB[c] && LAB[c][1] ? 'g' : ''}"><b>${padn(a)}${a === b ? '' : '&ndash;' + padn(b)}</b><span>${esc(LAB[c] ? LAB[c][0] : c)}</span></li>`).join('');
-    return `<article class="card" data-c="${i}"><div class="in"><button type="button" class="shut">Close this card</button><div class="yr">${p.y}</div><div class="nm">${esc(p.n)}${p.g ? '<span class="badgeL">Legend</span>' : ''}</div><div class="meta">${hit ? esc(p.p.toUpperCase()) : p.kd} &middot; ${esc(p.t)}</div>
+    return `<article class="card" data-c="${i}"><div class="in"><button type="button" class="shut">Close this card</button><div class="hd"><div class="yr">${p.y}</div><div class="nm">${esc(p.n)}${p.g ? '<span class="badgeL">Legend</span>' : ''}</div><div class="meta">${hit ? esc(p.p.toUpperCase()) : p.kd} &middot; ${esc(p.t)}</div><p class="sl">${esc(p.l)}</p></div>
       <div class="stats">${real.map(tile).join('')}</div><p class="gl">In the game</p><div class="stats game">${game.map(tile).join('')}</div>${p.st > 0 ? `<p class="bargain">Bargain: priced ${mon(p.st)} under what his season is worth.</p>` : ''}
       <p class="gl">His roll card, 1 to 100</p><ol class="roll">${rows}</ol>
       <button class="ask" type="button" data-i="${i}" aria-expanded="false" aria-controls="sc${i}">Ask the scout</button><div class="scoutbox" id="sc${i}" role="region" aria-label="The scout on ${esc(p.n)}" hidden></div>
