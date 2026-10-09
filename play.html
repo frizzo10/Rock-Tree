@@ -1482,6 +1482,7 @@ body.war .dec { color: var(--wb-red); }
   function paintGM() {
     const box = $('gmBox'); if (!box) return; const v = gmView, cc = window.CC; box.innerHTML = '';
     const h = document.createElement('h3'); h.textContent = 'Your GM'; box.appendChild(h);
+    if (g && g.over && g.winner != null) { const w = g.teams[g.winner], l = g.teams[1 - g.winner], fs = document.createElement('p'); fs.className = 'gm-final'; fs.style.cssText = 'font-weight:700;margin:2px 0 10px'; fs.textContent = `Final: ${w.t.nick} ${w.runs}, ${l.t.nick} ${l.runs}. ${g.winner === you ? 'You win.' : 'The computer wins.'}`; box.appendChild(fs); }
     const para = (txt, cls) => { const p = document.createElement('p'); if (cls) p.className = cls; p.textContent = txt; box.appendChild(p); return p; };
     const button = (label, id, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-main'; b.id = id; b.textContent = label; b.onclick = fn; box.appendChild(b); };
     if (v.state === 'loading') return para('Your GM is going over the game…', 'note');
@@ -1548,16 +1549,23 @@ body.war .dec { color: var(--wb-red); }
     f.appendChild(el); f.scrollTop = f.scrollHeight;
   }
 
-  function autoRoll(untilHalfEnd) {
+  // auto-roll plays the at-bats one after another with a short beat between them, so you can watch the innings tick by (about 8 to 10 seconds for a whole game)
+  const nap = ms => new Promise(r => setTimeout(r, ms));
+  async function autoRoll(untilHalfEnd) {
     if (busy || g.over) return;
-    const startKey = `${g.inning}-${g.half}`;
+    busy = true; const tok = ++advTok; clearCalls(); $('act').disabled = true; $('autoInning').disabled = true; $('autoGame').disabled = true;
+    const startKey = `${g.inning}-${g.half}`, beat = untilHalfEnd ? 300 : 60;
     do {
       for (let k = 0; k < 3 && !g.over; k++) { snapAB(); const s = DuelDice.autoStrategy(g); if (!s) break; logPlay(s, 'Computer\'s call'); }   // the computer's calls still happen when you auto-roll
       if (g.over) break;
       snapAB(); const b = g.batter().short, p = g.pitcher().short;
       const r = DuelDice.autoAtBat(g);
       logPlay(r.play, `${String(r.roll).padStart(2, '0')} on ${r.owner === 'batter' ? b : p}'s card`);
+      if (!g.over) { try { drawLine(); drawStatus(); drawField(r.play); } catch (e) { /* the screen catches up at the end */ } }
+      await nap(r.play.code === 'HR' ? beat + 600 : beat);
+      if (tok !== advTok) return;   // a new game started while this was running
     } while (!g.over && (!untilHalfEnd || `${g.inning}-${g.half}` === startKey));
+    busy = false; $('autoInning').disabled = false; $('autoGame').disabled = false;
     $('result').textContent = ''; $('tens').textContent = '–'; $('ones').textContent = '–'; $('pctTotal').textContent = '';
     $('dieBat').textContent = '–'; $('diePit').textContent = '–';
     boxScore(); prompt();
@@ -1602,7 +1610,8 @@ body.war .dec { color: var(--wb-red); }
       if (h === 1) return `After ${i - 1 === 0 ? 'the top of the 1st' : `the top of the ${ord(i)}`}`;
       return i === 1 ? 'Before the first pitch' : `After ${i - 1} inning${i - 1 > 1 ? 's' : ''}`;
     })();
-    $('rightTitle').textContent = `Box score: ${done}`;
+    const fin = g.over && g.winner != null ? `, ${g.teams[g.winner].t.nick} ${g.teams[g.winner].runs}, ${g.teams[1 - g.winner].t.nick} ${g.teams[1 - g.winner].runs}. ${g.winner === you ? 'You win' : 'Computer wins'}` : '';
+    $('rightTitle').textContent = `Box score: ${done}${fin}`;
     $('right').innerHTML = html;
   }
 
