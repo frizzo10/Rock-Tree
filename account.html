@@ -150,9 +150,12 @@ footer p { margin: 0 0 6px; }
     box.innerHTML = `
       <section class="board" id="avSec"><h2 style="margin-top:0">Your avatar</h2><p>Pick an emoji and a color. It shows at the top of every page, and you tap it to come back here.</p>
         <div class="avrow"><span class="av big" id="avPrev" aria-hidden="true"></span><span id="avName" class="note"></span></div>
+        <p id="avEditRow" hidden><button class="btn btn-alt" id="avEdit" type="button">Change my avatar</button></p>
+        <div id="avPicker">
         <div role="radiogroup" aria-label="Emoji" class="avgrid">${EMOJIS.map(e => `<button type="button" role="radio" class="avb" data-emoji="${e}" aria-checked="false" aria-label="${e}">${e}</button>`).join('')}</div>
         <div role="radiogroup" aria-label="Color" class="avcols">${COLORS.map(([c, n]) => `<button type="button" role="radio" class="avc" data-color="${c}" aria-checked="false" aria-label="${n}" title="${n}" style="background:${c}"></button>`).join('')}</div>
-        <p class="avact"><button class="btn btn-main" id="avSave" type="button" disabled>Save my avatar</button> <button class="btn btn-alt" id="avReset" type="button">Use the default</button></p>
+        <p class="avact"><button class="btn btn-main" id="avSave" type="button" disabled>Save my avatar</button> <button class="btn btn-alt" id="avReset" type="button">Use the default</button> <button class="btn btn-alt" id="avCancel" type="button" hidden>Cancel</button></p>
+        </div>
         <p class="note" id="avMsg" role="status" aria-live="polite"></p></section>
       <section class="board"><h2 style="margin-top:0">Your leagues and tables</h2>${mine.length ? `<ul class="acl">${mine.map(({ s, l }) => `<li><a href="${where(l)}"><b>${esc(l.name)}</b></a><span class="note">${esc(s.club_name)} &middot; ${esc(STATUS[l.status] || l.status)}${THEME[l.theme] ? ' &middot; ' + esc(THEME[l.theme]) : ''}</span></li>`).join('')}</ul>` : '<p>You aren\'t in a league yet.</p><p><a class="btn btn-main" href="lobby.html">Find a free table</a> <a class="btn btn-alt" href="private.html">Start a private league</a></p>'}</section>
       <section class="board"><h2 style="margin-top:0">Your record</h2><p>Your wins, your quick games and the legends you have unlocked.</p><p><a class="btn btn-alt" href="career.html">See my record</a></p></section>
@@ -164,7 +167,9 @@ footer p { margin: 0 0 6px; }
     // ---- the avatar picker ----
     const ini = String(cc.user.email || '?').trim().charAt(0).toUpperCase() || '?', saved = prow.avatar_emoji ? { emoji: prow.avatar_emoji, color: prow.avatar_color } : null;
     let pick = saved ? { ...saved } : { emoji: '', color: '' }, base = JSON.stringify(saved || { emoji: '', color: '' });
+    let editing = false;   // once an avatar is saved the picker folds away; "Change my avatar" brings it back
     const drawAv = () => {
+      const hasSaved = !!JSON.parse(base).emoji; $('avPicker').hidden = hasSaved && !editing; $('avEditRow').hidden = !(hasSaved && !editing); $('avCancel').hidden = !hasSaved;
       const p = $('avPrev'), has = pick.emoji && pick.color; p.textContent = has ? pick.emoji : ini; p.style.background = pick.color || '#1F3F8F';
       document.querySelectorAll('.avb').forEach(b => b.setAttribute('aria-checked', String(b.dataset.emoji === pick.emoji)));
       document.querySelectorAll('.avc').forEach(b => b.setAttribute('aria-checked', String(b.dataset.color === pick.color)));
@@ -178,9 +183,11 @@ footer p { margin: 0 0 6px; }
       if (r.error) { $('avMsg').style.color = '#9E2B22'; $('avMsg').textContent = 'We could not save that. Please try again.'; drawAv(); return; }
       const a = emoji && color ? { emoji, color } : null; try { if (a) localStorage.setItem('gts-avatar:' + cc.user.id, JSON.stringify(a)); else localStorage.removeItem('gts-avatar:' + cc.user.id); } catch (e) {}
       window.dispatchEvent(new CustomEvent('cc-avatar', { detail: a })); $('avMsg').style.color = ''; $('avMsg').textContent = a ? 'Saved. Your avatar shows at the top of every page.' : 'Back to the default.';
-      base = JSON.stringify(a || { emoji: '', color: '' }); pick = a ? { ...a } : { emoji: '', color: '' }; drawAv();
+      base = JSON.stringify(a || { emoji: '', color: '' }); pick = a ? { ...a } : { emoji: '', color: '' }; editing = false; drawAv();
     };
     $('avSave').onclick = () => sendAv(pick.emoji, pick.color); $('avReset').onclick = () => { pick = { emoji: '', color: '' }; sendAv('', '').then(() => {}); };
+    $('avEdit').onclick = () => { editing = true; $('avMsg').textContent = ''; drawAv(); };
+    $('avCancel').onclick = () => { const b0 = JSON.parse(base); pick = { emoji: b0.emoji, color: b0.color }; editing = false; drawAv(); };
     drawAv();
     // ---- delete my account ----
     const delBody = $('delBody'), delStart = $('delStart');
