@@ -183,11 +183,15 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
 .board .autohint { margin-top: 10px; font-size: 16px; } .board .autohint a { font-weight: 700; color: var(--wb-ink); }
 @media (max-width: 720px) { .board { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 10px; } .board .logo { width: 180px; height: 180px; } .board .herotext { padding-left: 0; } .board .lede { font-size: 23px; } }
 .signup { margin: 14px 0 6px; } .btn-signup { display: block; width: 100%; max-width: 440px; min-height: 64px; padding: 14px 24px; border: 0; border-radius: 12px; background: var(--wb-green); color: #fff; font: 700 26px/1.1 var(--text); letter-spacing: .01em; cursor: pointer; box-shadow: 0 5px 0 #14562F, 0 10px 22px rgba(0,0,0,.28); } .btn-signup:hover { background: #17693B; } .btn-signup:active { transform: translateY(3px); box-shadow: 0 2px 0 #14562F, 0 5px 12px rgba(0,0,0,.28); } .signup-note { margin: 10px 0 0; font-weight: 600; color: var(--ink-soft); }
+.hrbtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 20px; border-radius: 22px; border: 2px solid #C0392B; background: #fff; color: #C0392B; font: 700 16px var(--text); cursor: pointer; }
+.hrbtn:active { transform: scale(.97); } .hrbtn:focus-visible { outline: 3px solid #F2B33D; outline-offset: 2px; }
+.board .hrrow { margin: 4px 0 10px; }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
+<script src="fx.js"></script>
 <link rel="stylesheet" href="mobile.css">
 </head>
 <body>
@@ -198,6 +202,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     <div class="herotext">
     <h1>Cooperstown Cash</h1>
     <p class="tag">Historical baseball simulation leagues</p>
+    <p class="hrrow"><button type="button" class="hrbtn" id="hrBtn">&#9918; Hit a home run</button></p>
     <p class="lede">Do you have what it takes to be an epic manager? Play the best baseball players from over the past 125 years all on your phone. Draft and strategize to beat the computer or your friends.</p>
     <div class="signup" id="signupTop" hidden><button class="btn-signup" id="signUpBtn" type="button">Sign up free</button><p class="signup-note">Just your email. No password. Free to play.</p></div>
     <p class="phone">Made for the few minutes of free time you get in a day: a draft can be paused, a game takes a few minutes, and a league plays one game day at a time. A free account is just your email, no password.</p>
@@ -456,6 +461,19 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.12 });
     items.forEach(el => io.observe(el));
   } else items.forEach(el => el.classList.add('in'));
+})();
+
+// ----- the ballpark: fireworks and a home run when you arrive, a crowd roar on your first tap that fades away, and a button to hit more -----
+(() => {
+  if (!window.FX) return;
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let hits = 0;
+  const swing = () => { hits++; FX.homeRun(hits % 5 === 0 ? { text: 'Bases loaded and it is gone!', runs: 4 } : { text: ['That one is gone!', 'Out of here!', 'Off the foul pole!', 'Over the wall!'][hits % 4], runs: 1 }); };
+  const btn = document.getElementById('hrBtn'); if (btn) btn.addEventListener('click', swing);
+  // browsers keep a page silent until you touch it, so the arrival is fireworks and a banner, and the crowd roars on your first tap
+  try { if (!calm && !sessionStorage.getItem('cc-arrival')) { sessionStorage.setItem('cc-arrival', '1'); setTimeout(() => FX.homeRun({ text: 'Welcome to the ballpark', runs: 1 }), 900); } } catch (e) {}
+  const roar = e => { document.removeEventListener('click', roar, true); document.removeEventListener('touchend', roar, true); if (e.target.closest && e.target.closest('#hrBtn, .fx-sound')) return; try { FX.cheer(); } catch (x) {} };
+  document.addEventListener('click', roar, true); document.addEventListener('touchend', roar, true);
 })();
 </script>
 </body>
