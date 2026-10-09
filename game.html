@@ -405,7 +405,7 @@ footer { margin-top: 26px; font-size: 13px; color: var(--ink-soft); max-width: 8
     if (res && res.verdict) {
       const tone = GMVoice.toneForGame(facts); GM.view = { state: 'done', result: res, facts, item: { text: GMVoice.gameScript(res, facts, tone), tone } };
       if (GMVoice.soundOn()) setTimeout(() => { if (id === S.id && GM.view.state === 'done') GMVoice.speak(GM.view.item); }, 250);
-    } else { const msg = { limit: 'You have used all of today\'s GM reviews. Come back tomorrow.', unavailable: 'Your GM is not available right now.', unusable: 'Your GM could not put it into words this time.' }[reason] || 'Your GM could not be reached just now.'; GM.view = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
+    } else { const msg = { limit: 'You have used all of today\'s GM reviews. Come back tomorrow.', locked: "Finish a game or a draft first, and your GM will have plenty to say.", busy: "Your GM is swamped today. Please try again tomorrow.", unavailable: 'Your GM is not available right now.', unusable: 'Your GM could not put it into words this time.' }[reason] || 'Your GM could not be reached just now.'; GM.view = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
     $('gmBox').dataset.state = ''; showGM();
   }
   function updateFinal() {

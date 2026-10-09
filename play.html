@@ -1530,7 +1530,7 @@ body.war .dec { color: var(--wb-red); }
     try { const { data, error } = await cc.client.functions.invoke('gm-critic', { body: { kind: 'game', facts } }); if (!error && data) { res = data.game || null; reason = data.reason || (res ? '' : 'unusable'); } } catch (e) { res = null; }
     if (tok !== advTok) return;   // a new game has started since
     if (res && res.verdict) { gmView = { state: 'done', result: res, facts }; if (window.FX && FX.soundOn) setTimeout(() => { if (tok === advTok && gmView.state === 'done') gmSpeak(gmView); }, 250); }
-    else { const msg = { limit: 'You have used all of today\'s GM reviews. Come back tomorrow.', unavailable: 'Your GM is not available right now.', unusable: 'Your GM could not put it into words this time.' }[reason] || 'Your GM could not be reached just now.'; gmView = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
+    else { const msg = { limit: 'You have used all of today\'s GM reviews. Come back tomorrow.', locked: "Finish a game or a draft first, and your GM will have plenty to say.", busy: "Your GM is swamped today. Please try again tomorrow.", unavailable: 'Your GM is not available right now.', unusable: 'Your GM could not put it into words this time.' }[reason] || 'Your GM could not be reached just now.'; gmView = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
     paintGM();
   }
   function scrollToBox() { const el = $('rightTitle') ? ($('rightTitle').closest('section') || $('right')) : $('right'); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }

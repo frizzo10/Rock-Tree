@@ -278,7 +278,7 @@ table.rec th[scope=row] { text-align: left; font-weight: 600; }
     if (res && res.summary) {
       const tone = built.wins / Math.max(1, built.games) >= 0.5 ? 'upbeat' : 'even'; try { localStorage.setItem(key, JSON.stringify({ sig, result: res, at: Date.now() })); } catch (e) {}
       COACH.view = { state: 'done', result: res, facts: built.facts, item: { text: coachScript(res, built.facts, tone), tone } };
-    } else { const msg = { limit: "You have used all of today's GM reviews. Come back tomorrow.", unavailable: 'Your coach is not available right now.', unusable: 'Your coach could not put it into words this time.' }[reason] || 'Your coach could not be reached just now.'; COACH.view = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
+    } else { const msg = { limit: "You have used all of today's GM reviews. Come back tomorrow.", locked: "Play a game or finish a draft first, and your coach will have something to review.", busy: "Your coach is swamped today. Please try again tomorrow.", unavailable: 'Your coach is not available right now.', unusable: 'Your coach could not put it into words this time.' }[reason] || 'Your coach could not be reached just now.'; COACH.view = { state: 'failed', msg, again: reason !== 'limit' && reason !== 'unavailable' }; }
     paintCoach();
   }
   function wireCoach(c, st) {
