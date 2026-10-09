@@ -59,6 +59,7 @@ button, select { font: inherit; }
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="vendor/supabase-2.117.2.js"></script>
 <script src="cloud.js"></script>
+<script src="playinvite.js" defer></script>
 <link rel="stylesheet" href="mobile.css">
 </head>
 <body>
@@ -98,7 +99,10 @@ button, select { font: inherit; }
       <div class="acts"><button class="btn btn-main" id="go" type="button">Get a link for my friend</button></div><p class="msg" id="m" role="status"></p>
       <h2 style="margin-top:22px">Or build your teams together</h2>
       <p>Skip the great clubs. You and your friend draft your own teams from the whole all-time player pool, taking turns, 18 players each under a $100 million cap. Then you play each other.</p>
-      <div class="acts"><button class="btn btn-alt" id="goDraft" type="button">Draft teams with a friend</button></div><p class="msg" id="m2" role="status"></p></section>`;
+      <div class="acts"><button class="btn btn-alt" id="goDraft" type="button">Draft teams with a friend</button></div><p class="msg" id="m2" role="status"></p>
+      <h2 style="margin-top:22px">Or play someone who is online</h2>
+      <p>See who else is open to play right now, and send them an invite. They answer on their phone, and you are in a game.</p>
+      <div class="acts"><a class="btn btn-alt" href="play-lobby.html">See who is online</a></div></section>`;
     $('goDraft').onclick = async () => {
       if (!window.CC.requireSignIn('Sign in to draft with a friend')) return;
       $('goDraft').disabled = true; say('m2', 'Setting up your draft…');

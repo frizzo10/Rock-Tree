@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cooperstown Cash: Who's online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --text: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --wall: #CED2CF; --ink: #19231E; --ink-soft: #4A5560; --wb: #F7F8F6; --wb-ink: #1F3F8F; --wb-red: #C0392B; --wb-green: #1E7B45; --wb-frame: #B7BDC2; --lamp: #F2B33D;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; } }
+:root[data-theme="dark"] { --wall: #1C201E; --ink: #E4E8E0; --ink-soft: #A9B4AD; }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 16px/1.5 var(--text); }
+button, select { font: inherit; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 18px 16px 48px; }
+.crumbs { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.crumbs a { color: var(--ink); font-weight: 600; }
+.crumbs .badge { width: 52px; height: 52px; display: block; }
+.crumbs .badge img { width: 100%; height: 100%; }
+.board { background: var(--wb); color: #20262D; border-radius: 4px; box-shadow: inset 0 0 0 8px var(--wb-frame), 0 3px 0 rgba(0,0,0,.18); padding: 22px 26px 20px; margin-bottom: 16px; }
+.board h1 { font: 400 clamp(28px, 6vw, 42px)/1.05 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.board h2 { font: 400 24px/1.15 var(--marker); color: var(--wb-ink); margin: 0 0 8px; }
+.board p { margin: 0 0 10px; color: #3A434D; }
+.field { margin: 14px 0; }
+.field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.field select { width: 100%; padding: 11px 12px; border: 1.5px solid #8C959E; border-radius: 4px; background: #fff; color: #1B1F24; }
+.btn { border: 0; border-radius: 4px; padding: 11px 18px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; line-height: 1.4; }
+.btn-main { background: var(--wb-ink); color: #fff; }
+.btn-main:hover { background: #17306E; }
+.btn-alt { background: transparent; color: #20262D; border: 1.5px solid #8C959E; }
+.btn-alt:hover { background: #E9ECEA; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.acts { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 6px; }
+.msg { min-height: 1.4em; margin: 6px 0 0; font-weight: 600; color: var(--wb-green); }
+.msg.err { color: var(--wb-red); }
+.vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; margin: 14px 0; }
+.side { text-align: center; padding: 12px 8px; border-radius: 4px; background: #fff; border: 1.5px solid #C9CFD4; min-width: 0; }
+.side .av { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 6px; font-size: 24px; background: var(--c, #8C959E); }
+.side b { display: block; overflow-wrap: anywhere; }
+.side span { font-size: 14px; color: #4A5560; }
+.side.wait { border-style: dashed; color: #5A6470; }
+.vs .at { font: 400 22px var(--marker); color: var(--wb-red); }
+.linkbox { background: #fff; border: 1.5px solid #C9CFD4; border-radius: 4px; padding: 10px 12px; font-size: 14px; overflow-wrap: anywhere; user-select: all; }
+.league { background: #FFF3A0; color: #2A2A2A; border-radius: 2px; padding: 12px 16px; box-shadow: 0 3px 6px rgba(0,0,0,.2); margin-top: 16px; }
+.league h2 { font: 400 20px/1.2 var(--marker); color: var(--wb-red); margin: 0 0 4px; }
+.league p { margin: 0 0 8px; color: #2A2A2A; }
+@media (max-width: 420px) { .board { padding: 18px 18px; } .vs { grid-template-columns: 1fr; } .vs .at { text-align: center; } }
+
+.sw { display: flex; align-items: center; gap: 12px; margin: 12px 0 6px; }
+.sw button { min-width: 140px; }
+.sw .state { font-weight: 600; }
+.ppl { list-style: none; margin: 8px 0 0; padding: 0; }
+.ppl li { background: #fff; border: 1.5px solid #C9CFD4; border-radius: 4px; padding: 10px 12px; margin: 0 0 8px; }
+.ppl .top { display: flex; align-items: center; gap: 10px; }
+.ppl .av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; flex: none; background: var(--c, #8C959E); }
+.ppl .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ppl .nm small { display: block; color: #4A5560; font-size: 14px; }
+.ppl .on { color: var(--wb-green); font-weight: 600; }
+.ppl .small { padding: 7px 12px; font-size: 15px; }
+.ppl .links { margin: 8px 0 0; display: flex; gap: 14px; font-size: 14px; }
+.ppl .links button { background: none; border: 0; padding: 4px 0; color: #4A5560; text-decoration: underline; cursor: pointer; }
+.panel { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #C9CFD4; }
+.panel label.rad { display: block; margin: 4px 0; }
+.empty { color: #4A5560; }
+</style>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="vendor/supabase-2.117.2.js"></script>
+<script src="cloud.js"></script>
+<script src="playinvite.js" defer></script>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a class="badge" href="index.html"><img src="logo.webp" alt="Cooperstown Cash home" width="52" height="52"></a><a href="index.html">Home</a><a href="friend.html" style="margin-left:14px">Play a friend</a></nav>
+  <main id="app"><section class="board"><p>Loading…</p></section></main>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const col = c => (/^#[0-9A-Fa-f]{3,8}$/.test(c || '') ? c : '#8C959E');
+  const app = $('app'), client = () => window.CC && window.CC.client;
+  const REASONS = ['A rude name or picture', 'Harassment or bad behavior', 'Spam', 'Something else'];
+  let L = null, timer = null, panel = null, form = { mode: 'clubs', team: '1927NYA' }, repId = null, msg = '', msgErr = false, sig = '';
+  const club = () => (window.PlayInvite ? window.PlayInvite.CLUBS : []).map(c => `<option value="${c[0]}"${c[0] === form.team ? ' selected' : ''}>${c[1]} ${esc(c[2])} (${c[3]}-${c[4]})</option>`).join('');
+  const commish = `<div class="league"><h2>Be the commissioner</h2><p>Playing friends one game at a time is fun. A private league turns your crew into a full season with standings and a champion, and you run it as commissioner.</p><p><a class="btn btn-main" href="private.html">Start a private league</a></p></div>`;
+
+  function person(p, played) {
+    const online = played ? p.online : true;
+    const head = `<div class="top"><span class="av" style="--c:${col(p.color)}">${esc(p.emoji || '⚾')}</span><span class="nm"><b>${esc(p.name)}</b>${played ? `<small>${p.n} ${p.n === 1 ? 'game' : 'games'} together · ${online ? '<span class="on">online now</span>' : 'not online'}</small>` : '<small><span class="on">online now</span></small>'}</span>
+      ${online ? `<button class="btn btn-main small" data-inv="${esc(p.id)}" type="button">Invite</button>` : ''}</div>`;
+    let body = '';
+    if (panel === p.id) body += `<div class="panel"><label class="rad"><input type="radio" name="md" value="clubs"${form.mode === 'clubs' ? ' checked' : ''}> Great clubs. You each pick one.</label>
+        <label class="rad"><input type="radio" name="md" value="draft"${form.mode === 'draft' ? ' checked' : ''}> Draft teams together</label>
+        ${form.mode === 'clubs' ? `<div class="field"><label for="tm">Your club</label><select id="tm">${club()}</select></div>` : ''}
+        <div class="acts"><button class="btn btn-main" id="sendInv" data-to="${esc(p.id)}" type="button">Send invite</button><button class="btn btn-alt" id="noInv" type="button">Cancel</button></div></div>`;
+    if (repId === p.id) body += `<div class="panel"><div class="field"><label for="rs">What happened?</label><select id="rs">${REASONS.map(r => `<option>${esc(r)}</option>`).join('')}</select></div>
+        <p>Reporting also blocks them for you.</p><div class="acts"><button class="btn btn-main" id="sendRep" data-to="${esc(p.id)}" type="button">Send report</button><button class="btn btn-alt" id="noRep" type="button">Cancel</button></div></div>`;
+    return `<li>${head}<div class="links"><button data-block="${esc(p.id)}" type="button">Block</button><button data-report="${esc(p.id)}" type="button">Report</button></div>${body}</li>`;
+  }
+  function draw() {
+    if (!L) return;
+    const on = L.open, playedIds = new Set(L.played.map(p => p.id)), others = L.online.filter(p => !playedIds.has(p.id));
+    app.innerHTML = `<section class="board"><h1>Who's online</h1>
+      <p>Turn on <b>Open to play</b> and other players can see your name and picture and invite you to a game. You see them too. Nobody sees you unless you turn it on. It switches off when you have been away for a while.</p>
+      <div class="sw"><button class="btn ${on ? 'btn-alt' : 'btn-main'}" id="tog" type="button" aria-pressed="${on}">${on ? 'Turn off' : 'Open to play'}</button><span class="state">${on ? 'You are open to play' : 'You are not listed'}</span></div>
+      <p class="msg${msgErr ? ' err' : ''}" id="m" role="status">${esc(msg)}</p>
+      ${on ? `<h2 style="margin-top:18px">People you have played</h2>${L.played.length ? `<ul class="ppl">${L.played.map(p => person(p, true)).join('')}</ul>` : '<p class="empty">Nobody yet. Once you finish a game with someone, they show up here.</p>'}
+      <h2 style="margin-top:18px">Online now</h2>${others.length ? `<ul class="ppl">${others.map(p => person(p, false)).join('')}</ul>` : '<p class="empty">Nobody else is open to play right now. Stay on this page for a bit, or send a friend a link.</p><div class="acts"><a class="btn btn-alt" href="friend.html">Send a friend a link</a></div>'}` : '<p class="empty">Turn on Open to play to see who is online.</p>'}
+      ${L.blocked.length ? `<h2 style="margin-top:18px">Blocked</h2><ul class="ppl">${L.blocked.map(b => `<li><div class="top"><span class="nm"><b>${esc(b.name)}</b></span><button class="btn btn-alt small" data-unblock="${esc(b.id)}" type="button">Unblock</button></div></li>`).join('')}</ul>` : ''}
+    </section>${commish}`;
+  }
+  async function load(force) {
+    if (!client()) return;
+    const r = await client().rpc('play_lobby'); if (r.error) { msg = r.error.message; msgErr = true; return draw(); }
+    const s = JSON.stringify(r.data) + panel + repId + form.mode;
+    if (!force && s === sig) return; sig = s; L = r.data; draw();
+  }
+  const say = (t, err) => { msg = t || ''; msgErr = !!err; const m = $('m'); if (m) { m.textContent = msg; m.className = 'msg' + (err ? ' err' : ''); } };
+  app.addEventListener('change', e => { if (e.target.name === 'md') { form.mode = e.target.value; draw(); } if (e.target.id === 'tm') form.team = e.target.value; });
+  app.addEventListener('click', async e => {
+    const t = e.target.closest('button'); if (!t) return;
+    const c = client();
+    if (t.id === 'tog') { t.disabled = true; const r = await window.PlayInvite.setOpen(!L.open); if (r.error) { say(r.error.message, true); t.disabled = false; return; } msg = ''; await load(true); return; }
+    if (t.dataset.inv) { panel = t.dataset.inv; repId = null; draw(); return; }
+    if (t.id === 'noInv') { panel = null; draw(); return; }
+    if (t.id === 'sendInv') {
+      t.disabled = true; const r = await c.rpc('send_play_invite', { p_to: t.dataset.to, p_mode: form.mode, p_team: form.mode === 'clubs' ? form.team : null });
+      if (r.error) { t.disabled = false; say(r.error.message, true); return; }
+      panel = null; msg = 'Invite sent. We will take you to the game as soon as they say yes.'; msgErr = false; await load(true); window.PlayInvite.refresh(); return;
+    }
+    if (t.dataset.block) { if (!confirm('Block this player? You will not see each other, and they cannot invite you.')) return; await c.rpc('block_player', { p_user: t.dataset.block }); msg = 'Blocked.'; msgErr = false; panel = null; await load(true); return; }
+    if (t.dataset.unblock) { await c.rpc('unblock_player', { p_user: t.dataset.unblock }); msg = 'Unblocked.'; msgErr = false; await load(true); return; }
+    if (t.dataset.report) { repId = t.dataset.report; panel = null; draw(); return; }
+    if (t.id === 'noRep') { repId = null; draw(); return; }
+    if (t.id === 'sendRep') { t.disabled = true; const r = await c.rpc('report_player', { p_user: t.dataset.to, p_reason: $('rs').value }); repId = null; if (r.error) { say(r.error.message, true); await load(true); return; } msg = 'Thank you. We will look at it, and you will not see that player again.'; msgErr = false; await load(true); return; }
+  });
+  function needSignIn() {
+    app.innerHTML = '<section class="board"><h1>Who\'s online</h1><p>Sign in to see who is open to play.</p><div class="acts"><button class="btn btn-main" id="si" type="button">Sign in</button></div></section>';
+    $('si').onclick = () => window.CC.requireSignIn('Sign in to see who is online');
+    window.addEventListener('cc-auth', e => { if (e.detail && e.detail.user) start(); }, { once: true });
+  }
+  function start() { load(true); clearInterval(timer); timer = setInterval(() => { if (!document.hidden && !panel && !repId) load(false); }, 6000); }
+  window.CC ? window.CC.whenReady(() => { if (!client()) { app.innerHTML = '<section class="board"><p>We could not reach the server. Refresh the page and try again.</p></section>'; return; } window.CC.user ? start() : needSignIn(); }) : (app.innerHTML = '<section class="board"><p>Refresh the page and try again.</p></section>');
+})();
+</script>
+</body>
+</html>
