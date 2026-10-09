@@ -1416,6 +1416,25 @@ body.war .dec { color: var(--wb-red); }
     host.prepend(box);
   }
 
+
+  // a drafted team: the saved roster, built the same way the draft page builds its own teams
+  function loadPool() { return typeof POOL !== 'undefined' ? Promise.resolve() : new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'draft-pool.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); }); }
+  let POOLBY = null;
+  function draftTeam(roster, name) {
+    if (!POOLBY) POOLBY = new Map(POOL.players.map(p => [p.id + '-' + p.yr, { ...p, lgRates: POOL.leagues[p.lg] }]));
+    const N = DATA.neutral, NL = { ...N, H: N.S + N['2B'] + N['3B'] }, nick = String(name || 'Friend').slice(0, 12);
+    const pa = 600, c = k => Math.round(N[k] * pa), S = c('S'), D2 = c('2B'), T = c('3B'), HR = c('HR'), BB = c('BB'), HBP = c('HBP');
+    const AVG_H = { name: 'Average Player', PA: pa, AB: pa - BB - HBP, S, D: D2, T, HR, H: S + D2 + T + HR, BB, HBP, SO: c('SO'), SB: 6, CS: 3, lgRates: NL };
+    const avgP = (bf, g, gs) => { const k = x => Math.round(N[x] * bf), H = k('S') + k('2B') + k('3B') + k('HR'), outs = bf - H - k('BB') - k('HBP');
+      return { name: 'Average Pitcher', G: g, GS: gs, IPOuts: outs, BF: bf, H, HR: k('HR'), BB: k('BB'), SO: k('SO'), HBP: k('HBP'), SV: 0, ER: Math.round(outs / 27 * 4.3), W: 10, L: 10, lgRates: NL }; };
+    const AVG_SP = avgP(800, 32, 32), AVG_RP = avgP(280, 60, 0);
+    const get = (id, fb) => { const p = roster && roster[id] && POOLBY.get(roster[id]); return p ? { ...p } : { ...fb, id: nick + id, yr: '' }; };   // an empty spot counts as an average player
+    const lineup = {}; for (const pos of ['c', '1b', '2b', '3b', 'ss', 'lf', 'cf', 'rf', 'dh']) lineup[pos] = get(pos, AVG_H);
+    const t = DuelDice.buildCards(Diamond.prepTeam({ nick, league: NL, lineup, rotation: [1, 2, 3, 4, 5].map(i => get('sp' + i, AVG_SP)), bullpen: [1, 2, 3, 4].map(i => get('rp' + i, AVG_RP)) }, N), N);
+    t.rotation.sort((a, b) => a.fip - b.fip);
+    t.key = 'DRAFT'; t.year = ''; t.W = 0; t.L = 0; return t;
+  }
+
   async function friendInit() {
     const note = t => { $('oppNote').textContent = t; };
     const cc = window.CC;
@@ -1427,7 +1446,10 @@ body.war .dec { color: var(--wb-red); }
     if (b.error) { note(b.error.message); return; }
     const st = await rpc('friend_game_state', { p_id: FR.id });
     if (st.error || !st.data || !st.data.guest) { note(st.error ? st.error.message : 'Your friend has not joined yet.'); return; }
-    const s = st.data, host = b.data.you_are === 'host', home = byKey(s.host.team), away = byKey(s.guest.team);
+    const s = st.data, host = b.data.you_are === 'host', drafted = b.data.mode === 'draft';
+    let home, away;
+    if (drafted) { try { await loadPool(); home = draftTeam(b.data.host_roster, s.host.name); away = draftTeam(b.data.guest_roster, s.guest.name); } catch (e) { note('We could not load the draft pool. Refresh the page and try again.'); return; } }
+    else { home = byKey(s.host.team); away = byKey(s.guest.team); }
     if (!home || !away) { note('One of the clubs could not be found.'); return; }
     window.__erng = fromSeed(b.data.seed);
     you = host ? 1 : 0; FR.names = [s.guest.name, s.host.name]; oppName = FR.names[1 - you];
@@ -1437,7 +1459,8 @@ body.war .dec { color: var(--wb-red); }
     lastHalfKey = ''; peekKey = `${g.inning}-${g.half}`;
     $('feed').innerHTML = ''; $('right').innerHTML = '<p class="empty">The box score appears here when the game ends.</p>';
     $('tableArea').hidden = false; $('batCard').hidden = false; $('pitCard').hidden = false;
-    note(`You manage the ${you ? s.host.team : s.guest.team}. ${oppName} manages the ${you ? s.guest.team : s.host.team}. ${you ? 'You are the home team.' : 'You are the visitors.'}`.replace(/(\d{4})([A-Z0-9]{2,4})/g, (m, y, k) => { const t = byKey(m); return t ? `${t.year} ${t.nick}` : m; }));
+    note(drafted ? `You and ${oppName} drafted these teams together. ${you ? 'You are the home team.' : 'You are the visitors.'}`
+      : `You manage the ${you ? s.host.team : s.guest.team}. ${oppName} manages the ${you ? s.guest.team : s.host.team}. ${you ? 'You are the home team.' : 'You are the visitors.'}`.replace(/(\d{4})([A-Z0-9]{2,4})/g, (m, y, k) => { const t = byKey(m); return t ? `${t.year} ${t.nick}` : m; }));
     FR.replay = true; FR.quiet = true;
     await settle();
     let more = true; while (more) { const r = await rpc('friend_events_since', { p_id: FR.id, p_after: FR.lastSeq }); if (r.error || !r.data) break; FR.srv = r.data; for (const e of r.data.events) if (e.seq > FR.lastSeq) { FR.lastSeq = e.seq; FR.q.push(e); } more = r.data.events.length >= 400; }

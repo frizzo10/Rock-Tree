@@ -72,7 +72,7 @@ button, select { font: inherit; }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // the same sixteen great clubs as a quick game: [key, year, nickname, wins, losses]
   const CLUBS = [["1906CHN",1906,"Cubs",116,36],["1927NYA",1927,"Yankees",110,44],["1929PHA",1929,"Athletics",104,46],["1939NYA",1939,"Yankees",106,45],["1954CLE",1954,"Indians",111,43],["1955BRO",1955,"Dodgers",98,55],["1961NYA",1961,"Yankees",109,53],["1970BAL",1970,"Orioles",108,54],["1975CIN",1975,"Reds",108,54],["1984DET",1984,"Tigers",104,58],["1986NYN",1986,"Mets",108,54],["1998NYA",1998,"Yankees",114,48],["2001SEA",2001,"Mariners",116,46],["2004BOS",2004,"Red Sox",98,64],["2016CHN",2016,"Cubs",103,58],["2022LAN",2022,"Dodgers",111,51]];
-  const clubName = k => { const c = CLUBS.find(x => x[0] === k); return c ? `${c[1]} ${c[2]}` : k; };
+  const clubName = k => { if (k === 'DRAFT') return 'drafting a team'; const c = CLUBS.find(x => x[0] === k); return c ? `${c[1]} ${c[2]}` : k; };
   const options = sel => CLUBS.map(c => `<option value="${c[0]}"${c[0] === sel ? ' selected' : ''}>${c[1]} ${esc(c[2])} (${c[3]}-${c[4]})</option>`).join('');
   const qs = new URLSearchParams(location.search), joinCode = qs.get('join'), gameId = qs.get('g');
   const app = $('app'); let timer = null;
@@ -95,7 +95,18 @@ button, select { font: inherit; }
       <p>Challenge a friend to a game. Pick your club and send them a link. They open it, pick their club, and you are set to play each other.</p>
       <p><b>Run the show.</b> Friends who play each other tend to want a whole season. You can be the commissioner of a private league for your crew; <a href="private.html">see how it works</a>.</p>
       <div class="field"><label for="mine">Pick your club</label><select id="mine">${options('1975CIN')}</select></div>
-      <div class="acts"><button class="btn btn-main" id="go" type="button">Get a link for my friend</button></div><p class="msg" id="m" role="status"></p></section>`;
+      <div class="acts"><button class="btn btn-main" id="go" type="button">Get a link for my friend</button></div><p class="msg" id="m" role="status"></p>
+      <h2 style="margin-top:22px">Or build your teams together</h2>
+      <p>Skip the great clubs. You and your friend draft your own teams from the whole all-time player pool, taking turns, 18 players each under a $100 million cap. Then you play each other.</p>
+      <div class="acts"><button class="btn btn-alt" id="goDraft" type="button">Draft teams with a friend</button></div><p class="msg" id="m2" role="status"></p></section>`;
+    $('goDraft').onclick = async () => {
+      if (!window.CC.requireSignIn('Sign in to draft with a friend')) return;
+      $('goDraft').disabled = true; say('m2', 'Setting up your draft…');
+      const { data, error } = await client().rpc('create_friend_draft');
+      $('goDraft').disabled = false;
+      if (error) return say('m2', error.message, true);
+      location.href = 'friend.html?g=' + encodeURIComponent(data.id);
+    };
     $('go').onclick = async () => {
       if (!window.CC.requireSignIn('Sign in to challenge a friend')) return;
       $('go').disabled = true; say('m', 'Setting up your game…');
@@ -114,12 +125,12 @@ button, select { font: inherit; }
     if (data.status !== 'open') { app.innerHTML = `<section class="board"><h1>Play a friend</h1><p>Someone has already joined this game.</p><div class="acts"><a class="btn btn-main" href="friend.html">Start my own game</a></div></section>`; return; }
     const h = data.host;
     app.innerHTML = `<section class="board"><h1>${esc(h.name)} wants to play you</h1>
-      <div class="vs">${side(h)}<div class="at">vs</div><div class="side wait"><div class="av" style="--c:#C9CFD4">?</div><b>You</b><span>pick a club</span></div></div>
-      <div class="field"><label for="mine">Pick your club</label><select id="mine">${options('1927NYA')}</select></div>
-      <div class="acts"><button class="btn btn-main" id="go" type="button">Join the game</button></div><p class="msg" id="m" role="status"></p></section>`;
+      <div class="vs">${side(h)}<div class="at">vs</div><div class="side wait"><div class="av" style="--c:#C9CFD4">?</div><b>You</b><span>${data.mode === 'draft' ? 'draft a team' : 'pick a club'}</span></div></div>
+      ${data.mode === 'draft' ? '<p>You will draft your teams together, taking turns picking from the all-time player pool. Then you play each other.</p>' : `<div class="field"><label for="mine">Pick your club</label><select id="mine">${options('1927NYA')}</select></div>`}
+      <div class="acts"><button class="btn btn-main" id="go" type="button">${data.mode === 'draft' ? 'Join the draft' : 'Join the game'}</button></div><p class="msg" id="m" role="status"></p></section>`;
     $('go').onclick = async () => {
       $('go').disabled = true; say('m', 'Joining…');
-      const r = await client().rpc('join_friend_game', { p_code: joinCode, p_team: $('mine').value });
+      const r = await client().rpc('join_friend_game', { p_code: joinCode, p_team: $('mine') ? $('mine').value : 'DRAFT' });
       $('go').disabled = false;
       if (r.error) return say('m', r.error.message, true);
       location.href = 'friend.html?g=' + encodeURIComponent(r.data.id);
@@ -131,13 +142,15 @@ button, select { font: inherit; }
   async function drawGame() {
     const { data: s, error } = await client().rpc('friend_game_state', { p_id: gameId });
     if (error) { app.innerHTML = `<section class="board"><h1>Play a friend</h1><p>${esc(error.message)}</p><div class="acts"><a class="btn btn-main" href="friend.html">Start a game</a></div></section>`; return; }
-    const sig = s.status + (s.guest ? 'g' : ''); if (sig === lastSig) return; lastSig = sig;
+    const sig = s.status + (s.guest ? 'g' : '') + (s.draft_done ? 'd' : ''); if (sig === lastSig) return; lastSig = sig;
     const host = s.you_are === 'host', link = location.origin + location.pathname.replace(/[^/]*$/, '') + 'friend.html?join=' + encodeURIComponent(s.code);
     if (s.status === 'cancelled') { clearInterval(timer); app.innerHTML = `<section class="board"><h1>Play a friend</h1><p>This game was cancelled.</p><div class="acts"><a class="btn btn-main" href="friend.html">Start a new game</a></div></section>`; return; }
     const ready = s.status !== 'open';   // both players are in
-    app.innerHTML = `<section class="board"><h1>${ready ? 'Both clubs are set' : 'Send this link to your friend'}</h1>
+    app.innerHTML = `<section class="board"><h1>${ready ? (s.mode === 'draft' ? 'You are both in' : 'Both clubs are set') : 'Send this link to your friend'}</h1>
       <div class="vs">${side(s.host, host)}<div class="at">vs</div>${side(s.guest, !host)}</div>
-      ${ready ? `<p>You are both in. Each of you manages your own club on your own phone. Tap Play ball when you are ready; the game starts as soon as you are both there.</p><div class="acts"><a class="btn btn-main" href="friend-play.html?g=${encodeURIComponent(s.id)}" id="playBall">Play ball</a></div>` :
+      ${ready && s.mode === 'draft' && !s.draft_done ? `<p>You are both in. You will take turns drafting 18 players each, with a 60-second clock on every pick. Tap Start the draft when you are both ready.</p><div class="acts"><a class="btn btn-main" href="friend-draft.html?g=${encodeURIComponent(s.id)}" id="startDraft">Start the draft</a></div>` :
+        ready && s.mode === 'draft' && s.status === 'ready' ? `<p>Your drafts are done. Tap Play ball when you are ready; the game starts as soon as you are both there.</p><div class="acts"><a class="btn btn-main" href="friend-play.html?g=${encodeURIComponent(s.id)}" id="playBall">Play ball</a></div>` :
+        ready ? `<p>You are both in. Each of you manages your own club on your own phone. Tap Play ball when you are ready; the game starts as soon as you are both there.</p><div class="acts"><a class="btn btn-main" href="friend-play.html?g=${encodeURIComponent(s.id)}" id="playBall">Play ball</a></div>` :
         host ? `<div class="linkbox" id="lk">${esc(link)}</div><div class="acts"><button class="btn btn-main" id="share" type="button">Send the link</button><button class="btn btn-alt" id="copy" type="button">Copy the link</button></div><p class="msg" id="m" role="status"></p><p>This page updates by itself when your friend joins.</p>` : ''}
       ${host && !ready ? '<div class="acts"><button class="btn btn-alt" id="cancel" type="button">Cancel this game</button></div>' : ''}
       </section>${leagueNote}`;
