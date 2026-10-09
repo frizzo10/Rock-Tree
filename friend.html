@@ -134,10 +134,10 @@ button, select { font: inherit; }
     const sig = s.status + (s.guest ? 'g' : ''); if (sig === lastSig) return; lastSig = sig;
     const host = s.you_are === 'host', link = location.origin + location.pathname.replace(/[^/]*$/, '') + 'friend.html?join=' + encodeURIComponent(s.code);
     if (s.status === 'cancelled') { clearInterval(timer); app.innerHTML = `<section class="board"><h1>Play a friend</h1><p>This game was cancelled.</p><div class="acts"><a class="btn btn-main" href="friend.html">Start a new game</a></div></section>`; return; }
-    const ready = s.status !== 'open';
+    const ready = s.status !== 'open';   // both players are in
     app.innerHTML = `<section class="board"><h1>${ready ? 'Both clubs are set' : 'Send this link to your friend'}</h1>
       <div class="vs">${side(s.host, host)}<div class="at">vs</div>${side(s.guest, !host)}</div>
-      ${ready ? `<p>You are both in. Live play, where you each make your own calls on your own phone, is coming next. This game will be here when it is ready.</p>` :
+      ${ready ? `<p>You are both in. Each of you manages your own club on your own phone. Tap Play ball when you are ready; the game starts as soon as you are both there.</p><div class="acts"><a class="btn btn-main" href="friend-play.html?g=${encodeURIComponent(s.id)}" id="playBall">Play ball</a></div>` :
         host ? `<div class="linkbox" id="lk">${esc(link)}</div><div class="acts"><button class="btn btn-main" id="share" type="button">Send the link</button><button class="btn btn-alt" id="copy" type="button">Copy the link</button></div><p class="msg" id="m" role="status"></p><p>This page updates by itself when your friend joins.</p>` : ''}
       ${host && !ready ? '<div class="acts"><button class="btn btn-alt" id="cancel" type="button">Cancel this game</button></div>' : ''}
       </section>${leagueNote}`;
