@@ -81,7 +81,7 @@ button, select { font: inherit; }
   const avatar = p => `<div class="av" style="--c:${esc(p && p.color || '#8C959E')}">${esc(p && p.emoji || '⚾')}</div>`;
   const side = (p, you) => p ? `<div class="side">${avatar(p)}<b>${esc(p.name)}${you ? ' (you)' : ''}</b><span>${esc(clubName(p.team))}</span></div>` : `<div class="side wait"><div class="av" style="--c:#C9CFD4">?</div><b>Waiting for your friend</b><span>to open the link</span></div>`;
 
-  const leagueNote = `<div class="league"><h2>Like playing each other?</h2><p>Put a season behind it. A private league gives you and your friends a full schedule, standings and a champion, with every game played for real.</p><p><a class="btn btn-main" href="private.html">Start a private league</a></p></div>`;
+  const leagueNote = `<div class="league"><h2>Be the commissioner</h2><p>You and your friend are already a league. Make it official: as commissioner you pick the schedule, invite the rest of your crew, and run a full season with standings and a champion. Every game is played for real.</p><p><a class="btn btn-main" href="private.html">Start a private league</a></p></div>`;
 
   function needSignIn(heading, again) {
     app.innerHTML = `<section class="board"><h1>Play a friend</h1><p>${esc(heading)}</p><div class="acts"><button class="btn btn-main" id="si" type="button">Sign in</button></div></section>`;
@@ -93,6 +93,7 @@ button, select { font: inherit; }
   function drawStart() {
     app.innerHTML = `<section class="board"><h1>Play a friend</h1>
       <p>Challenge a friend to a game. Pick your club and send them a link. They open it, pick their club, and you are set to play each other.</p>
+      <p><b>Run the show.</b> Friends who play each other tend to want a whole season. You can be the commissioner of a private league for your crew; <a href="private.html">see how it works</a>.</p>
       <div class="field"><label for="mine">Pick your club</label><select id="mine">${options('1975CIN')}</select></div>
       <div class="acts"><button class="btn btn-main" id="go" type="button">Get a link for my friend</button></div><p class="msg" id="m" role="status"></p></section>`;
     $('go').onclick = async () => {
