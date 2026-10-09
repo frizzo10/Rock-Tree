@@ -3,7 +3,14 @@
 (function () {
   'use strict';
   const S = { audio: null, speaking: false, via: '', token: 0 }, subs = [];
-  const emit = () => subs.forEach(f => { try { f(S); } catch (e) {} });
+  function floatStop() {   // a Stop button that stays on screen however far you have scrolled
+    let fs = document.getElementById('gmStopFloat');
+    if (!fs) { if (!document.body) return; fs = document.createElement('button'); fs.type = 'button'; fs.id = 'gmStopFloat'; fs.textContent = 'Stop GM'; fs.setAttribute('aria-label', 'Stop the GM talking');
+      fs.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,env(safe-area-inset-bottom));z-index:60;padding:14px 26px;border-radius:999px;border:2px solid #fff;background:#a31212;color:#fff;font:700 17px/1 system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.45);display:none';
+      fs.onclick = () => stop(); document.body.appendChild(fs); }
+    fs.style.display = S.speaking ? 'block' : 'none';
+  }
+  const emit = () => { try { floatStop(); } catch (e) {} subs.forEach(f => { try { f(S); } catch (e) {} }); };
   const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
   const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
   // how the GM feels: it follows the result, never the AI's words
@@ -74,7 +81,7 @@
     if (item.blob) { if (await playBlob(item.blob, tok)) return; }
     else if (cc && cc.client && cc.client.functions) {
       try {
-        const ask = cc.client.functions.invoke('gm-voice', { body: { text, tone } }), timed = new Promise(r => setTimeout(() => r({ timeout: true }), 14000)), out = await Promise.race([ask, timed]);
+        const ask = cc.client.functions.invoke('gm-voice', { body: { text, tone } }), timed = new Promise(r => setTimeout(() => r({ timeout: true }), 35000)), out = await Promise.race([ask, timed]);
         if (tok !== S.token) return;
         const d = out && out.data; if (d && typeof d === 'object' && d.size > 1000 && !out.error) { item.blob = new Blob([d], { type: 'audio/wav' }); if (await playBlob(item.blob, tok)) return; }
       } catch (e) {}
