@@ -154,7 +154,7 @@ footer p { margin: 0 0 6px; }
         <div id="avPicker">
         <div role="radiogroup" aria-label="Emoji" class="avgrid">${EMOJIS.map(e => `<button type="button" role="radio" class="avb" data-emoji="${e}" aria-checked="false" aria-label="${e}">${e}</button>`).join('')}</div>
         <div role="radiogroup" aria-label="Color" class="avcols">${COLORS.map(([c, n]) => `<button type="button" role="radio" class="avc" data-color="${c}" aria-checked="false" aria-label="${n}" title="${n}" style="background:${c}"></button>`).join('')}</div>
-        <p class="avact"><button class="btn btn-main" id="avSave" type="button" disabled>Save my avatar</button> <button class="btn btn-alt" id="avReset" type="button">Use the default</button> <button class="btn btn-alt" id="avCancel" type="button" hidden>Cancel</button></p>
+        <p class="avact"><button class="btn btn-main" id="avSave" type="button" disabled>Save my avatar</button> <button class="btn btn-alt" id="avReset" type="button">Use the default</button></p>
         </div>
         <p class="note" id="avMsg" role="status" aria-live="polite"></p></section>
       <section class="board"><h2 style="margin-top:0">Your leagues and tables</h2>${mine.length ? `<ul class="acl">${mine.map(({ s, l }) => `<li><a href="${where(l)}"><b>${esc(l.name)}</b></a><span class="note">${esc(s.club_name)} &middot; ${esc(STATUS[l.status] || l.status)}${THEME[l.theme] ? ' &middot; ' + esc(THEME[l.theme]) : ''}</span></li>`).join('')}</ul>` : '<p>You aren\'t in a league yet.</p><p><a class="btn btn-main" href="lobby.html">Find a free table</a> <a class="btn btn-alt" href="private.html">Start a private league</a></p>'}</section>
@@ -169,12 +169,12 @@ footer p { margin: 0 0 6px; }
     let pick = saved ? { ...saved } : { emoji: '', color: '' }, base = JSON.stringify(saved || { emoji: '', color: '' });
     let editing = false;   // once an avatar is saved the picker folds away; "Change my avatar" brings it back
     const drawAv = () => {
-      const hasSaved = !!JSON.parse(base).emoji; $('avPicker').hidden = hasSaved && !editing; $('avEditRow').hidden = !(hasSaved && !editing); $('avCancel').hidden = !hasSaved;
+      const hasSaved = !!JSON.parse(base).emoji; $('avPicker').hidden = hasSaved && !editing; $('avEditRow').hidden = !(hasSaved && !editing);
       const p = $('avPrev'), has = pick.emoji && pick.color; p.textContent = has ? pick.emoji : ini; p.style.background = pick.color || '#1F3F8F';
       document.querySelectorAll('.avb').forEach(b => b.setAttribute('aria-checked', String(b.dataset.emoji === pick.emoji)));
       document.querySelectorAll('.avc').forEach(b => b.setAttribute('aria-checked', String(b.dataset.color === pick.color)));
       $('avName').textContent = has ? 'Your avatar' : saved ? '' : 'The default shows the first letter of your email. Pick an emoji and a color to make your own.';
-      $('avSave').disabled = !(pick.emoji && pick.color) || JSON.stringify(pick) === base; $('avReset').disabled = !saved && !pick.emoji && !pick.color;
+      $('avSave').disabled = !(pick.emoji && pick.color); $('avReset').disabled = !saved && !pick.emoji && !pick.color;
     };
     document.querySelectorAll('.avb').forEach(b => b.onclick = () => { pick.emoji = b.dataset.emoji; if (!pick.color) pick.color = COLORS[0][0]; $('avMsg').textContent = ''; drawAv(); });
     document.querySelectorAll('.avc').forEach(b => b.onclick = () => { pick.color = b.dataset.color; if (!pick.emoji) pick.emoji = EMOJIS[0]; $('avMsg').textContent = ''; drawAv(); });
@@ -187,7 +187,6 @@ footer p { margin: 0 0 6px; }
     };
     $('avSave').onclick = () => sendAv(pick.emoji, pick.color); $('avReset').onclick = () => { pick = { emoji: '', color: '' }; sendAv('', '').then(() => {}); };
     $('avEdit').onclick = () => { editing = true; $('avMsg').textContent = ''; drawAv(); };
-    $('avCancel').onclick = () => { const b0 = JSON.parse(base); pick = { emoji: b0.emoji, color: b0.color }; editing = false; drawAv(); };
     drawAv();
     // ---- delete my account ----
     const delBody = $('delBody'), delStart = $('delStart');
