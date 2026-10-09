@@ -1459,14 +1459,15 @@ body.war .dec { color: var(--wb-red); }
   }
   async function gmSpeak(v) {   // v: the finished GM view (result + facts)
     const tok = ++GMV.token, tone = gmTone(v.facts), text = v.script || (v.script = gmScript(v.result, v.facts, tone)); v.tone = tone;
-    try { speechSynthesis.cancel(); } catch (e) {} GMV.speaking = true; GMV.via = 'loading'; paintVoice();
+    try { speechSynthesis.cancel(); } catch (e) {} GMV.speaking = true; GMV.via = 'loading'; GMV.why = ''; paintVoice();
     const cc = window.CC;
     if (v.blob) { if (await gmPlayBlob(v.blob, tok)) return; }
     else if (cc && cc.client && cc.client.functions) {
       try {
-        const ask = cc.client.functions.invoke('gm-voice', { body: { text, tone } }), timed = new Promise(r => setTimeout(() => r({ timeout: true }), 14000)), out = await Promise.race([ask, timed]);
+        const ask = cc.client.functions.invoke('gm-voice', { body: { text, tone } }), timed = new Promise(r => setTimeout(() => r({ timeout: true }), 40000)), out = await Promise.race([ask, timed]);
         if (tok !== GMV.token) return;
         const d = out && out.data; if (d && typeof d === 'object' && d.size > 1000 && !out.error) { v.blob = new Blob([d], { type: 'audio/wav' }); if (await gmPlayBlob(v.blob, tok)) return; }
+        GMV.why = out && out.timeout ? 'timed out' : d && d.reason ? d.reason + (d.status ? ' ' + d.status : '') : out && out.error ? 'error' : 'no audio';
       } catch (e) {}
       if (tok !== GMV.token) return;
     }
@@ -1475,9 +1476,14 @@ body.war .dec { color: var(--wb-red); }
   addEventListener('pagehide', () => { try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {} try { if (GMV.audio) GMV.audio.pause(); } catch (e) {} });
   document.addEventListener('visibilitychange', () => { if (document.hidden && GMV.speaking) gmStop(); });
   function paintVoice() {
+    let fs = $('gmStopFloat');   // a Stop button that stays on screen however far you have scrolled
+    if (!fs) { fs = document.createElement('button'); fs.type = 'button'; fs.id = 'gmStopFloat'; fs.textContent = 'Stop GM'; fs.setAttribute('aria-label', 'Stop the GM talking');
+      fs.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,env(safe-area-inset-bottom));z-index:60;padding:14px 26px;border-radius:999px;border:2px solid #fff;background:#a31212;color:#fff;font:700 17px/1 system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.45);display:none';
+      fs.onclick = () => gmStop(); document.body.appendChild(fs); }
+    fs.style.display = GMV.speaking ? 'block' : 'none';
     const b = $('gmListen'), n = $('gmVoiceNote'); if (!b) return;
     b.textContent = GMV.speaking ? (GMV.via === 'loading' ? 'Stop' : 'Stop') : (gmView && gmView.blob || GMV.via ? 'Hear it again' : 'Hear it'); b.setAttribute('aria-pressed', String(GMV.speaking));
-    if (n) n.textContent = GMV.speaking && GMV.via === 'loading' ? 'Your GM is clearing his throat…' : GMV.speaking && GMV.via === 'device' ? 'Speaking in your phone\'s voice.' : '';
+    if (n) n.textContent = GMV.speaking && GMV.via === 'loading' ? 'Your GM is clearing his throat…' : GMV.speaking && GMV.via === 'device' ? 'Speaking in your phone\'s voice' + (GMV.why ? ' (natural voice: ' + GMV.why + ').' : '.') : '';
   }
   function gmFacts() { const me = g.teams[you], opp = g.teams[1 - you]; return GMFacts.build(plays, { youHalf: you, yourClub: `${me.t.year} ${me.t.nick}`, opponentClub: `${opp.t.year} ${opp.t.nick}`, mode: 'quick' }); }
   function paintGM() {
