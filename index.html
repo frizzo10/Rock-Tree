@@ -470,6 +470,23 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
   } else items.forEach(el => el.classList.add('in'));
 })();
 
+// ----- before anything plays, ask once per visit whether to turn the sound on (a tap is also what lets a phone play sound at all). Saying no keeps it quiet. -----
+window.__ccIntro = (() => {
+  let need = false; try { need = !!window.FX && FX.soundOn && !matchMedia('(prefers-reduced-motion: reduce)').matches && !sessionStorage.getItem('cc-arrival'); } catch (e) {}
+  if (!need) return Promise.resolve(false);
+  return new Promise(res => {
+    const css = document.createElement('style');
+    css.textContent = '.cc-ask{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(14,22,38,.72)}.cc-ask .box{background:#F7F8F6;color:#14213D;max-width:380px;width:100%;border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 0 0 3px #14213D,0 14px 40px rgba(0,0,0,.5);font:600 18px/1.4 \'IBM Plex Sans Condensed\',Arial,sans-serif}.cc-ask h2{margin:0 0 8px;font:700 24px/1.2 \'IBM Plex Sans Condensed\',Arial,sans-serif;color:#14213D}.cc-ask p{margin:0 0 16px;font-weight:500;color:#27303A}.cc-ask button{display:block;width:100%;min-height:48px;margin:8px 0 0;border-radius:6px;font:700 18px/1.2 inherit;font-family:inherit;cursor:pointer}.cc-ask .yes{background:#14213D;color:#FFD86B;border:2px solid #14213D}.cc-ask .no{background:transparent;color:#14213D;border:2px solid #8C959E}.cc-ask button:focus-visible{outline:3px solid #F2B33D;outline-offset:2px}';
+    document.head.appendChild(css);
+    const d = document.createElement('div'); d.className = 'cc-ask'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'ccAskH');
+    d.innerHTML = '<div class="box"><h2 id="ccAskH">Turn the sound on?</h2><p>Bat cracks, a roaring crowd and fireworks. You can change it any time with the Sound button.</p><button type="button" class="yes">Turn sound on</button><button type="button" class="no">No thanks</button></div>';
+    document.body.appendChild(d);
+    const done = on => { d.remove(); css.remove(); try { if (on) { FX.setSound(true); FX.prepare(); } else FX.setSound(false); } catch (e) {} res(!!on); };
+    d.querySelector('.yes').onclick = () => done(true); d.querySelector('.no').onclick = () => done(false);
+    d.addEventListener('keydown', e => { if (e.key === 'Escape') done(false); });
+    d.querySelector('.yes').focus();
+  });
+})();
 // ----- the opening line comes in one sentence at a time, each held long enough to read (all at once for reduced motion or no script) -----
 (() => {
   const p = document.querySelector('.herotext'); if (!p || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -481,11 +498,12 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     if (i > 0) parts[i - 1].classList.add('past');
     if (i >= parts.length) return;
     const el = parts[i++]; el.classList.add('in');
+    try { if (window.FX && FX.soundOn) FX.crack(i === 1); } catch (e) {}   // a bat crack as each line lands, a bigger one for the title
     // the title comes in early and holds while the fireworks finish; the lines below wait for them
     if (i < parts.length) setTimeout(next, i === 1 ? (arriving ? 3200 : 1500) : Math.max(1900, el.textContent.trim().split(/\s+/).length * 250));
-    else setTimeout(() => el.classList.add('past'), 2000);
+    else { setTimeout(() => el.classList.add('past'), 2000); setTimeout(() => { try { if (window.FX && FX.soundOn) FX.fanfare(true); } catch (e) {} }, 700); }   // and one big sound when the whole opening is in
   };
-  setTimeout(next, arriving ? 2300 : 400);
+  (window.__ccIntro || Promise.resolve()).then(() => setTimeout(next, arriving ? 2300 : 400));
 })();
 // ----- the ballpark: fireworks and a home run when you arrive, a crowd roar on your first tap that fades away, and a button to hit more -----
 (() => {
@@ -494,8 +512,8 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
   let hits = 0;
   const swing = () => { hits++; FX.homeRun(hits % 5 === 0 ? { text: 'Bases loaded and it is gone!', runs: 4 } : { text: ['That one is gone!', 'Out of here!', 'Off the foul pole!', 'Over the wall!'][hits % 4], runs: 1 }); };
   // browsers keep a page silent until you touch it, so the arrival is fireworks and a banner, and the crowd roars on your first tap
-  try { if (!calm && !sessionStorage.getItem('cc-arrival')) { sessionStorage.setItem('cc-arrival', '1'); setTimeout(() => FX.homeRun({ text: 'Welcome to the ballpark', runs: 1 }), 900); } } catch (e) {}
-  const roar = e => { document.removeEventListener('click', roar, true); document.removeEventListener('touchend', roar, true); if (e.target.closest && e.target.closest('#hrBtn, .fx-sound')) return; try { FX.cheer(); } catch (x) {} };
+  try { if (!calm && !sessionStorage.getItem('cc-arrival')) { sessionStorage.setItem('cc-arrival', '1'); (window.__ccIntro || Promise.resolve()).then(() => setTimeout(() => FX.homeRun({ text: 'Welcome to the ballpark', runs: 1 }), 900)); } } catch (e) {}
+  const roar = e => { document.removeEventListener('click', roar, true); document.removeEventListener('touchend', roar, true); if (e.target.closest && e.target.closest('.cc-ask, .fx-sound')) return; try { FX.cheer(); } catch (x) {} };
   document.addEventListener('click', roar, true); document.addEventListener('touchend', roar, true);
 })();
 </script>
