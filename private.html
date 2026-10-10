@@ -561,7 +561,8 @@ dialog::backdrop { background: rgba(28, 32, 30, .82); }
   }
   function inviteKit(l, members, pending) {
     const link = inviteUrl(l.invite_code), d = S.edraft[l.id] || {}, e = inviteEmail(l), subj = d.subj != null ? d.subj : e.subject, body = d.body != null ? d.body : e.body;
-    return `<div class="invite"><b>Your invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval and must confirm they're 18 or older.</span><code>${esc(link)}</code><button class="btn btn-alt" data-copy="${esc(link)}">Copy link</button></div>
+    return `<div class="kit" style="margin-top:0"><label for="ek-${l.id}-who">Who is this invite for? <span class="note" style="font-weight:400">Optional. Type a name and it shows under My invitations on your account page, so you can keep track. Please don't type email addresses.</span></label><input class="ek" id="ek-${l.id}-who" data-lid="${l.id}" data-k="who" type="text" maxlength="60" autocomplete="off" value="${esc(d.who || '')}"></div>
+      <div class="invite"><b>Your invite link</b> <span class="note">Share it only with people you know. Everyone still needs your approval and must confirm they're 18 or older.</span><code>${esc(link)}</code><button class="btn btn-alt" data-copy="${esc(link)}" data-lid="${l.id}">Copy link</button></div>
       <div class="kit"><b>Your invite email</b><p class="note" style="margin:2px 0 6px">This is what your managers will read, so they know what to expect. Change anything you like and add your name at the bottom. Put everyone in the BCC line so nobody's address is shared.</p>
         <label for="ek-${l.id}-subj">Subject</label><input class="ek" id="ek-${l.id}-subj" data-lid="${l.id}" data-k="subj" type="text" value="${esc(subj)}">
         <label for="ek-${l.id}-body">Message</label><textarea class="ek" id="ek-${l.id}-body" data-lid="${l.id}" data-k="body" rows="18">${esc(body)}</textarea>
@@ -696,7 +697,7 @@ ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
     renderInvite();
     if (joinCode()) $('joinNote').textContent = signedIn() ? 'Name your club, tell the commissioner how you know the league, and confirm two things. You will sign the league agreement, then the commissioner will review your request.' : 'Sign in with your email to ask the commissioner for a seat. It takes about 20 seconds and there is no password.';
     document.querySelectorAll('[data-recheck]').forEach(b => b.onclick = () => { S.sig = ''; load(); });
-    document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; } catch (e) { window.prompt('Copy this link:', b.dataset.copy); } });
+    document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; } catch (e) { window.prompt('Copy this link:', b.dataset.copy); } if (b.dataset.lid) logInvite(b.dataset.lid, 'link_copy'); });
     document.querySelectorAll('[data-review]').forEach(b => b.onclick = () => review(+b.dataset.review, b.dataset.yes === '1', b));
     document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => leave(b.dataset.leave));
     document.querySelectorAll('[data-end]').forEach(b => b.onclick = () => endLeague(b.dataset.end));
@@ -732,6 +733,9 @@ ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
     S.sig = ''; load();
   }
   function openMail(url) { const a = document.createElement('a'); a.href = url; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+  function logInvite(lid, method) { // a bonus: remembers who you said the invite was for and which button you used, for My invitations. If it fails, nothing else changes.
+    try { const c = window.CC && window.CC.client; if (!c) return; const el = $('ek-' + lid + '-who'), d = S.edraft[lid] || {}; c.rpc('log_invite', { p_kind: 'league', p_ref: lid, p_label: el ? el.value : (d.who || ''), p_method: method }).then(() => {}, () => {}); } catch (e) {}
+  }
   async function copyText(text) { try { await navigator.clipboard.writeText(text); return true; } catch (e) { window.prompt('Copy this:', text); return false; } }
   function emailNow(lid) { // what is in the boxes right now, falling back to the suggested email
     const l = S.leagues.find(x => x.id === lid), e = inviteEmail(l), d = S.edraft[lid] || {}, sEl = $('ek-' + lid + '-subj'), bEl = $('ek-' + lid + '-body');
@@ -740,16 +744,16 @@ ${mySeat && !isC && money ? moneyPanelM(l, live) : ''}
   function emailReady(lid) { // the suggested email ends with a placeholder for the commissioner's name
     const m = emailNow(lid); if (/\[your name\]/i.test(m.body)) { say('emsg-' + lid, 'Add your name at the bottom of the email first.', 'err'); const b = $('ek-' + lid + '-body'); if (b) b.focus(); return null; } return m;
   }
-  async function emailCopy(lid) { const m = emailReady(lid); if (!m) return; await copyText(m.subject + '\n\n' + m.body); say('emsg-' + lid, 'Email copied. Paste it into a new message and add your managers in the BCC line.', 'ok'); }
+  async function emailCopy(lid) { const m = emailReady(lid); if (!m) return; await copyText(m.subject + '\n\n' + m.body); logInvite(lid, 'email_copy'); say('emsg-' + lid, 'Email copied. Paste it into a new message and add your managers in the BCC line.', 'ok'); }
   async function emailOpen(lid) {
     const m = emailReady(lid); if (!m) return; const crlf = s => s.replace(/\r?\n/g, '\r\n');
     const full = `mailto:?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(crlf(m.body))}`;
-    if (full.length <= 1900) { say('emsg-' + lid, 'Your email app should open with the message ready. Add your managers in the BCC line.', 'ok'); openMail(full); return; }
+    if (full.length <= 1900) { logInvite(lid, 'email_app'); say('emsg-' + lid, 'Your email app should open with the message ready. Add your managers in the BCC line.', 'ok'); openMail(full); return; }
     await copyText(m.subject + '\n\n' + m.body); // long messages do not always fit in a link, so paste it instead
-    say('emsg-' + lid, 'Your email app is opening. This message is long, so it has been copied: paste it into the message and add your managers in the BCC line.', 'ok');
+    logInvite(lid, 'email_app'); say('emsg-' + lid, 'Your email app is opening. This message is long, so it has been copied: paste it into the message and add your managers in the BCC line.', 'ok');
     openMail(`mailto:?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent('Paste the invite email here. It was copied to your clipboard.')}`);
   }
-  async function textCopy(lid) { const m = emailNow(lid); await copyText(m.text); say('emsg-' + lid, 'Short text copied. Send it only to people you know.', 'ok'); }
+  async function textCopy(lid) { const m = emailNow(lid); await copyText(m.text); logInvite(lid, 'text_copy'); say('emsg-' + lid, 'Short text copied. Send it only to people you know.', 'ok'); }
   const mval = (lid, k) => { const el = $('mb-' + lid + '-' + k); return el ? el.value.trim() : ''; };
   function moneyRead(lid) { const n = k => mval(lid, k) === '' ? NaN : Number(mval(lid, k)); return { buy: n('buy'), sh: [n('c'), n('r'), n('b')], free: true }; }
   function moneyProblem(v) {

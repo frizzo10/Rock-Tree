@@ -209,7 +209,7 @@ footer p { margin: 0 0 6px; }
       const sec = $('invSec'); if (!sec) return;
       const r = await c.rpc('my_invitations'); sec.hidden = false;
       if (r.error || !r.data) { sec.innerHTML = '<h2 style="margin-top:0">My invitations</h2><p>We could not load your invitations just now. Please refresh the page.</p>'; return; }
-      const games = r.data.games || [], appr = r.data.approvals || [], wait = r.data.waiting || [];
+      const games = r.data.games || [], appr = r.data.approvals || [], wait = r.data.waiting || [], sent = r.data.sent || [], quick = r.data.quick || [];
       const CL = (window.PlayInvite && window.PlayInvite.CLUBS) || [];
       const club = k => { if (k === 'DRAFT') return 'a team you will draft'; const x = CL.find(y => y[0] === k); return x ? x[1] + ' ' + x[2] : k; };
       const ago = t => { const m = Math.max(0, Math.round((Date.now() - new Date(t).getTime()) / 60000)); if (!(m >= 0)) return ''; if (m < 2) return 'just now'; if (m < 60) return m + ' minutes ago'; const h = Math.round(m / 60); if (h < 48) return h + (h === 1 ? ' hour ago' : ' hours ago'); return Math.round(h / 24) + ' days ago'; };
@@ -220,9 +220,14 @@ footer p { margin: 0 0 6px; }
         : `<li><b>Waiting for your friend to open the link</b><span class="note">${g.mode === 'draft' ? 'A draft game' : 'You are playing as ' + esc(club(g.team))}. Sent ${esc(ago(g.created_at))}.</span><div style="${row}"><button class="btn btn-main" type="button" data-icopy="${esc(g.code)}">Copy the link</button><a class="btn btn-alt" href="friend.html?g=${encodeURIComponent(g.id)}">Open</a><button class="btn btn-alt" type="button" data-icancel="${esc(g.id)}">Cancel</button></div></li>`).join('');
       const al = appr.map(a => `<li><b>${a.n === 1 ? '1 person is' : a.n + ' people are'} waiting for your approval</b><span class="note">${esc(a.name)}</span><div style="${row}"><a class="btn btn-main" href="private.html">Review</a></div></li>`).join('');
       const wl = wait.map(w => `<li><b>Waiting for the commissioner</b><span class="note">Your request to join ${esc(w.name)} as ${esc(w.club_name)}. Sent ${esc(ago(w.created_at))}.</span></li>`).join('');
-      const any = games.length || appr.length || wait.length;
-      sec.innerHTML = `<h2 style="margin-top:0">My invitations</h2>${any ? `<ul class="acl">${gl}${al}${wl}</ul>` : '<p>No invitations are waiting right now.</p>'}
-        <p class="note" style="margin-top:12px">A private league invite link or email shows up here only once someone asks to join, because we can not see who you sent it to. A quick invite to someone who is online lasts about a minute and shows at the bottom of your screen.</p>
+      const HOW = { email_app: 'Opened in your email app', email_copy: 'Email copied', text_copy: 'Text message copied', link_copy: 'Link copied', link_share: 'Shared from your phone' };
+      const QS = { pending: 'waiting for an answer', accepted: 'said yes', declined: 'said not now', expired: 'did not answer in time', cancelled: 'you canceled it' };
+      const sl = sent.map(x => `<li><b>${x.label ? esc(x.label) : 'No name given'}</b><span class="note">${esc(HOW[x.method] || x.method)} &middot; ${x.kind === 'league' ? 'for ' + esc(x.league_name || 'your league') : 'for a friend game'} &middot; ${esc(ago(x.created_at))}</span></li>`).join('');
+      const ql = quick.map(x => `<li><b>${esc(x.name)}</b><span class="note">Quick invite to play &middot; ${esc(QS[x.status] || x.status)} &middot; ${esc(ago(x.created_at))}</span></li>`).join('');
+      const grp = (title, html) => html ? `<h3 style="margin:14px 0 6px;font-size:16px">${title}</h3><ul class="acl">${html}</ul>` : '';
+      const any = games.length || appr.length || wait.length || sent.length || quick.length;
+      sec.innerHTML = `<h2 style="margin-top:0">My invitations</h2>${any ? `${grp('Games waiting on a friend', gl)}${grp('Waiting for your approval', al)}${grp('Your requests to join', wl)}${grp('Invites you sent', sl)}${grp('Quick invites, last 24 hours', ql)}` : '<p>No invitations are waiting right now.</p>'}
+        <p class="note" style="margin-top:12px">Names show only if you typed one in the box next to the invite. We note which button you used, not whether you actually sent it, because we can not see your email or texts. Invites you sent stay here for up to 14 days. A quick invite to someone who is online lasts about a minute and also shows at the bottom of your screen.</p>
         <p id="invMsg" class="note" role="status" aria-live="polite"></p>`;
       sec.querySelectorAll('[data-icopy]').forEach(b => b.onclick = async () => {
         const link = base + 'friend.html?join=' + encodeURIComponent(b.dataset.icopy);
