@@ -162,6 +162,7 @@ footer p { margin: 0 0 6px; }
         <p class="note" id="avMsg" role="status" aria-live="polite"></p></section>
       <section class="board"><h2 style="margin-top:0">Your leagues and tables</h2>${mine.length ? `<ul class="acl">${mine.map(({ s, l }) => `<li><a href="${where(l)}"><b>${esc(l.name)}</b></a><span class="note">${esc(s.club_name)} &middot; ${esc(STATUS[l.status] || l.status)}${THEME[l.theme] ? ' &middot; ' + esc(THEME[l.theme]) : ''}</span></li>`).join('')}</ul>` : '<p>You aren\'t in a league yet.</p><p><a class="btn btn-main" href="lobby.html">Find a free table</a> <a class="btn btn-alt" href="private.html">Start a private league</a></p>'}</section>
       <section class="board"><h2 style="margin-top:0">Your record</h2><p>Your wins, your quick games and the legends you have unlocked.</p><p><a class="btn btn-alt" href="career.html">See my record</a></p><div id="acCharts"></div></section>
+      <section class="board" id="kcSec" hidden></section>
       <section class="board"><h2 style="margin-top:0">Emails</h2><p>We send league emails to <b>${esc(cc.user.email || 'the email on your account')}</b>.</p><label class="opt" style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="on" ${nt.data ? 'checked' : ''} style="width:22px;height:22px"> Email me about my tables and leagues</label><p class="note" id="saved" role="status" aria-live="polite"></p></section>${window.CC_NATIVE && window.CC_NATIVE.enablePush ? '<section class="board" id="pushSec"><h2 style="margin-top:0">Phone alerts</h2><p>Get an alert on this phone when something happens in your tables and leagues.</p><p><button class="btn" id="pushOn" type="button">Turn on phone alerts</button></p><p class="note" id="pushMsg" role="status" aria-live="polite"></p></section>' : ''}
       <section class="board"><h2 style="margin-top:0">Signing in</h2><p>There is no password. Each time you sign in we email you a one-time code, and a link that does the same thing.</p><p><button class="btn btn-alt" id="out" type="button">Sign out</button></p></section>
       <section class="board" id="delSec"><h2 style="margin-top:0">Delete your account</h2><p>This permanently deletes your account and the information tied to it. Leagues that have finished keep their results, with your seat shown as "Former manager". It cannot be undone.</p><p><button class="btn btn-alt" id="delStart" type="button" style="border-color:#9E2B22;color:#9E2B22">Delete my account</button></p><div id="delBody" role="status" aria-live="polite"></div></section>`;
@@ -201,6 +202,24 @@ footer p { margin: 0 0 6px; }
           : `<button type="button" class="avb" disabled aria-label="Locked. Unlock it with: ${esc(x.label)}" title="Locked: ${esc(x.label)}" style="opacity:.4;cursor:not-allowed;font-size:20px">&#128274;</button>`).join('')}</div>`;
       $('avRewards').querySelectorAll('.avb:not([disabled])').forEach(b => b.onclick = () => { pick.emoji = b.dataset.emoji; if (!pick.color) pick.color = COLORS[0][0]; $('avMsg').textContent = ''; drawAv(); });
       drawAv();
+    } catch (e) {} })();
+    // ---- keychain reward (a bonus: it only shows for someone who has earned it) ----
+    (async () => { try {
+      const sec = $('kcSec'), r = await c.rpc('my_keychain'); if (!sec || r.error || !r.data || r.data.state === 'none') return;
+      const WHY = { commissioner: 'You ran a private league all the way to the end.', champion: 'You won a private league championship.' };
+      if (r.data.state === 'claimed') { const S = { new: 'We have your address and will order it soon.', ordered: 'It has been ordered.', shipped: 'It is on its way.', canceled: 'This claim was canceled. Please contact us.' }; sec.innerHTML = `<h2 style="margin-top:0">Your keychain</h2><p>${esc(S[r.data.status] || 'Claimed.')}</p>`; sec.hidden = false; return; }
+      const fld = (id, label, ac, extra) => `<p style="margin:6px 0"><label for="${id}" style="display:block;font-weight:600">${label}</label><input id="${id}" type="text" autocomplete="${ac}" ${extra || ''} style="width:100%;box-sizing:border-box;min-height:44px;font:inherit;padding:8px 10px;border:1.5px solid #8C959E;border-radius:4px"></p>`;
+      sec.innerHTML = `<h2 style="margin-top:0">Your keychain</h2><p>${esc(WHY[r.data.reason] || '')} We will mail you a free Cooperstown Cash keychain. US addresses only, one per person.</p>
+        <div id="kcForm">${fld('kcName', 'Name', 'name')}${fld('kcL1', 'Street address', 'address-line1')}${fld('kcL2', 'Apartment or unit (if any)', 'address-line2')}${fld('kcCity', 'City', 'address-level2')}${fld('kcSt', 'State (2 letters)', 'address-level1', 'maxlength="2" autocapitalize="characters"')}${fld('kcZip', 'ZIP code', 'postal-code', 'inputmode="numeric" maxlength="10"')}
+        <p class="note">We use your address only to mail the keychain, and we do not share it with anyone but the company that makes and ships it.</p>
+        <p><button class="btn btn-main" id="kcSend" type="button">Send my keychain</button></p><p class="note" id="kcMsg" role="alert" aria-live="polite"></p></div>`;
+      sec.hidden = false;
+      $('kcSend').onclick = async () => {
+        $('kcSend').disabled = true; $('kcMsg').style.color = ''; $('kcMsg').textContent = 'Sending…';
+        const g = id => $(id).value, q = await c.rpc('claim_keychain', { p_name: g('kcName'), p_line1: g('kcL1'), p_line2: g('kcL2'), p_city: g('kcCity'), p_state: g('kcSt'), p_zip: g('kcZip') });
+        if (q.error) { $('kcSend').disabled = false; $('kcMsg').style.color = '#9E2B22'; $('kcMsg').textContent = q.error.message || 'We could not save that. Please try again.'; return; }
+        sec.innerHTML = '<h2 style="margin-top:0">Your keychain</h2><p>Thank you. We have your address and will order it soon.</p>';
+      };
     } catch (e) {} })();
     // ---- charts under "Your record" (a bonus: if they cannot load, the rest of the page still works) ----
     (async () => { try {
