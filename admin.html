@@ -44,6 +44,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   <div class="denied" id="denied" hidden><p class="err">This account does not have access to this page.</p></div>
   <div id="app" hidden>
     <div class="bar"><button class="main" id="refresh" type="button">Refresh</button><label class="chk"><input type="checkbox" id="flagged"> Only leagues with flags</label><span class="meta" id="stamp" role="status"></span></div>
+    <section class="card" id="funnel" aria-labelledby="funh"><h2 id="funh">How the game is doing</h2><div id="funBody" role="status" aria-live="polite">Loading…</div></section>
     <div class="sum" id="sum"></div>
     <div id="list"></div>
     <section class="card" id="delcard" aria-labelledby="delh"><h2 id="delh">Delete an account</h2>
@@ -94,7 +95,23 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
     let res; try { res = await cc.client.rpc('admin_league_health'); } catch (e) { res = { error: e }; }
     const { data, error } = res;
     if (error) { $('app').hidden = true; $('denied').hidden = false; $('denied').innerHTML = /authorized/i.test(error.message || '') ? '<p class="err">This account does not have access to this page.</p>' : '<p class="err">Could not load the dashboard. Check your connection and refresh.</p>'; return; }
-    $('denied').hidden = true; $('app').hidden = false; DATA = (Array.isArray(data) ? data : []).slice().sort((x, y) => (y.score || 0) - (x.score || 0) || String(y.created_at).localeCompare(String(x.created_at))); $('stamp').textContent = 'Updated ' + new Date().toLocaleTimeString(); draw();
+    $('denied').hidden = true; $('app').hidden = false; loadFunnel(); DATA = (Array.isArray(data) ? data : []).slice().sort((x, y) => (y.score || 0) - (x.score || 0) || String(y.created_at).localeCompare(String(x.created_at))); $('stamp').textContent = 'Updated ' + new Date().toLocaleTimeString(); draw();
+  }
+  async function loadFunnel() {
+    const box = $('funBody'); if (!box) return;
+    let res; try { res = await window.CC.client.rpc('admin_funnel'); } catch (e) { res = { error: e }; }
+    if (res.error || !res.data) { box.textContent = 'Could not load these numbers.'; return; }
+    const d = res.data, n = x => Number(x) || 0, pct = (a, b) => b ? Math.round(a / b * 100) + '%' : 'no data yet';
+    const row = (label, value, note) => `<tr><th scope="row" style="text-align:left;font-weight:600;padding:4px 10px 4px 0">${esc(label)}</th><td style="padding:4px 10px 4px 0"><b>${esc(value)}</b></td><td class="meta">${esc(note || '')}</td></tr>`;
+    box.innerHTML = `<p class="meta">The three steps that matter: finishing a first game, coming back another day, and getting into a league. Your own test accounts are included, so early numbers are tiny.</p>
+      <table style="border-collapse:collapse;width:100%"><tbody>
+      ${row('Accounts', n(d.accounts), n(d.new_7d) + ' new in the last 7 days, ' + n(d.new_30d) + ' in 30')}
+      ${row('1. Finished a first game', n(d.finished_first_game), pct(n(d.finished_first_game), n(d.accounts)) + ' of accounts')}
+      ${row('2. Came back on another day', n(d.came_back_another_day), pct(n(d.came_back_another_day), n(d.finished_first_game)) + ' of those who finished a game')}
+      ${row('3. In a league', n(d.in_a_league), pct(n(d.in_a_league), n(d.finished_first_game)) + ' of those who finished a game')}
+      ${row('Commissioners', n(d.commissioners), n(d.private_leagues) + ' private ' + (n(d.private_leagues) === 1 ? 'league' : 'leagues') + ', ' + n(d.private_started) + ' started, ' + n(d.private_finished) + ' finished')}
+      ${row('Games played, last 7 days', n(d.games_7d), 'quick games. Friend games so far: ' + n(d.friend_games))}
+      </tbody></table>`;
   }
   async function start() {
     const cc = window.CC;
