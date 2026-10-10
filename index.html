@@ -494,11 +494,39 @@ window.__ccIntro = (() => {
   // wait for the arrival fireworks and the home run banner to finish, if they are going to play this visit
   let arriving = false; try { arriving = !!window.FX && !sessionStorage.getItem('cc-arrival'); } catch (e) {}
   p.classList.add('seq'); let i = 0;
+  // the logo drops in from above and hits the ground like a slab of metal, throws sparks and shakes the page; then it pulses with each line
+  const logo = document.querySelector('.board .logo'); if (logo) logo.style.opacity = '0';
+  const slamLogo = () => {
+    if (!logo || !logo.animate) { if (logo) logo.style.opacity = ''; return; }
+    const dur = 1100, r = logo.getBoundingClientRect();
+    const an = logo.animate([
+      { opacity: 0, transform: 'translateY(-170px) scale(1.9) rotate(-7deg)', offset: 0 },
+      { opacity: 1, transform: 'translateY(-60px) scale(1.4) rotate(-3deg)', offset: .16, easing: 'cubic-bezier(.55,0,1,.6)' },
+      { opacity: 1, transform: 'translateY(0) scale(1.05, .8) rotate(0deg)', offset: .36 },
+      { opacity: 1, transform: 'translateY(-26px) scale(.96, 1.06)', offset: .5, easing: 'ease-out' },
+      { opacity: 1, transform: 'translateY(0) scale(1.03, .94)', offset: .64, easing: 'ease-in' },
+      { opacity: 1, transform: 'translateY(-6px) scale(1)', offset: .78 },
+      { opacity: 1, transform: 'none', offset: 1 }], { duration: dur, fill: 'both' });
+    an.onfinish = () => { logo.style.opacity = ''; try { an.cancel(); } catch (e) {} };
+    setTimeout(() => {   // the moment it lands
+      try { if (window.FX && FX.soundOn) FX.clang(); } catch (e) {}
+      const w = document.querySelector('.wrap'); if (w) { w.classList.remove('fx-shake'); void w.offsetWidth; w.classList.add('fx-shake'); setTimeout(() => w.classList.remove('fx-shake'), 650); }
+      const cx = r.left + r.width / 2, cy = r.bottom - r.height * .08;
+      for (let k = 0; k < 16; k++) {
+        const d = document.createElement('i'), ang = Math.PI * (1 + Math.random()), dist = 60 + Math.random() * 110;
+        d.style.cssText = 'position:fixed;z-index:9990;pointer-events:none;width:5px;height:5px;border-radius:50%;background:' + (k % 3 ? '#FFD86B' : '#FFFFFF') + ';box-shadow:0 0 8px #FFB03B;left:' + cx + 'px;top:' + cy + 'px';
+        document.body.appendChild(d);
+        const a2 = d.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: 'translate(' + Math.cos(ang) * dist + 'px,' + (Math.sin(ang) * dist * .8 + 40) + 'px) scale(.2)', opacity: 0 }], { duration: 500 + Math.random() * 350, easing: 'cubic-bezier(.2,.6,.4,1)' });
+        a2.onfinish = () => d.remove();
+      }
+    }, dur * .36);
+  };
+  const pulseLogo = () => { if (logo && logo.animate) logo.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.09)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' }); };
   const next = () => {
     if (i > 0) parts[i - 1].classList.add('past');
     if (i >= parts.length) return;
     const el = parts[i++]; el.classList.add('in');
-    try { if (window.FX && FX.soundOn) FX.slam(i === 1); } catch (e) {}   // a big bat crack as each line lands, with the crowd on the title
+    if (i === 1) slamLogo(); else { pulseLogo(); try { if (window.FX && FX.soundOn) FX.slam(false); } catch (e) {} }   // the title comes with the logo slamming down; every later line gets a big bat crack and a logo pulse
     // the title comes in early and holds while the fireworks finish; the lines below wait for them
     if (i < parts.length) setTimeout(next, i === 1 ? 1800 : Math.max(1900, el.textContent.trim().split(/\s+/).length * 250));
     else { setTimeout(() => el.classList.add('past'), 2000); setTimeout(() => { try { if (window.FX && FX.soundOn) FX.fanfare(true); } catch (e) {} }, 700); }   // and one big sound when the whole opening is in
