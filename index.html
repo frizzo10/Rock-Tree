@@ -498,12 +498,12 @@ window.__ccIntro = (() => {
     if (i > 0) parts[i - 1].classList.add('past');
     if (i >= parts.length) return;
     const el = parts[i++]; el.classList.add('in');
-    try { if (window.FX && FX.soundOn) FX.crack(i === 1); } catch (e) {}   // a bat crack as each line lands, a bigger one for the title
+    try { if (window.FX && FX.soundOn) FX.slam(i === 1); } catch (e) {}   // a big bat crack as each line lands, with the crowd on the title
     // the title comes in early and holds while the fireworks finish; the lines below wait for them
-    if (i < parts.length) setTimeout(next, i === 1 ? (arriving ? 3200 : 1500) : Math.max(1900, el.textContent.trim().split(/\s+/).length * 250));
+    if (i < parts.length) setTimeout(next, i === 1 ? 1800 : Math.max(1900, el.textContent.trim().split(/\s+/).length * 250));
     else { setTimeout(() => el.classList.add('past'), 2000); setTimeout(() => { try { if (window.FX && FX.soundOn) FX.fanfare(true); } catch (e) {} }, 700); }   // and one big sound when the whole opening is in
   };
-  (window.__ccIntro || Promise.resolve()).then(() => setTimeout(next, arriving ? 2300 : 400));
+  (window.__ccIntro || Promise.resolve()).then(() => setTimeout(next, arriving ? 5300 : 400));   // the title waits until the home run banner and fireworks are gone
 })();
 // ----- the ballpark: fireworks and a home run when you arrive, a crowd roar on your first tap that fades away, and a button to hit more -----
 (() => {

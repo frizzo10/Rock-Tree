@@ -388,6 +388,15 @@
   // the crowd reacts to what just happened, for or against the home side
   // the crack of the bat and the pop of a glove, so every ball in play and every strikeout has a sound
   function crack(big) { if (!soundOn || !audio()) return; unlock(); noise(.05, 3200, big ? .6 : .45, 0, 'highpass', .001); noise(.15, 240, big ? .55 : .4, 0, 'lowpass', .002); noise(.03, 1800, .3, .012, 'bandpass', .001); }
+  // a much bigger bat crack for the opening lines on the home page: a sharp click, the wood, a low thump and a falling boom, and for the title a crowd shout on top
+  function slam(big) {
+    if (!soundOn) return; unlock(); const a = audio(); if (!a) return;
+    noise(.05, 4800, 1, 0, 'highpass', .001); noise(.14, 3000, .95, 0, 'bandpass', .001); noise(.05, 1800, .7, .012, 'bandpass', .001);
+    noise(.4, 230, 1, 0, 'lowpass', .002); noise(.9, 120, .9, .02, 'lowpass', .004);
+    try { const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime; o.type = 'sine'; o.frequency.setValueAtTime(190, t0); o.frequency.exponentialRampToValueAtTime(42, t0 + .35); g.gain.setValueAtTime(big ? 1.1 : .85, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + .55); o.connect(g); g.connect(outNode || a.destination); o.start(t0); o.stop(t0 + .6); } catch (e) {}
+    if (big) { if (crowd) { playBuf(crowd.roar, .8, .08); playBuf(pick(crowd.shouts), .9, .2, rnd(-.5, .5)); } else noise(1.6, 1800, .5, .08, 'lowpass', .1); }
+    else if (crowd) playBuf(pick(crowd.shouts), .55, .12, rnd(-.8, .8));
+  }
   function glove(soft) { if (!soundOn || !audio()) return; noise(.05, 1100, soft ? .28 : .5, 0, 'bandpass', .001); noise(.13, 420, soft ? .26 : .42, 0, 'lowpass', .002); }
   function reaction(kind) { // 'hit', 'xbh', 'k', 'dp', 'run', 'groan', 'catch', 'out', 'oh'
     if (!soundOn || !audio()) return; const now = Date.now(); if (now - lastReact < 600 && kind !== 'run') return; lastReact = now;
@@ -439,7 +448,7 @@
     homeRun(o) { queue.push(o || {}); if (!flushT) flushT = setTimeout(flush, 0); }, // same-moment home runs become one celebration
     setSound,
     cheer,
-    crowdUp, reaction, organ, finale, fanfare, crack, glove,
+    crowdUp, reaction, organ, finale, fanfare, crack, slam, glove,
     vendor,
     prepare() { return prepCrowd(); }, // pages that play games call this early so the crowd voices are ready
     ambience(on) { ambWanted = !!on; if (ambWanted) startAmb(); else stopAmb(); }, // ballpark crowd noise while a game is being played
