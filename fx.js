@@ -400,9 +400,9 @@
   // heavy metal hitting the ground: a ringing, slightly out-of-tune set of overtones, a sharp strike and a low thud, then a smaller bounce
   function clang() {
     if (!soundOn) return; unlock(); const a = audio(); if (!a) return;
-    const ring = (at, vol) => { const t0 = a.currentTime + at; [[523, 1], [1187, .7], [1760, .55], [2790, .4], [4010, .28], [5300, .18]].forEach(([f, v], k) => { const o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = f * (1 + rnd(-.004, .004)); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(.5 * v * vol, t0 + .004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.9 - k * .22); o.connect(g); g.connect(outNode || a.destination); o.start(t0); o.stop(t0 + 2); }); };
-    ring(0, 1); noise(.05, 5200, 1, 0, 'highpass', .001); noise(.14, 3000, .9, 0, 'bandpass', .001); noise(.4, 230, 1, 0, 'lowpass', .002); noise(.9, 110, .95, .015, 'lowpass', .004);
-    ring(.3, .4); noise(.04, 4200, .5, .3, 'highpass', .001); noise(.2, 200, .5, .3, 'lowpass', .002);
+    const ring = (at, vol) => { const t0 = a.currentTime + at; [[523, .8], [880, .7], [1187, 1], [1760, 1], [2790, .9], [4010, .6], [5300, .35]].forEach(([f, v], k) => { const o = a.createOscillator(), g = a.createGain(); o.type = k % 2 ? 'sine' : 'triangle'; o.frequency.value = f * (1 + rnd(-.004, .004)); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(1.15 * v * vol, t0 + .004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.2 - k * .22); o.connect(g); g.connect(outNode || a.destination); o.start(t0); o.stop(t0 + 2.3); }); };
+    ring(0, 1); noise(.06, 5200, 2, 0, 'highpass', .001); noise(.18, 3000, 1.8, 0, 'bandpass', .001); noise(.1, 1600, 1.4, .01, 'bandpass', .001); noise(.45, 230, 2, 0, 'lowpass', .002); noise(1, 110, 1.8, .015, 'lowpass', .004);
+    ring(.3, .6); noise(.05, 4200, 1.1, .3, 'highpass', .001); noise(.25, 200, 1.1, .3, 'lowpass', .002);
   }
   function glove(soft) { if (!soundOn || !audio()) return; noise(.05, 1100, soft ? .28 : .5, 0, 'bandpass', .001); noise(.13, 420, soft ? .26 : .42, 0, 'lowpass', .002); }
   function reaction(kind) { // 'hit', 'xbh', 'k', 'dp', 'run', 'groan', 'catch', 'out', 'oh'
