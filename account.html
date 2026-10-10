@@ -161,6 +161,7 @@ footer p { margin: 0 0 6px; }
         </div>
         <p class="note" id="avMsg" role="status" aria-live="polite"></p></section>
       <section class="board"><h2 style="margin-top:0">Your leagues and tables</h2>${mine.length ? `<ul class="acl">${mine.map(({ s, l }) => `<li><a href="${where(l)}"><b>${esc(l.name)}</b></a><span class="note">${esc(s.club_name)} &middot; ${esc(STATUS[l.status] || l.status)}${THEME[l.theme] ? ' &middot; ' + esc(THEME[l.theme]) : ''}</span></li>`).join('')}</ul>` : '<p>You aren\'t in a league yet.</p><p><a class="btn btn-main" href="lobby.html">Find a free table</a> <a class="btn btn-alt" href="private.html">Start a private league</a></p>'}</section>
+      <section class="board" id="invSec" hidden></section>
       <section class="board"><h2 style="margin-top:0">Your record</h2><p>Your wins, your quick games and the legends you have unlocked.</p><p><a class="btn btn-alt" href="career.html">See my record</a></p><div id="acCharts"></div></section>
       <section class="board" id="kcSec" hidden></section>
       <section class="board"><h2 style="margin-top:0">Emails</h2><p>We send league emails to <b>${esc(cc.user.email || 'the email on your account')}</b>.</p><label class="opt" style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="on" ${nt.data ? 'checked' : ''} style="width:22px;height:22px"> Email me about my tables and leagues</label><p class="note" id="saved" role="status" aria-live="polite"></p></section>${window.CC_NATIVE && window.CC_NATIVE.enablePush ? '<section class="board" id="pushSec"><h2 style="margin-top:0">Phone alerts</h2><p>Get an alert on this phone when something happens in your tables and leagues.</p><p><button class="btn" id="pushOn" type="button">Turn on phone alerts</button></p><p class="note" id="pushMsg" role="status" aria-live="polite"></p></section>' : ''}
@@ -203,6 +204,38 @@ footer p { margin: 0 0 6px; }
       $('avRewards').querySelectorAll('.avb:not([disabled])').forEach(b => b.onclick = () => { pick.emoji = b.dataset.emoji; if (!pick.color) pick.color = COLORS[0][0]; $('avMsg').textContent = ''; drawAv(); });
       drawAv();
     } catch (e) {} })();
+    // ---- my invitations (a bonus: if it cannot load, the rest of the page still works) ----
+    async function drawInv() { try {
+      const sec = $('invSec'); if (!sec) return;
+      const r = await c.rpc('my_invitations'); sec.hidden = false;
+      if (r.error || !r.data) { sec.innerHTML = '<h2 style="margin-top:0">My invitations</h2><p>We could not load your invitations just now. Please refresh the page.</p>'; return; }
+      const games = r.data.games || [], appr = r.data.approvals || [], wait = r.data.waiting || [];
+      const CL = (window.PlayInvite && window.PlayInvite.CLUBS) || [];
+      const club = k => { if (k === 'DRAFT') return 'a team you will draft'; const x = CL.find(y => y[0] === k); return x ? x[1] + ' ' + x[2] : k; };
+      const ago = t => { const m = Math.max(0, Math.round((Date.now() - new Date(t).getTime()) / 60000)); if (!(m >= 0)) return ''; if (m < 2) return 'just now'; if (m < 60) return m + ' minutes ago'; const h = Math.round(m / 60); if (h < 48) return h + (h === 1 ? ' hour ago' : ' hours ago'); return Math.round(h / 24) + ' days ago'; };
+      const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+      const row = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:6px';
+      const gl = games.map(g => g.status === 'ready'
+        ? `<li><b>${esc(g.guest_name || 'Your friend')} joined your game</b><span class="note">You are playing as ${esc(club(g.team))}. Sent ${esc(ago(g.created_at))}.</span><div style="${row}"><a class="btn btn-main" href="friend.html?g=${encodeURIComponent(g.id)}">Open game</a><button class="btn btn-alt" type="button" data-icancel="${esc(g.id)}">Cancel</button></div></li>`
+        : `<li><b>Waiting for your friend to open the link</b><span class="note">${g.mode === 'draft' ? 'A draft game' : 'You are playing as ' + esc(club(g.team))}. Sent ${esc(ago(g.created_at))}.</span><div style="${row}"><button class="btn btn-main" type="button" data-icopy="${esc(g.code)}">Copy the link</button><a class="btn btn-alt" href="friend.html?g=${encodeURIComponent(g.id)}">Open</a><button class="btn btn-alt" type="button" data-icancel="${esc(g.id)}">Cancel</button></div></li>`).join('');
+      const al = appr.map(a => `<li><b>${a.n === 1 ? '1 person is' : a.n + ' people are'} waiting for your approval</b><span class="note">${esc(a.name)}</span><div style="${row}"><a class="btn btn-main" href="private.html">Review</a></div></li>`).join('');
+      const wl = wait.map(w => `<li><b>Waiting for the commissioner</b><span class="note">Your request to join ${esc(w.name)} as ${esc(w.club_name)}. Sent ${esc(ago(w.created_at))}.</span></li>`).join('');
+      const any = games.length || appr.length || wait.length;
+      sec.innerHTML = `<h2 style="margin-top:0">My invitations</h2>${any ? `<ul class="acl">${gl}${al}${wl}</ul>` : '<p>No invitations are waiting right now.</p>'}
+        <p class="note" style="margin-top:12px">A private league invite link or email shows up here only once someone asks to join, because we can not see who you sent it to. A quick invite to someone who is online lasts about a minute and shows at the bottom of your screen.</p>
+        <p id="invMsg" class="note" role="status" aria-live="polite"></p>`;
+      sec.querySelectorAll('[data-icopy]').forEach(b => b.onclick = async () => {
+        const link = base + 'friend.html?join=' + encodeURIComponent(b.dataset.icopy);
+        try { await navigator.clipboard.writeText(link); $('invMsg').textContent = 'Link copied. Send it to your friend.'; } catch (e) { window.prompt('Copy this link and send it to your friend:', link); }
+      });
+      sec.querySelectorAll('[data-icancel]').forEach(b => b.onclick = async () => {
+        if (!confirm('Cancel this game? The link will stop working.')) return;
+        b.disabled = true; const x = await c.rpc('cancel_friend_game', { p_id: b.dataset.icancel });
+        if (x.error) { b.disabled = false; $('invMsg').textContent = 'We could not cancel that. Please try again.'; return; }
+        drawInv();
+      });
+    } catch (e) {} }
+    drawInv();
     // ---- keychain reward (a bonus: it only shows for someone who has earned it) ----
     (async () => { try {
       const sec = $('kcSec'), r = await c.rpc('my_keychain'); if (!sec || r.error || !r.data || r.data.state === 'none') return;
