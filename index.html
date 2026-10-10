@@ -186,6 +186,10 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
 .hrbtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 20px; border-radius: 22px; border: 2px solid #C0392B; background: #fff; color: #C0392B; font: 700 16px var(--text); cursor: pointer; }
 .hrbtn:active { transform: scale(.97); } .hrbtn:focus-visible { outline: 3px solid #F2B33D; outline-offset: 2px; }
 .board .hrrow { margin: 4px 0 10px; }
+.lede.seq .ls { opacity: 0; display: inline-block; transform: scale(.82); transition: opacity .5s ease, transform .6s cubic-bezier(.2,.8,.2,1), background-color .9s ease; border-radius: 6px; }
+.lede.seq .ls.in { opacity: 1; transform: scale(1); background: #FFE9A8; }
+.lede.seq .ls.in.past { background: transparent; }
+@media (prefers-reduced-motion: reduce) { .lede.seq .ls { opacity: 1; transform: none; transition: none; } .lede.seq .ls.in { background: transparent; } }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -203,8 +207,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     <div class="herotext">
     <h1>Cooperstown Cash</h1>
     <p class="tag">Historical baseball simulation leagues</p>
-    <p class="hrrow"><button type="button" class="hrbtn" id="hrBtn">&#9918; Hit a home run</button></p>
-    <p class="lede">Do you have what it takes to be an epic manager? Play the best baseball players from over the past 125 years all on your phone. Draft and strategize to beat the computer or your friends.</p>
+    <p class="lede" id="lede"><span class="ls">Do you have what it takes to be an epic manager?</span> <span class="ls">Play the best baseball players from over the past 125 years all on your phone.</span> <span class="ls">Draft and strategize to beat the computer or your friends.</span></p>
     <div class="signup" id="signupTop" hidden><button class="btn-signup" id="signUpBtn" type="button">Sign up free</button><p class="signup-note">Just your email. No password. Free to play.</p></div>
     <p class="phone">Made for the few minutes of free time you get in a day: a draft can be paused, a game takes a few minutes, and a league plays one game day at a time. A free account is just your email, no password.</p>
     <p class="howto"><a class="btn btn-main" href="howtoplay.html">How the game is played</a> <a class="btn btn-cards" id="allCardsTop" href="cards.html" hidden>See all 1,430 cards</a></p>
@@ -464,13 +467,26 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
   } else items.forEach(el => el.classList.add('in'));
 })();
 
+// ----- the opening line comes in one sentence at a time, each held long enough to read (all at once for reduced motion or no script) -----
+(() => {
+  const p = document.getElementById('lede'); if (!p || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const parts = Array.from(p.querySelectorAll('.ls')); if (!parts.length) return;
+  p.classList.add('seq'); let i = 0;
+  const next = () => {
+    if (i > 0) parts[i - 1].classList.add('past');
+    if (i >= parts.length) return;
+    const el = parts[i++]; el.classList.add('in');
+    if (i < parts.length) setTimeout(next, Math.max(2600, el.textContent.trim().split(/\s+/).length * 330));
+    else setTimeout(() => el.classList.add('past'), 2600);
+  };
+  setTimeout(next, 500);
+})();
 // ----- the ballpark: fireworks and a home run when you arrive, a crowd roar on your first tap that fades away, and a button to hit more -----
 (() => {
   if (!window.FX) return;
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let hits = 0;
   const swing = () => { hits++; FX.homeRun(hits % 5 === 0 ? { text: 'Bases loaded and it is gone!', runs: 4 } : { text: ['That one is gone!', 'Out of here!', 'Off the foul pole!', 'Over the wall!'][hits % 4], runs: 1 }); };
-  const btn = document.getElementById('hrBtn'); if (btn) btn.addEventListener('click', swing);
   // browsers keep a page silent until you touch it, so the arrival is fireworks and a banner, and the crowd roars on your first tap
   try { if (!calm && !sessionStorage.getItem('cc-arrival')) { sessionStorage.setItem('cc-arrival', '1'); setTimeout(() => FX.homeRun({ text: 'Welcome to the ballpark', runs: 1 }), 900); } } catch (e) {}
   const roar = e => { document.removeEventListener('click', roar, true); document.removeEventListener('touchend', roar, true); if (e.target.closest && e.target.closest('#hrBtn, .fx-sound')) return; try { FX.cheer(); } catch (x) {} };
