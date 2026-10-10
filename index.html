@@ -186,11 +186,12 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
 .hrbtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 20px; border-radius: 22px; border: 2px solid #C0392B; background: #fff; color: #C0392B; font: 700 16px var(--text); cursor: pointer; }
 .hrbtn:active { transform: scale(.97); } .hrbtn:focus-visible { outline: 3px solid #F2B33D; outline-offset: 2px; }
 .board .hrrow { margin: 4px 0 10px; }
-.lede.seq .ls { opacity: 0; display: inline-block; font-weight: 800; border-radius: 8px; padding: 2px 8px; transform-origin: 50% 60%; }
-.lede.seq .ls.in { opacity: 1; animation: lsZoom .85s cubic-bezier(.16,1.1,.3,1) both; background: #FFD86B; color: #14213D; box-shadow: 0 0 0 3px #14213D, 0 6px 18px rgba(20,33,61,.35); transition: background-color .9s ease, box-shadow .9s ease, color .9s ease; }
-.lede.seq .ls.in.past { background: transparent; box-shadow: 0 0 0 3px transparent; color: #1B2430; animation: none; }
+.herotext.seq .ls { opacity: 0; display: inline-block; font-weight: 800; border-radius: 8px; padding: 2px 8px; transform-origin: 50% 60%; }
+.herotext.seq .ls.in { opacity: 1; animation: lsZoom .85s cubic-bezier(.16,1.1,.3,1) both; background: #FFD86B; color: #14213D; box-shadow: 0 0 0 3px #14213D, 0 6px 18px rgba(20,33,61,.35); transition: background-color .9s ease, box-shadow .9s ease, color .9s ease; }
+.herotext.seq .ls.in.past { background: transparent; box-shadow: 0 0 0 3px transparent; color: #1B2430; animation: none; }
+.herotext.seq h1 .ls, .herotext.seq .tag .ls { font-weight: 400; } .herotext.seq h1 .ls.in.past { color: var(--wb-ink); } .herotext.seq .tag .ls.in.past { color: var(--wb-red); }
 @keyframes lsZoom { 0% { opacity: 0; transform: scale(.15); filter: blur(8px); } 55% { opacity: 1; transform: scale(1.22); filter: blur(0); } 78% { transform: scale(.96); } 100% { opacity: 1; transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) { .lede.seq .ls { opacity: 1; transform: none; transition: none; } .lede.seq .ls.in { background: transparent; animation: none; box-shadow: none; } }
+@media (prefers-reduced-motion: reduce) { .herotext.seq .ls { opacity: 1; transform: none; transition: none; } .herotext.seq .ls.in { background: transparent; animation: none; box-shadow: none; } }
 </style>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -206,8 +207,8 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
   <header class="board reveal">
     <img class="logo" src="logo.webp" alt="" width="260" height="260">
     <div class="herotext">
-    <h1>Cooperstown Cash</h1>
-    <p class="tag">Historical baseball simulation leagues</p>
+    <h1><span class="ls">Cooperstown Cash</span></h1>
+    <p class="tag"><span class="ls">Historical baseball simulation leagues</span></p>
     <p class="lede" id="lede"><span class="ls">Do you have what it takes to be an epic manager?</span> <span class="ls">Play the best baseball players from over the past 125 years all on your phone.</span> <span class="ls">Draft and strategize to beat the computer or your friends.</span></p>
     <div class="signup" id="signupTop" hidden><button class="btn-signup" id="signUpBtn" type="button">Sign up free</button><p class="signup-note">Just your email. No password. Free to play.</p></div>
     <p class="phone">Made for the few minutes of free time you get in a day: a draft can be paused, a game takes a few minutes, and a league plays one game day at a time. A free account is just your email, no password.</p>
@@ -470,7 +471,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
 
 // ----- the opening line comes in one sentence at a time, each held long enough to read (all at once for reduced motion or no script) -----
 (() => {
-  const p = document.getElementById('lede'); if (!p || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const p = document.querySelector('.herotext'); if (!p || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const parts = Array.from(p.querySelectorAll('.ls')); if (!parts.length) return;
   // wait for the arrival fireworks and the home run banner to finish, if they are going to play this visit
   let arriving = false; try { arriving = !!window.FX && !sessionStorage.getItem('cc-arrival'); } catch (e) {}
@@ -479,10 +480,10 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     if (i > 0) parts[i - 1].classList.add('past');
     if (i >= parts.length) return;
     const el = parts[i++]; el.classList.add('in');
-    if (i < parts.length) setTimeout(next, Math.max(2600, el.textContent.trim().split(/\s+/).length * 330));
-    else setTimeout(() => el.classList.add('past'), 2600);
+    if (i < parts.length) setTimeout(next, Math.max(1900, el.textContent.trim().split(/\s+/).length * 250));
+    else setTimeout(() => el.classList.add('past'), 2000);
   };
-  setTimeout(next, arriving ? 7500 : 500);
+  setTimeout(next, arriving ? 6000 : 400);
 })();
 // ----- the ballpark: fireworks and a home run when you arrive, a crowd roar on your first tap that fades away, and a button to hit more -----
 (() => {
