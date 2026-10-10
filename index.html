@@ -190,7 +190,7 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
 .herotext.seq .ls { opacity: 0; display: inline-block; font-weight: 800; border-radius: 8px; padding: 2px 8px; transform-origin: 50% 60%; }
 .herotext.seq .ls.in { opacity: 1; animation: lsZoom .85s cubic-bezier(.16,1.1,.3,1) both; background: #FFD86B; color: #14213D; box-shadow: 0 0 0 3px #14213D, 0 6px 18px rgba(20,33,61,.35); transition: background-color .9s ease, box-shadow .9s ease, color .9s ease; }
 .herotext.seq .ls.in.past { background: transparent; box-shadow: 0 0 0 3px transparent; color: #1B2430; animation: none; }
-.herotext.seq h1 .ls, .herotext.seq .tag .ls { font-weight: 400; } .herotext.seq h1 .ls.in.past { color: var(--wb-ink); } .herotext.seq .tag .ls.in.past { color: var(--wb-red); }
+.herotext.seq h1 .ls, .herotext.seq .tag .ls { font-weight: 400; } .herotext.seq h1 .ls { -webkit-text-stroke: 1.6px currentColor; paint-order: stroke fill; font-size: 1.12em; padding: 2px 12px; letter-spacing: .01em; } .herotext.seq h1 .ls.in.past { color: var(--wb-ink); } .herotext.seq .tag .ls.in.past { color: var(--wb-red); }
 @keyframes lsZoom { 0% { opacity: 0; transform: scale(.15); filter: blur(8px); } 55% { opacity: 1; transform: scale(1.22); filter: blur(0); } 78% { transform: scale(.96); } 100% { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .herotext.seq .ls { opacity: 1; transform: none; transition: none; } .herotext.seq .ls.in { background: transparent; animation: none; box-shadow: none; } }
 </style>
@@ -481,10 +481,11 @@ a.lslink { display: inline-flex; align-items: center; min-height: 44px; font-wei
     if (i > 0) parts[i - 1].classList.add('past');
     if (i >= parts.length) return;
     const el = parts[i++]; el.classList.add('in');
-    if (i < parts.length) setTimeout(next, Math.max(1900, el.textContent.trim().split(/\s+/).length * 250));
+    // the title comes in early and holds while the fireworks finish; the lines below wait for them
+    if (i < parts.length) setTimeout(next, i === 1 ? (arriving ? 3200 : 1500) : Math.max(1900, el.textContent.trim().split(/\s+/).length * 250));
     else setTimeout(() => el.classList.add('past'), 2000);
   };
-  setTimeout(next, arriving ? 6000 : 400);
+  setTimeout(next, arriving ? 2300 : 400);
 })();
 // ----- the ballpark: fireworks and a home run when you arrive, a crowd roar on your first tap that fades away, and a button to hit more -----
 (() => {
