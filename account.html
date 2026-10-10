@@ -209,7 +209,7 @@ footer p { margin: 0 0 6px; }
       const sec = $('invSec'); if (!sec) return;
       const r = await c.rpc('my_invitations'); sec.hidden = false;
       if (r.error || !r.data) { sec.innerHTML = '<h2 style="margin-top:0">My invitations</h2><p>We could not load your invitations just now. Please refresh the page.</p>'; return; }
-      const games = r.data.games || [], appr = r.data.approvals || [], wait = r.data.waiting || [], sent = r.data.sent || [], quick = r.data.quick || [];
+      const games = r.data.games || [], appr = r.data.approvals || [], wait = r.data.waiting || [], sent = r.data.sent || [], quick = r.data.quick || [], joined = r.data.joined || [], live = r.data.live || [];
       const CL = (window.PlayInvite && window.PlayInvite.CLUBS) || [];
       const club = k => { if (k === 'DRAFT') return 'a team you will draft'; const x = CL.find(y => y[0] === k); return x ? x[1] + ' ' + x[2] : k; };
       const ago = t => { const m = Math.max(0, Math.round((Date.now() - new Date(t).getTime()) / 60000)); if (!(m >= 0)) return ''; if (m < 2) return 'just now'; if (m < 60) return m + ' minutes ago'; const h = Math.round(m / 60); if (h < 48) return h + (h === 1 ? ' hour ago' : ' hours ago'); return Math.round(h / 24) + ' days ago'; };
@@ -224,9 +224,11 @@ footer p { margin: 0 0 6px; }
       const QS = { pending: 'waiting for an answer', accepted: 'said yes', declined: 'said not now', expired: 'did not answer in time', cancelled: 'you canceled it' };
       const sl = sent.map(x => `<li><b>${x.label ? esc(x.label) : 'No name given'}</b><span class="note">${esc(HOW[x.method] || x.method)} &middot; ${x.kind === 'league' ? 'for ' + esc(x.league_name || 'your league') : 'for a friend game'} &middot; ${esc(ago(x.created_at))}</span></li>`).join('');
       const ql = quick.map(x => `<li><b>${esc(x.name)}</b><span class="note">Quick invite to play &middot; ${esc(QS[x.status] || x.status)} &middot; ${esc(ago(x.created_at))}</span></li>`).join('');
+      const jl = joined.map(x => `<li><b>You said yes to ${esc(x.host_name)}</b><span class="note">${x.mode === 'draft' ? 'A draft game' : 'You are playing as ' + esc(club(x.team))}. Waiting for someone to tap Play ball. Sent ${esc(ago(x.created_at))}.</span><div style="${row}"><a class="btn btn-main" href="friend.html?g=${encodeURIComponent(x.id)}">Open game</a></div></li>`).join('');
+      const ll = live.map(x => `<li><b>Game in progress against ${esc(x.opp_name)}</b><span class="note">Started ${esc(ago(x.started_at))}. If you are away, the computer makes your calls, and you can jump back in any time.</span><div style="${row}"><a class="btn btn-main" href="friend-play.html?g=${encodeURIComponent(x.id)}">Jump back in</a></div></li>`).join('');
       const grp = (title, html) => html ? `<h3 style="margin:14px 0 6px;font-size:16px">${title}</h3><ul class="acl">${html}</ul>` : '';
-      const any = games.length || appr.length || wait.length || sent.length || quick.length;
-      sec.innerHTML = `<h2 style="margin-top:0">My invitations</h2>${any ? `${grp('Games waiting on a friend', gl)}${grp('Waiting for your approval', al)}${grp('Your requests to join', wl)}${grp('Invites you sent', sl)}${grp('Quick invites, last 24 hours', ql)}` : '<p>No invitations are waiting right now.</p>'}
+      const any = games.length || appr.length || wait.length || sent.length || quick.length || joined.length || live.length;
+      sec.innerHTML = `<h2 style="margin-top:0">My invitations</h2>${any ? `${grp('Games in progress', ll)}${grp('Games you said yes to', jl)}${grp('Games waiting on a friend', gl)}${grp('Waiting for your approval', al)}${grp('Your requests to join', wl)}${grp('Invites you sent', sl)}${grp('Quick invites, last 24 hours', ql)}` : '<p>No invitations are waiting right now.</p>'}
         <p class="note" style="margin-top:12px">Names show only if you typed one in the box next to the invite. We note which button you used, not whether you actually sent it, because we can not see your email or texts. Invites you sent stay here for up to 14 days. A quick invite to someone who is online lasts about a minute and also shows at the bottom of your screen.</p>
         <p id="invMsg" class="note" role="status" aria-live="polite"></p>`;
       sec.querySelectorAll('[data-icopy]').forEach(b => b.onclick = async () => {
