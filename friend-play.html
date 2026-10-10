@@ -1407,7 +1407,15 @@ body.war .dec { color: var(--wb-red); }
   }
   async function friendFinish() {
     if (FR.finished) return; FR.finished = true;
-    try { await rpc('friend_finish', { p_id: FR.id, p_away: g.teams[0].runs, p_home: g.teams[1].runs }); } catch (e) {}
+    try {
+      const r = await rpc('friend_finish', { p_id: FR.id, p_away: g.teams[0].runs, p_home: g.teams[1].runs }), d = r && r.data;
+      // a game the computer mostly played for one side does not count toward either record, and we say so
+      if (d && d.counted === false && !$('uncNote')) {
+        const p = document.createElement('p'); p.className = 'note'; p.id = 'uncNote'; p.setAttribute('role', 'status');
+        p.textContent = d.them_away && !d.you_away ? `${oppName} was away for most of this game, so it will not count toward either record.` : d.you_away && !d.them_away ? 'You were away for most of this game, so it will not count toward either record.' : 'The computer made the calls for most of this game, so it will not count toward either record.';
+        const h = $('hint'), host = $('right'); if (h) h.insertAdjacentElement('afterend', p); else if (host) host.prepend(p);
+      }
+    } catch (e) {}
   }
   function showFriendCta() {
     const host = $('right'); if (!host) return; const old = $('friendsBox'); if (old) old.remove();
